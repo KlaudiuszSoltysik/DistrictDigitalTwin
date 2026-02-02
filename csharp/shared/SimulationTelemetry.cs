@@ -2,7 +2,7 @@
 
 namespace backend.Contracts;
 
-public record SimulationTelemetry
+public class SimulationTelemetry
 {
     public DateTime Timestamp { get; init; }
 
@@ -13,7 +13,7 @@ public record SimulationTelemetry
 
 }
 
-public record WeatherData
+public class WeatherData
 {
     public double Temperature { get; init; }
 

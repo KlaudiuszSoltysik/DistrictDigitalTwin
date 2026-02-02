@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "website", "website\website.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "api", "api\api.csproj", "{97240DF1-80A0-4F83-B52D-DCD3E27DC4F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "shared", "shared\shared.csproj", "{CD9FA09F-9A72-4371-A855-E57D6687F058}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{97240DF1-80A0-4F83-B52D-DCD3E27DC4F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{97240DF1-80A0-4F83-B52D-DCD3E27DC4F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{97240DF1-80A0-4F83-B52D-DCD3E27DC4F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD9FA09F-9A72-4371-A855-E57D6687F058}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD9FA09F-9A72-4371-A855-E57D6687F058}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD9FA09F-9A72-4371-A855-E57D6687F058}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD9FA09F-9A72-4371-A855-E57D6687F058}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

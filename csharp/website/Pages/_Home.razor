@@ -1,0 +1,628 @@
+﻿@page "/"
+
+<PageTitle>_Home</PageTitle>
+
+<div class="w-3/4 mx-auto select-none">
+    <p class="text-xl font-bold mb-2">Connection status: @_connectionStatus</p>
+
+    <p class="text-xl font-bold">Simulation controls</p>
+
+    <div class="py-4 space-y-4">
+        <div class="flex justify-center">
+            <fieldset class="flex text-white">
+                <label for="mode-manual"
+                       class="px-4 py-2 cursor-pointer rounded-l-xl
+                      @( !IsAuto ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-800" )">
+                    Manual
+                    <input type="radio"
+                           id="mode-manual"
+                           name="modeSelection"
+                           value="Manual"
+                           hidden
+                           checked="@(!IsAuto)"
+                           @onchange="() => IsAuto = false">
+                </label>
+
+                <label for="mode-auto"
+                       class="px-4 py-2 cursor-pointer rounded-r-xl
+                      @( IsAuto ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-800" )">
+                    Auto
+                    <input type="radio"
+                           id="mode-auto"
+                           name="modeSelection"
+                           value="Auto"
+                           hidden
+                           checked="@(IsAuto)"
+                           @onchange="() => IsAuto = true">
+                </label>
+            </fieldset>
+        </div>
+
+        <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
+            <label for="speedFactorSlider" class="sm:col-span-1 min-h-6 flex items-center">
+                Simulation speed:
+            </label>
+
+            <div class="sm:col-span-2 flex items-center min-h-6">
+                <input type="range"
+                       min="0"
+                       max="2"
+                       step="1"
+                       @bind="SliderIndex"
+                       @bind:event="oninput"
+                       @bind:after="UpdateSpeedFactorValue"
+                       id="speedFactorSlider"
+                       class="w-full"/>
+                <span class="w-25 text-right">@_parameters.SpeedFactor.ToString("F0")x</span>
+            </div>
+        </div>
+
+        @if (!IsAuto)
+        {
+           <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
+                <label for="tempInput" class="sm:col-span-1 min-h-6 flex items-center">
+                    External temperature:
+                </label>
+                <div class="sm:col-span-2 flex items-center min-h-6">
+                    <input type="range"
+                           min="-20"
+                           max="40"
+                           step="0.2"
+                           @bind="_parameters.Temp"
+                           @bind:event="oninput"
+                           id="tempInput"
+                           class="w-full"/>
+                    <span class="w-25 text-right">@_parameters.Temp °C</span>
+                </div>
+            </div>
+
+            <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
+                <label for="windSpeedInput" class="sm:col-span-1 min-h-6 flex items-center">
+                    Wind speed:
+                </label>
+                <div class="sm:col-span-2 flex items-center min-h-6">
+                    <input type="range"
+                           min="0"
+                           max="15"
+                           step="0.1"
+                           @bind="_parameters.WindSpeed"
+                           @bind:event="oninput"
+                           id="windSpeedInput"
+                           class="w-full"/>
+                    <span class="w-25 text-right">@_parameters.WindSpeed m/s</span>
+                </div>
+            </div>
+
+            <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
+                <label for="windDirInput" class="sm:col-span-1 min-h-6 flex items-center">
+                    Wind direction:
+                </label>
+                <div class="sm:col-span-2 flex items-center min-h-6">
+                    <input type="range"
+                           min="0"
+                           max="360"
+                           step="1"
+                           @bind="_parameters.WindDir"
+                           @bind:event="oninput"
+                           id="windDirInput"
+                           class="w-full"/>
+                    <span class="w-25 text-right">@_parameters.WindDir °</span>
+                </div>
+            </div>
+
+            <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
+                <label for="sunRadInput" class="sm:col-span-1 min-h-6 flex items-center">
+                    Solar radiation:
+                </label>
+                <div class="sm:col-span-2 flex items-center min-h-6">
+                    <input type="range"
+                           min="0"
+                           max="1000"
+                           step="5"
+                           @bind="_parameters.SunRadiation"
+                           @bind:event="oninput"
+                           id="sunRadInput"
+                           class="w-full"/>
+                    <span class="w-25 text-right">@_parameters.SunRadiation W/m²</span>
+                </div>
+            </div>
+
+            <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
+                <label for="sunAltInput" class="sm:col-span-1 min-h-6 flex items-center">
+                    Solar altitude:
+                </label>
+                <div class="sm:col-span-2 flex items-center min-h-6">
+                    <input type="range"
+                           min="0"
+                           max="60"
+                           step="0.25"
+                           @bind="_parameters.SunAltitude"
+                           @bind:event="oninput"
+                           id="sunAltInput"
+                           class="w-full"/>
+                    <span class="w-25 text-right">@_parameters.SunAltitude.ToString("F2", CultureInfo.CurrentCulture) °</span>
+                </div>
+            </div>
+
+            <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
+                <label for="sunAzInput" class="sm:col-span-1 min-h-6 flex items-center">
+                    Solar azimuth:
+                </label>
+                <div class="sm:col-span-2 flex items-center min-h-6">
+                    <input type="range"
+                           min="0"
+                           max="360"
+                           step="1"
+                           @bind="_parameters.SunAzimuth"
+                           @bind:event="oninput"
+                           id="sunAzInput"
+                           class="w-full"/>
+                    <span class="w-25 text-right">@_parameters.SunAzimuth.ToString("F0", CultureInfo.CurrentCulture) °</span>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button @onclick="SendParameters"
+            disabled="@(_hubConnection?.State != HubConnectionState.Connected)"
+            class="bg-blue-500 cursor-pointer hover:bg-blue-700 px-4 py-2 text-white font-bold rounded transition-colors duration-200 ease-in-out mb-2">
+        Send
+    </button>
+
+    <p class="text-xl font-bold my-4">@_simTimestamp.ToString("dd.MM.yyyy HH:mm")</p>
+
+    @if (_weatherChartData.Any())
+    {
+        <div class="grid md:grid-cols-2">
+            <ApexChart TItem="WeatherDataPoint" Title="External temperature" Options="_chart1Options" @ref="_chart1">
+                <ApexPointSeries TItem="WeatherDataPoint"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Temperature"
+                                 Items="_weatherChartData"
+                                 XValue="@(d => d.Timestamp)"
+                                 YValue="@(d => (decimal?)d.Temp)" />
+            </ApexChart>
+
+            <ApexChart TItem="WeatherDataPoint" Title="Wind" Options="_chart2Options" @ref="_chart2">
+                <ApexPointSeries TItem="WeatherDataPoint"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Wind speed"
+                                 Items="_weatherChartData"
+                                 XValue="@(d => d.Timestamp)"
+                                 YValue="@(d => (decimal?)d.WindSpeed)" />
+                <ApexPointSeries TItem="WeatherDataPoint"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Wind direction"
+                                 Items="_weatherChartData"
+                                 XValue="@(d => d.Timestamp)"
+                                 YValue="@(d => (decimal?)d.WindDir)" />
+            </ApexChart>
+
+            <ApexChart TItem="WeatherDataPoint" Title="Direct normal irradiance" Options="_chart3Options" @ref="_chart3">
+                <ApexPointSeries TItem="WeatherDataPoint"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Solar radiation"
+                                 Items="_weatherChartData"
+                                 XValue="@(d => d.Timestamp)"
+                                 YValue="@(d => (decimal?)d.SunRadiation)" />
+            </ApexChart>
+
+            <ApexChart TItem="WeatherDataPoint" Title="Sun angle" Options="_chart4Options" @ref="_chart4">
+                <ApexPointSeries TItem="WeatherDataPoint"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Sun altitude"
+                                 Items="_weatherChartData"
+                                 XValue="@(d => d.Timestamp)"
+                                 YValue="@(d => (decimal?)d.SunAltitude)" />
+                <ApexPointSeries TItem="WeatherDataPoint"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Sun azimuth"
+                                 Items="_weatherChartData"
+                                 XValue="@(d => d.Timestamp)"
+                                 YValue="@(d => (decimal?)d.SunAzimuth)"/>
+            </ApexChart>
+        </div>
+
+        <ApexChart TItem="TemperatureDataPoint" Title="Internal temperature" Options="_chart5Options" @ref="_chart5">
+            @foreach (var kvp in _temperatureHistory)
+            {
+                <ApexPointSeries TItem="TemperatureDataPoint"
+                                 SeriesType="SeriesType.Line"
+                                 Name="@kvp.Key"
+                                 Items="kvp.Value"
+                                 XValue="@(d => d.Timestamp)"
+                                 YValue="@(d => (decimal?)d.Value)" />
+            }
+        </ApexChart>
+    }
+
+    <canvas id="renderCanvas" class="border cursor-crosshair w-full my-4"></canvas>
+</div>
+
+@inject IJSRuntime Js
+@inject IConfiguration Config
+@inject NavigationManager NavManager
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Js.InvokeVoidAsync("loadBabylonScene");
+        }
+    }
+
+    private bool IsAuto { get; set; } = true;
+    private readonly double[] _speedFactorValues = [100, 1000, 10000];
+    private int SliderIndex { get; set; } = 1;
+    private HubConnection? _hubConnection;
+    private string _connectionStatus = "Disconnected";
+
+    private SimulationParameters _parameters = new();
+    private DateTime _simTimestamp = DateTime.Now;
+    private readonly List<(DateTime Timestamp, WeatherData Weather)> _weatherHistory = [];
+    private readonly Dictionary<string, List<TemperatureDataPoint>> _temperatureHistory = new();
+
+    private ApexChart<WeatherDataPoint> _chart1 = new();
+    private ApexChart<WeatherDataPoint> _chart2 = new();
+    private ApexChart<WeatherDataPoint> _chart3 = new();
+    private ApexChart<WeatherDataPoint> _chart4 = new();
+    private ApexChart<TemperatureDataPoint> _chart5 = new();
+    private ApexChartOptions<WeatherDataPoint>? _chart1Options;
+    private ApexChartOptions<WeatherDataPoint>? _chart2Options;
+    private ApexChartOptions<WeatherDataPoint>? _chart3Options;
+    private ApexChartOptions<WeatherDataPoint>? _chart4Options;
+    private ApexChartOptions<TemperatureDataPoint>? _chart5Options;
+    private readonly List<WeatherDataPoint> _weatherChartData = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        PrepareCharts();
+        UpdateSpeedFactorValue();
+
+        var baseUrl = Config["ApiSettings:BaseUrl"];
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri($"{baseUrl}/simulation-hub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<SimulationData>("UpdateSimulationData", async data =>
+        {
+            if (IsAuto)
+            {
+                _parameters.Temp = data.Weather.Temp;
+                _parameters.WindSpeed = data.Weather.WindSpeed;
+                _parameters.WindDir = data.Weather.WindDir;
+                _parameters.SunRadiation = data.Weather.SunRadiation;
+                _parameters.SunAltitude = data.Weather.SunAltitude;
+                _parameters.SunAzimuth = data.Weather.SunAzimuth;
+            }
+
+            _simTimestamp = data.SimTimestamp;
+
+            StateHasChanged();
+
+            var labelText =
+                $"Temperature: {data.Weather.Temp.ToString("F1", CultureInfo.CurrentCulture)} °C\n" +
+                $"Wind speed: {data.Weather.WindSpeed.ToString("F1", CultureInfo.CurrentCulture)} m/s\n" +
+                $"Wind direction: {data.Weather.WindDir.ToString("F0", CultureInfo.CurrentCulture)} °\n" +
+                $"Solar radiation: {data.Weather.SunRadiation.ToString("F0", CultureInfo.CurrentCulture)} W/m²\n" +
+                $"Sun altitude: {data.Weather.SunAltitude.ToString("F2", CultureInfo.CurrentCulture)} °\n" +
+                $"Sun azimuth: {data.Weather.SunAzimuth.ToString("F0", CultureInfo.CurrentCulture)} °";
+
+            await Js.InvokeVoidAsync("updateLabel", "external", labelText);
+
+            foreach (var temp in data.Temperatures)
+            {
+                await Js.InvokeVoidAsync("updateLabel", temp.Key, $"Temperature: {temp.Value.ToString("F2", CultureInfo.CurrentCulture)} °C");
+            }
+
+            var cutoffDate = _simTimestamp.AddDays(-2);
+
+            _weatherHistory.Add((_simTimestamp, data.Weather));
+            _weatherHistory.RemoveAll(point => point.Timestamp < cutoffDate);
+
+            var newPoint = new WeatherDataPoint
+            {
+                Timestamp = _simTimestamp,
+                Temp = data.Weather.Temp,
+                WindSpeed = data.Weather.WindSpeed,
+                WindDir = data.Weather.WindDir,
+                SunRadiation = data.Weather.SunRadiation,
+                SunAltitude = data.Weather.SunAltitude,
+                SunAzimuth = data.Weather.SunAzimuth
+            };
+
+            _weatherChartData.Add(newPoint);
+            _weatherChartData.RemoveAll(x => x.Timestamp < cutoffDate);
+
+            foreach (var (roomName, newValue) in data.Temperatures)
+            {
+                if (!_temperatureHistory.ContainsKey(roomName))
+                {
+                    _temperatureHistory[roomName] = [];
+                }
+
+                _temperatureHistory[roomName].Add(new TemperatureDataPoint
+                {
+                    Timestamp = _simTimestamp,
+                    Value = newValue
+                });
+                _temperatureHistory[roomName].RemoveAll(point => point.Timestamp < cutoffDate);
+            }
+
+            await _chart1.UpdateSeriesAsync();
+            await _chart2.UpdateSeriesAsync();
+            await _chart3.UpdateSeriesAsync();
+            await _chart4.UpdateSeriesAsync();
+            await _chart5.UpdateSeriesAsync();
+        });
+
+        _hubConnection.On<SimulationParameters>("UpdateSimulationParameters", data =>
+        {
+            _parameters = data;
+            StateHasChanged();
+        });
+
+        try
+        {
+            await _hubConnection.StartAsync();
+            _connectionStatus = "Connected";
+        }
+        catch (Exception ex)
+        {
+            _connectionStatus = $"Error: {ex.Message}.";
+        }
+    }
+
+    private void UpdateSpeedFactorValue()
+    {
+        _parameters.SpeedFactor = _speedFactorValues[SliderIndex];
+        StateHasChanged();
+    }
+
+    private async Task SendParameters()
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            Console.WriteLine(IsAuto);
+            Console.WriteLine(_parameters.IsAuto);
+            _parameters.IsAuto = IsAuto;
+            Console.WriteLine(IsAuto);
+            Console.WriteLine(_parameters.IsAuto);
+            await _hubConnection.InvokeAsync("SendParameters", _parameters);
+        }
+    }
+
+    private void PrepareCharts()
+    {
+        _chart1Options = new ApexChartOptions<WeatherDataPoint>
+        {
+            Chart = new Chart
+            {
+                Height = 300,
+                Toolbar = new Toolbar { Show = false },
+                Type = ChartType.Line,
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.MonotoneCubic,
+                Width = new List<double> { 2 },
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM HH:mm" },
+                Y = new TooltipY
+                {
+                    Formatter = "function(val) { return val.toFixed(2); }"
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels { Format = "HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false },
+                Type = XAxisType.Datetime,
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Min = -20,
+                    Max = 40,
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(val) { return val.toFixed(0) + '°C'; }"
+                    }
+                }
+            ]
+        };
+
+        _chart2Options = new ApexChartOptions<WeatherDataPoint>
+        {
+            Chart = new Chart
+            {
+                Height = 300,
+                Toolbar = new Toolbar { Show = false },
+                Type = ChartType.Line,
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.MonotoneCubic,
+                Width = new List<double> { 2 }
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM HH:mm" },
+                Y = new TooltipY
+                {
+                    Formatter = "function(val) { return val.toFixed(2); }"
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels { Format = "HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false },
+                Type = XAxisType.Datetime
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Min = 0,
+                    Max = 15,
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(val) { return val.toFixed(0) + 'm/s'; }"
+                    }
+                },
+                new YAxis
+                {
+                    Min = 0,
+                    Max = 360,
+                    Opposite = true,
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(val) { return val.toFixed(0) + '°'; }"
+                    }
+                }
+            ]
+        };
+
+        _chart3Options = new ApexChartOptions<WeatherDataPoint>
+        {
+            Chart = new Chart
+            {
+                Height = 300,
+                Toolbar = new Toolbar { Show = false },
+                Type = ChartType.Line,
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.MonotoneCubic,
+                Width = new List<double> { 2 }
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM HH:mm" },
+                Y = new TooltipY
+                {
+                    Formatter = "function(val) { return val.toFixed(2); }"
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels { Format = "HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false },
+                Type = XAxisType.Datetime
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Min = 0,
+                    Max = 1000,
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(val) { return val.toFixed(0) + ' W/m²'; }"
+                    }
+                }
+            ]
+        };
+
+        _chart4Options = new ApexChartOptions<WeatherDataPoint>
+        {
+            Chart = new Chart
+            {
+                Height = 300,
+                Toolbar = new Toolbar { Show = false },
+                Type = ChartType.Line,
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.MonotoneCubic,
+                Width = new List<double> { 2 }
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM HH:mm" },
+                Y = new TooltipY
+                {
+                    Formatter = "function(val) { return val.toFixed(2); }"
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels { Format = "HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false },
+                Type = XAxisType.Datetime
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Min = -60,
+                    Max = 60,
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(val) { return val.toFixed(0) + '°'; }"
+                    }
+                },
+                new YAxis
+                {
+                    Min = 0,
+                    Max = 360,
+                    Opposite = true,
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(val) { return val.toFixed(0) + '°'; }"
+                    }
+                }
+            ]
+        };
+
+        _chart5Options = new ApexChartOptions<TemperatureDataPoint>
+        {
+            Chart = new Chart
+            {
+                Height = 300,
+                Toolbar = new Toolbar { Show = false },
+                Type = ChartType.Line,
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.MonotoneCubic,
+                Width = new List<double> { 2 },
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM HH:mm" },
+                Y = new TooltipY
+                {
+                    Formatter = "function(val) { return val.toFixed(2); }"
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels { Format = "HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false },
+                Type = XAxisType.Datetime
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = "function(val) { return val.toFixed(0) + '°C'; }"
+                    }
+                }
+            ]
+        };
+    }
+}

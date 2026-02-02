@@ -1,16 +1,18 @@
-﻿using MassTransit;
-using backend.Contracts;
+﻿using backend.Contracts;
+using backend.Hubs;
+using MassTransit;
+using Microsoft.AspNetCore.SignalR;
 
 namespace backend.Consumers;
 
-public class TelemetryConsumer : IConsumer<SimulationTelemetry>
+public class TelemetryConsumer(IHubContext<SimulationHub> hubContext) : IConsumer<SimulationTelemetry>
 {
-    public Task Consume(ConsumeContext<SimulationTelemetry> context)
+    public async Task Consume(ConsumeContext<SimulationTelemetry> context)
     {
         var msg = context.Message;
 
-        Console.WriteLine($"[RabbitMQ] Otrzymano krok symulacji! Czas: {msg.Timestamp}, Temp: {msg.Weather.Temperature}°C, Pokoi: {msg.RoomTemperatures.Count}");
+        Console.WriteLine($"[RabbitMQ] Received: timestamp: {msg.Timestamp}");
 
-        return Task.CompletedTask;
+        await hubContext.Clients.All.SendAsync("ReceiveSimulationData", msg);
     }
 }

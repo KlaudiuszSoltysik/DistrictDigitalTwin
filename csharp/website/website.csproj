@@ -75,6 +75,10 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\shared\shared.csproj" />
+    </ItemGroup>
+
   <Target Name="Tailwind" BeforeTargets="Build;Publish">
     <Exec Command="npm install" />
     <Exec Command="npm run build" />

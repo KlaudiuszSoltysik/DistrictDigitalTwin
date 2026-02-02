@@ -1,5 +1,6 @@
 using backend;
 using backend.Consumers;
+using backend.Hubs;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -29,6 +30,7 @@ builder.Services.AddMassTransit(x =>
 
         cfg.ReceiveEndpoint("district.telemetry", e =>
         {
+            e.UseRawJsonSerializer();
             e.ConfigureConsumer<TelemetryConsumer>(context);
         });
     });
@@ -45,9 +47,10 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .SetIsOriginAllowed(_ => true)
+            .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowCredentials();
     });
 });
 
@@ -63,7 +66,7 @@ app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
 
-// app.MapHub<SimulationHub>("/hubs/simulation");
+app.MapHub<SimulationHub>("/hubs/simulation");
 
 app.Run();
 

@@ -2,8 +2,9 @@
 from os import getenv
 from threading import Lock, Thread
 from time import sleep, time
+from dotenv import load_dotenv
 
-from pika import BlockingConnection, URLParameters, exceptions
+from pika import BlockingConnection, URLParameters, exceptions, DeliveryMode, BasicProperties
 
 from DistrictSimulation import DistrictSimulation
 
@@ -16,6 +17,7 @@ class SimulationService:
 
         self.simulation = DistrictSimulation("district_config.yaml", "weather_history.csv")
 
+        # TODO: lock autostart
         self.lock = Lock()
         self.is_started = True
         self.simulation_speed = 5
@@ -74,10 +76,10 @@ class SimulationService:
                 elif action == "UPDATE_CONFIG":
                     if "simulation_speed" in payload:
                         self.simulation_speed = float(payload["simulation_speed"])
-                        print(f"⏩ Prędkość zmieniona na: x{self.simulation_speed}")
+                        print(f"Simulation speed changed to: x{self.simulation_speed}")
                     if "simulation_step" in payload:
                         self.simulation_step = int(payload["simulation_step"])
-                        print(f"⏱️ Krok symulacji zmieniony na: {self.simulation_step}s")
+                        print(f"Simulation step changed to: {self.simulation_step}s")
 
     def _run_physics_loop(self):
         pub_connection = self._connect_with_retry()
@@ -102,8 +104,14 @@ class SimulationService:
                 pub_channel.basic_publish(
                     exchange='',
                     routing_key='district.telemetry',
-                    body=dumps(simulation_result)
+                    body=dumps(simulation_result),
+                    properties=BasicProperties(
+                        content_type='application/json',
+                        delivery_mode=DeliveryMode.Persistent
+                    )
                 )
+
+                print(f"Telemetry has been sent: {simulation_result}")
 
                 target_sleep = step / speed
 
@@ -117,5 +125,6 @@ class SimulationService:
 
 
 if __name__ == "__main__":
+    load_dotenv()
     service = SimulationService()
     service.start()

@@ -29,7 +29,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Utils\" />
+      <ProjectReference Include="..\shared\shared.csproj" />
     </ItemGroup>
 
     <PropertyGroup>
