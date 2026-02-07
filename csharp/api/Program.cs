@@ -1,8 +1,5 @@
-using backend;
-using backend.Consumers;
-using backend.Hubs;
+using api;
 using MassTransit;
-using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,11 +12,11 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<TelemetryConsumer>();
 
-    x.UsingRabbitMq((context, cfg) =>
+    x.UsingRabbitMq((ctx, cfg) =>
     {
         var connectionString = builder.Configuration.GetConnectionString("RabbitMqConnection");
 
-        var uri = new Uri(connectionString ?? throw new InvalidOperationException(message: "Invalid connection string."));
+        var uri = new Uri(connectionString ?? throw new InvalidOperationException("Invalid connection string."));
 
         cfg.Host(uri.Host, (ushort)uri.Port, uri.AbsolutePath, h =>
         {
@@ -28,19 +25,14 @@ builder.Services.AddMassTransit(x =>
             h.Password(parts[1]);
         });
 
-        cfg.ReceiveEndpoint("district.telemetry", e =>
+        cfg.ReceiveEndpoint("cache-service-queue", e =>
         {
+            e.Bind("district.telemetry.exchange");
             e.UseRawJsonSerializer();
-            e.ConfigureConsumer<TelemetryConsumer>(context);
+            e.ConfigureConsumer<TelemetryConsumer>(ctx);
         });
     });
 });
-
-if (builder.Environment.EnvironmentName != "Testing")
-{
-    builder.Services.AddDbContext<PostgresContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
-}
 
 builder.Services.AddCors(options =>
 {
@@ -53,6 +45,8 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
+
+builder.Services.AddSingleton<HistoryCacheService>();
 
 var app = builder.Build();
 

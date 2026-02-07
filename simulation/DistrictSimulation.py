@@ -64,7 +64,7 @@ class DistrictSimulation:
             return {
                 "timestamp": output_timestamp,
                 "weather": weather_clean,
-                "room_temps": room_temps
+                "room_temperatures": room_temps
             }
         except Exception as e:
             print(e)

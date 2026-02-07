@@ -1,220 +1,105 @@
 ﻿@page "/"
-@using backend.Contracts
-@using BlazorApexCharts
 
-@inject IJSRuntime Js
 @inject IConfiguration Config
-@inject NavigationManager NavManager
+@using shared
 @implements IAsyncDisposable
 
-<PageTitle>_Home</PageTitle>
+<PageTitle>Smart District Dashboard</PageTitle>
 
-<div class="w-3/4 mx-auto select-none">
-    <p class="text-xl font-bold mb-2">Connection status: @_connectionStatus</p>
+<h3>Pulpit Symulacji</h3>
 
-    <p class="text-xl font-bold">Simulation controls</p>
-
-    <div class="py-4 space-y-4">
-        <div class="flex justify-center">
-            <fieldset class="flex text-white">
-                <label for="mode-manual" class="px-4 py-2 cursor-pointer rounded-l-xl @( !IsAuto ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-800" )">
-                    Manual
-                    <input type="radio" id="mode-manual" name="modeSelection" value="Manual" hidden checked="@(!IsAuto)" @onchange="() => IsAuto = false">
-                </label>
-                <label for="mode-auto" class="px-4 py-2 cursor-pointer rounded-r-xl @( IsAuto ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-800" )">
-                    Auto
-                    <input type="radio" id="mode-auto" name="modeSelection" value="Auto" hidden checked="@(IsAuto)" @onchange="() => IsAuto = true">
-                </label>
-            </fieldset>
-        </div>
-
-        <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
-            <label for="speedFactorSlider" class="sm:col-span-1 min-h-6 flex items-center">Simulation speed:</label>
-            <div class="sm:col-span-2 flex items-center min-h-6">
-                <input type="range" min="0" max="2" step="1" @bind="SliderIndex" @bind:event="oninput" @bind:after="UpdateSpeedFactorValue" id="speedFactorSlider" class="w-full"/>
-                <span class="w-25 text-right">@_parameters.SpeedFactor.ToString("F0")x</span>
-            </div>
-        </div>
-
-        @if (!IsAuto)
-        {
-           <div class="grid gap-2 grid-cols-1 sm:grid-cols-3 items-center">
-                <label class="sm:col-span-1 min-h-6 flex items-center">External temperature:</label>
-                <div class="sm:col-span-2 flex items-center min-h-6">
-                    <input type="range" min="-20" max="40" step="0.2" @bind="_parameters.Temp" @bind:event="oninput" class="w-full"/>
-                    <span class="w-25 text-right">@_parameters.Temp °C</span>
-                </div>
-            </div>
-        }
-    </div>
-
-    <button @onclick="SendParameters" disabled="@(_hubConnection?.State != HubConnectionState.Connected)" class="bg-blue-500 cursor-pointer hover:bg-blue-700 px-4 py-2 text-white font-bold rounded transition-colors duration-200 ease-in-out mb-2">
-        Send
-    </button>
-
-    <p class="text-xl font-bold my-4">@_simTimestamp.ToString("dd.MM.yyyy HH:mm")</p>
-
-    @if (_weatherChartData.Any())
-    {
-        <div class="grid md:grid-cols-2">
-            <ApexChart TItem="WeatherDataPoint" Title="External temperature" Options="_chart1Options" @ref="_chart1">
-                <ApexPointSeries TItem="WeatherDataPoint" SeriesType="SeriesType.Line" Name="Temperature" Items="_weatherChartData" XValue="@(d => d.Timestamp)" YValue="@(d => (decimal?)d.Temp)" />
-            </ApexChart>
-             <ApexChart TItem="WeatherDataPoint" Title="Wind" Options="_chart2Options" @ref="_chart2">
-                <ApexPointSeries TItem="WeatherDataPoint" SeriesType="SeriesType.Line" Name="Wind speed" Items="_weatherChartData" XValue="@(d => d.Timestamp)" YValue="@(d => (decimal?)d.WindSpeed)" />
-                <ApexPointSeries TItem="WeatherDataPoint" SeriesType="SeriesType.Line" Name="Wind direction" Items="_weatherChartData" XValue="@(d => d.Timestamp)" YValue="@(d => (decimal?)d.WindDir)" />
-            </ApexChart>
-        </div>
-
-        <ApexChart TItem="TemperatureDataPoint" Title="Internal temperature" Options="_chart5Options" @ref="_chart5">
-            @foreach (var kvp in _temperatureHistory)
-            {
-                <ApexPointSeries TItem="TemperatureDataPoint" SeriesType="SeriesType.Line" Name="@kvp.Key" Items="kvp.Value" XValue="@(d => d.Timestamp)" YValue="@(d => (decimal?)d.Value)" />
-            }
-        </ApexChart>
-    }
-
-    <canvas id="renderCanvas" class="border cursor-crosshair w-full my-4"></canvas>
+<div class="mb-3">
+    <strong>Status:</strong> <span style="color: @(IsConnected ? "green" : "red")">@_connectionStatus</span>
+    <span> | Załadowana historia: <strong>@_historyList.Count</strong> punktów</span>
 </div>
 
+@if (_telemetryData == null && _historyList.Count == 0)
+{
+    <p><em>Łączenie i pobieranie danych...</em></p>
+}
+else
+{
+    <div style="display: flex; gap: 20px;">
+
+        <div style="flex: 1; border: 1px solid #ccc; padding: 10px;">
+            <h4>Ostatni odczyt</h4>
+            @if (_telemetryData != null)
+            {
+                <pre
+                    style="font-size: 0.8em;">@JsonSerializer.Serialize(_telemetryData, new JsonSerializerOptions { WriteIndented = true })</pre>
+            }
+            else
+            {
+                <p>Czekam na nowy punkt...</p>
+            }
+        </div>
+
+        <div style="flex: 1; border: 1px solid #ccc; padding: 10px;">
+            <h4>Ostatnie 7 dni (Cache)</h4>
+            <div style="height: 400px; overflow-y: scroll;">
+                <table class="table table-sm text-xs">
+                    <thead>
+                    <tr>
+                        <th>Czas</th>
+                        <th>Temp Zew.</th>
+                        <th>Pokoje</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Enumerable.Reverse(_historyList))
+                    {
+                        <tr>
+                            <td>@item.Timestamp.ToString("dd.MM HH:mm")</td>
+                            <td>@(item.Weather.Temperature.ToString("F1")) °C</td>
+                            <td>@(item.RoomTemperatures.Count)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    public class WeatherDataPoint
-    {
-        public DateTime Timestamp { get; set; }
-        public double Temp { get; set; }
-        public double WindSpeed { get; set; }
-        public double WindDir { get; set; }
-        public double SunRadiation { get; set; }
-        public double SunAltitude { get; set; }
-        public double SunAzimuth { get; set; }
-    }
-
-    public class TemperatureDataPoint
-    {
-        public DateTime Timestamp { get; set; }
-        public double Value { get; set; }
-    }
-
-    public class SimulationParameters
-    {
-        public bool IsAuto { get; set; } = true;
-        public double SpeedFactor { get; set; } = 1.0;
-        public double Temp { get; set; }
-        public double WindSpeed { get; set; }
-        public double WindDir { get; set; }
-        public double SunRadiation { get; set; }
-        public double SunAltitude { get; set; }
-        public double SunAzimuth { get; set; }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            try { await Js.InvokeVoidAsync("loadBabylonScene"); } catch {}
-        }
-    }
-
-    private bool IsAuto { get; set; } = true;
-    private readonly double[] _speedFactorValues = [100, 1000, 10000];
-    private int SliderIndex { get; set; } = 1;
     private HubConnection? _hubConnection;
+    private SimulationTelemetry? _telemetryData;
+
+    private List<SimulationTelemetry> _historyList = [];
+
     private string _connectionStatus = "Disconnected";
-
-    private SimulationParameters _parameters = new();
-    private DateTime _simTimestamp = DateTime.Now;
-
-    private readonly List<(DateTime Timestamp, WeatherDataPoint Weather)> _weatherHistory = [];
-    private readonly Dictionary<string, List<TemperatureDataPoint>> _temperatureHistory = new();
-
-    private ApexChart<WeatherDataPoint> _chart1 = new();
-    private ApexChart<WeatherDataPoint> _chart2 = new();
-    private ApexChart<TemperatureDataPoint> _chart5 = new();
-
-    private ApexChartOptions<WeatherDataPoint>? _chart1Options;
-    private ApexChartOptions<WeatherDataPoint>? _chart2Options;
-    private ApexChartOptions<TemperatureDataPoint>? _chart5Options;
-
-    private readonly List<WeatherDataPoint> _weatherChartData = [];
 
     protected override async Task OnInitializedAsync()
     {
-        PrepareCharts();
-        UpdateSpeedFactorValue();
-
-        var baseUrl = Config["ApiBaseUrl"];
+        var baseApiUrl = Config["BaseApiUrl"];
+        if (string.IsNullOrEmpty(baseApiUrl)) return;
 
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{baseUrl}/hubs/simulation")
+            .WithUrl($"{baseApiUrl}/hubs/simulation")
             .WithAutomaticReconnect()
             .Build();
 
-        _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", async data =>
+        _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", data =>
         {
-            var weather = data.Weather;
+            _telemetryData = data;
+            _historyList.Add(data);
 
-            if (IsAuto)
+            if (_historyList.Count > 2000) _historyList.RemoveAt(0);
+
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", history =>
+        {
+            Console.WriteLine($"Otrzymano {history.Count} punktów historii z cache!");
+            _historyList = history;
+
+            if (_historyList.Any())
             {
-                _parameters.Temp = weather.Temperature;
-                _parameters.WindSpeed = weather.WindSpeed;
-                _parameters.WindDir = weather.WindDirection;
-                _parameters.SunRadiation = weather.SunRadiation;
-                _parameters.SunAltitude = weather.SunAltitude;
-                _parameters.SunAzimuth = weather.SunAzimuth;
+                _telemetryData = _historyList.Last();
             }
 
-            _simTimestamp = data.Timestamp;
-            StateHasChanged();
-
-            // JS Interop dla Babylona
-            var labelText = $"Temp: {weather.Temperature:F1} C\nWind: {weather.WindSpeed:F1} m/s";
-            try {
-                await Js.InvokeVoidAsync("updateLabel", "external", labelText);
-                foreach (var temp in data.RoomTemperatures)
-                {
-                    await Js.InvokeVoidAsync("updateLabel", temp.Key, $"T: {temp.Value:F1} C");
-                }
-            }
-            catch
-            {
-                // ignored
-            }
-
-            var cutoffDate = _simTimestamp.AddDays(-2);
-
-            var newPoint = new WeatherDataPoint
-            {
-                Timestamp = _simTimestamp,
-                Temp = weather.Temperature,
-                WindSpeed = weather.WindSpeed,
-                WindDir = weather.WindDirection,
-                SunRadiation = weather.SunRadiation,
-                SunAltitude = weather.SunAltitude,
-                SunAzimuth = weather.SunAzimuth
-            };
-
-            _weatherChartData.Add(newPoint);
-            _weatherChartData.RemoveAll(x => x.Timestamp < cutoffDate);
-
-            foreach (var (roomName, newValue) in data.RoomTemperatures)
-            {
-                if (!_temperatureHistory.ContainsKey(roomName))
-                {
-                    _temperatureHistory[roomName] = [];
-                }
-
-                _temperatureHistory[roomName].Add(new TemperatureDataPoint
-                {
-                    Timestamp = _simTimestamp,
-                    Value = newValue
-                });
-                _temperatureHistory[roomName].RemoveAll(point => point.Timestamp < cutoffDate);
-            }
-
-            await _chart1.UpdateSeriesAsync();
-            await _chart2.UpdateSeriesAsync();
-            await _chart5.UpdateSeriesAsync();
+            InvokeAsync(StateHasChanged);
         });
 
         try
@@ -224,44 +109,15 @@
         }
         catch (Exception ex)
         {
-            _connectionStatus = $"Error: {ex.Message}.";
+            _connectionStatus = $"Error: {ex.Message}";
         }
     }
 
-    private void UpdateSpeedFactorValue()
+    private bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
     {
-        _parameters.SpeedFactor = _speedFactorValues[SliderIndex];
-        StateHasChanged();
+        if (_hubConnection is not null) await _hubConnection.DisposeAsync();
     }
 
-    private async Task SendParameters()
-    {
-        if (_hubConnection?.State == HubConnectionState.Connected)
-        {
-            // Tu na razie nic nie wysyłamy, bo backend jeszcze nie ma metody "SendParameters"
-            // await _hubConnection.InvokeAsync("SendParameters", _parameters);
-        }
-    }
-
-    private void PrepareCharts()
-    {
-        // Skopiuj tu swoją metodę PrepareCharts z poprzedniego kodu
-        // (Oszczędzam miejsce, ale musisz ją tu mieć, żeby _chart1Options nie były nullem)
-
-        var commonOptions = new ApexChartOptions<WeatherDataPoint>
-        {
-            Chart = new Chart { Height = 300, Toolbar = new Toolbar { Show = false }, Zoom = new Zoom { Enabled = false } },
-            Xaxis = new XAxis { Type = XAxisType.Datetime, Labels = new XAxisLabels { Format = "HH:mm" } },
-            Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 }
-        };
-        _chart1Options = commonOptions;
-        _chart2Options = commonOptions;
-
-        _chart5Options = new ApexChartOptions<TemperatureDataPoint>
-        {
-            Chart = new Chart { Height = 300, Toolbar = new Toolbar { Show = false }, Zoom = new Zoom { Enabled = false } },
-            Xaxis = new XAxis { Type = XAxisType.Datetime, Labels = new XAxisLabels { Format = "HH:mm" } },
-            Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 }
-        };
-    }
 }

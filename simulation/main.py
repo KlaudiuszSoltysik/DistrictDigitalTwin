@@ -13,14 +13,16 @@ class SimulationService:
     def __init__(self):
         amqp_url = getenv('RABBITMQ_CONNECTION_STRING')
 
+        self.run_id = int(time())
+
         self.rabbit_params = URLParameters(amqp_url)
 
-        self.simulation = DistrictSimulation("district_config.yaml", "weather_history.csv")
+        self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv")
 
         # TODO: lock autostart
         self.lock = Lock()
         self.is_started = True
-        self.simulation_speed = 5
+        self.simulation_speed = 30
         self.simulation_step = 300
 
     def start(self):
@@ -84,7 +86,7 @@ class SimulationService:
     def _run_physics_loop(self):
         pub_connection = self._connect_with_retry()
         pub_channel = pub_connection.channel()
-        pub_channel.queue_declare(queue='district.telemetry', durable=True)
+        pub_channel.exchange_declare(exchange='district.telemetry.exchange', exchange_type='fanout', durable=True)
 
         while True:
             with self.lock:
@@ -101,9 +103,11 @@ class SimulationService:
             try:
                 simulation_result = self.simulation.run_step(step)
 
+                simulation_result = {"run_id": self.run_id, **simulation_result}
+
                 pub_channel.basic_publish(
-                    exchange='',
-                    routing_key='district.telemetry',
+                    exchange='district.telemetry.exchange',
+                    routing_key='',
                     body=dumps(simulation_result),
                     properties=BasicProperties(
                         content_type='application/json',
