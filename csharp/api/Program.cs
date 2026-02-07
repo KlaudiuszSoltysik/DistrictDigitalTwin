@@ -1,50 +1,54 @@
-using backend;
-using backend.Utils;
-using Microsoft.EntityFrameworkCore;
+using api;
+using MassTransit;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<SimulationService>();
 
-if (builder.Environment.EnvironmentName != "Testing")
+builder.Services.AddMassTransit(x =>
 {
-    builder.Services.AddDbContext<PostgresContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
-}
+    x.AddConsumer<TelemetryConsumer>();
+
+    x.UsingRabbitMq((ctx, cfg) =>
+    {
+        var connectionString = builder.Configuration.GetConnectionString("RabbitMqConnection");
+
+        var uri = new Uri(connectionString ?? throw new InvalidOperationException("Invalid connection string."));
+
+        cfg.Host(uri.Host, (ushort)uri.Port, uri.AbsolutePath, h =>
+        {
+            var parts = uri.UserInfo.Split(':');
+            h.Username(parts[0]);
+            h.Password(parts[1]);
+        });
+
+        cfg.ReceiveEndpoint("cache-service-queue", e =>
+        {
+            e.Bind("district.telemetry.exchange");
+            e.UseRawJsonSerializer();
+            e.ConfigureConsumer<TelemetryConsumer>(ctx);
+        });
+    });
+});
 
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .SetIsOriginAllowed(_ => true)
+            .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowCredentials();
     });
 });
 
-var app = builder.Build();
+builder.Services.AddSingleton<HistoryCacheService>();
 
-app.MapHub<SimulationHub>("/simulation-hub");
-app.UseWebSockets();
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path == "/ws" && context.WebSockets.IsWebSocketRequest)
-    {
-        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        var service = context.RequestServices.GetRequiredService<SimulationService>();
-        await service.StartListening(webSocket);
-    }
-    else
-    {
-        await next();
-    }
-});
+var app = builder.Build();
 
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
@@ -53,10 +57,10 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 }
 
 app.UseCors();
-
 app.UseAuthorization();
-
 app.MapControllers();
+
+app.MapHub<SimulationHub>("/hubs/simulation");
 
 app.Run();
 

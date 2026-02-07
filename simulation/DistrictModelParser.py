@@ -1,5 +1,6 @@
 ﻿import numpy as np
-import yaml
+
+from yaml import safe_load
 
 
 class DistrictModelParser:
@@ -7,7 +8,7 @@ class DistrictModelParser:
 
     def __init__(self, yaml_path):
         with open(yaml_path, "r") as f:
-            self.raw_data = yaml.safe_load(f)
+            self.raw_data = safe_load(f)
 
         self.nodes = {}
         self.room_data = []

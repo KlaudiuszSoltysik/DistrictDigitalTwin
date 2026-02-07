@@ -41,6 +41,15 @@ class DistrictSimulation:
 
             temperatures_array = self.thermal_solver.step(dt_seconds, weather["temperature"], q_env)
 
+            temperatures_array = [round(x, 2) for x in temperatures_array]
+
+            keys_to_remove = {'wind_u', 'wind_v'}
+            weather_clean = {
+                k: round(v, 2)
+                for k, v in weather.items()
+                if k not in keys_to_remove
+            }
+
             room_temps = {
                 self.index_to_id[i]: float(temperatures_array[i])
                 for i in range(len(temperatures_array))
@@ -54,8 +63,8 @@ class DistrictSimulation:
 
             return {
                 "timestamp": output_timestamp,
-                "weather": weather,
-                "room_temps": room_temps
+                "weather": weather_clean,
+                "room_temperatures": room_temps
             }
         except Exception as e:
             print(e)

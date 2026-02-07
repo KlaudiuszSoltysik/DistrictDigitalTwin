@@ -23,15 +23,12 @@ class WeatherService:
 
         idx_after = self.weather_history.index.searchsorted(now)
 
-        # TODO: fix this
-        ####################################
         t1, t2 = self.weather_history.index[idx_after - 1], self.weather_history.index[idx_after]
         weight2 = (now - t1).total_seconds() / (t2 - t1).total_seconds()
         weight1 = 1 - weight2
 
         interp_row = (self.weather_history.loc[t1] * weight1) + (self.weather_history.loc[t2] * weight2)
         raw_weather = interp_row.to_dict()
-        ####################################
 
         wind_dir_rad = np.arctan2(raw_weather["wind_u"], raw_weather["wind_v"])
         raw_weather["wind_direction"] = (np.degrees(wind_dir_rad) + 360) % 360

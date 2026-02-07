@@ -1,7 +1,7 @@
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: timescale/timescaledb:latest-pg16
     container_name: ddt_postgres
     env_file: .env
     environment:
@@ -9,9 +9,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "127.0.0.1:${POSTGRES_PORT}:5432"
+      - "5432:5432"
     volumes:
-      - ./docker/postgres/prod_data:/var/lib/postgresql/data
+      - ./docker/postgres/data:/var/lib/postgresql
     networks:
       - ddt_net
     healthcheck:
@@ -29,7 +29,7 @@ services:
 
   postgres-backup:
     image: prodrigestivill/postgres-backup-local
-    container_name: ddt_postgres_backup
+    container_name: ddt_database_backup
     user: postgres:postgres
     volumes:
       - ./backups:/backups
@@ -54,13 +54,13 @@ services:
 
   rabbitmq:
     container_name: ddt_rabbitmq
-    image: rabbitmq:3.12-management-alpine
-    restart: always
+    image: rabbitmq:4.2.2-management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "127.0.0.1:${RABBITMQ_PORT}:15672"
+      - "15672:15672"
+      - "5672:5672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -78,47 +78,67 @@ services:
         reservations:
           memory: 256M
 
-  api:
-    container_name: ddt_api
-    image: ghcr.io/klaudiuszsoltysik/district-digital-twin/api:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          memory: 256M
-
-  website:
-    container_name: ddt_website
-    image: ghcr.io/klaudiuszsoltysik/district-digital-twin/website:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-    depends_on:
-      api:
-        condition: service_started
-    networks:
-      - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          memory: 64M
+  #   api:
+  #     container_name: ddt_api
+  #     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/api:latest
+  #     labels:
+  #       - "com.centurylinklabs.watchtower.enable=true"
+  #     environment:
+  #       - ASPNETCORE_ENVIRONMENT=Production
+  #       - ConnectionStrings__PostgresConnection=Host=postgres;Port=${RABBITMQ_USER};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+  #       - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+  #     depends_on:
+  #       timescaledb:
+  #         condition: service_healthy
+  #       rabbitmq:
+  #         condition: service_healthy
+  #     networks:
+  #       - ddt_net
+  #     deploy:
+  #       resources:
+  #         limits:
+  #           cpus: "0.5"
+  #           memory: 512M
+  #         reservations:
+  #           memory: 256M
+  #
+  #   website:
+  #     container_name: ddt_website
+  #     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/website:latest
+  #     labels:
+  #       - "com.centurylinklabs.watchtower.enable=true"
+  #     depends_on:
+  #       api:
+  #         condition: service_started
+  #     networks:
+  #       - ddt_net
+  #     deploy:
+  #       resources:
+  #         limits:
+  #           cpus: "0.5"
+  #           memory: 256M
+  #         reservations:
+  #           memory: 64M
+  #
+  #   simulation:
+  #     container_name: ddt_simulation
+  #     build:
+  #       context: ./simulation
+  #       dockerfile: Dockerfile
+  #     environment:
+  #       - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+  #     depends_on:
+  #       rabbitmq:
+  #         condition: service_healthy
+  #     networks:
+  #       - ddt_net
+  #     deploy:
+  #       resources:
+  #         limits:
+  #           cpus: "0.5"
+  #           memory: 512M
+  #         reservations:
+  #           memory: 128M
 
   watchtower:
     image: containrrr/watchtower
@@ -152,10 +172,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "0.5"
+          memory: 512M
         reservations:
-          memory: 64M
+          memory: 256M
 
   prometheus:
     image: prom/prometheus:latest
