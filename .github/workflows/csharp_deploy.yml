@@ -16,6 +16,7 @@ env:
   REGISTRY: ghcr.io
   API_NAME: KlaudiuszSoltysik/district-digital-twin/api
   WEBSITE_NAME: KlaudiuszSoltysik/district-digital-twin/website
+  HISTORY_NAME: KlaudiuszSoltysik/district-digital-twin/history-service
 
 jobs:
   test:
@@ -85,6 +86,24 @@ jobs:
           push: true
           tags: ${{ steps.meta-website.outputs.tags }}
           labels: ${{ steps.meta-website.outputs.labels }}
+
+      - name: Extract metadata for History Service
+        id: meta-history
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.HISTORY_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push History Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./csharp
+          file: ./csharp/history_service/Dockerfile
+          push: true
+          tags: ${{ steps.meta-history.outputs.tags }}
+          labels: ${{ steps.meta-history.outputs.labels }}
 
       # Generate and commit documentation
       - name: Setup .NET for docs generation
