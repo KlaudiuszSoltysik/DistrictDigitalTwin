@@ -43,7 +43,7 @@ class DistrictSimulation:
 
             temperatures_array = [round(x, 2) for x in temperatures_array]
 
-            keys_to_remove = {'wind_u', 'wind_v'}
+            keys_to_remove = {"wind_u", "wind_v"}
             weather_clean = {
                 k: round(v, 2)
                 for k, v in weather.items()

@@ -44,11 +44,10 @@ public class SimulationUiService
             try
             {
                 await _hubConnection.StartAsync();
-                Console.WriteLine("[SIGNALR] Połączono pomyślnie!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SIGNALR ERROR] Nie udało się połączyć: {ex.Message}");
+                Console.WriteLine(ex.Message);
             }
     }
 }
