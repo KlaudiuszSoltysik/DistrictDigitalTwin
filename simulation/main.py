@@ -20,7 +20,7 @@ class SimulationService:
         self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv")
 
         self.lock = Lock()
-        self.is_started = True
+        self.is_paused = True
         self.simulation_speed = 30
         self.simulation_step = 300
 
@@ -45,7 +45,7 @@ class SimulationService:
                 connection = self._connect_with_retry()
                 channel = connection.channel()
 
-                channel.queue_declare(queue='district.commands', durable=True)
+                channel.queue_declare(queue='commands', durable=True)
 
                 def callback(ch, method, properties, body):
                     try:
@@ -54,47 +54,62 @@ class SimulationService:
                     except:
                         pass
 
-                channel.basic_consume(queue='district.commands', on_message_callback=callback, auto_ack=True)
+                channel.basic_consume(queue='commands', on_message_callback=callback, auto_ack=True)
                 channel.start_consuming()
 
             except:
                 sleep(5)
 
-    def _process_command(self, cmd):
+    def _process_command(self, cmd_json):
         with self.lock:
-            msg_type = cmd.get("type")
-            payload = cmd.get("payload", {})
+            action = cmd_json.get("action")
+            target_config = cmd_json.get("target_config", {})
 
-            if msg_type == "SYSTEM":
-                action = payload.get("action")
+            if action == "UPDATE_CONFIG":
+                if "is_paused" in target_config:
+                    self.is_paused = target_config["is_paused"]
+                if "simulation_speed" in target_config:
+                    self.simulation_speed = target_config["simulation_speed"]
+                if "simulation_step" in target_config:
+                    self.simulation_step = target_config["simulation_step"]
 
-                if action == "START":
-                    self.is_started = True
+                print(f"Config updated: Paused={self.is_paused}, Speed={self.simulation_speed}")
 
-                elif action == "STOP":
-                    self.is_started = False
+            # elif action == "RESET":
+            #     self._reset_simulation_logic()
 
-                elif action == "UPDATE_CONFIG":
-                    if "simulation_speed" in payload:
-                        self.simulation_speed = float(payload["simulation_speed"])
-                        print(f"Simulation speed changed to: x{self.simulation_speed}")
-                    if "simulation_step" in payload:
-                        self.simulation_step = int(payload["simulation_step"])
-                        print(f"Simulation step changed to: {self.simulation_step}s")
+    def _broadcast_config(self, channel):
+        config_payload = {"config": {
+            "is_paused": self.is_paused,
+            "simulation_speed": self.simulation_speed,
+            "simulation_step": self.simulation_step
+        }}
+        channel.basic_publish(
+            exchange='',
+            routing_key='status',
+            body=dumps(config_payload),
+            properties=BasicProperties(content_type='application/json')
+        )
 
     def _run_physics_loop(self):
         pub_connection = self._connect_with_retry()
-        pub_channel = pub_connection.channel()
-        pub_channel.exchange_declare(exchange='district.telemetry.exchange', exchange_type='fanout', durable=True)
+        telemetry_channel = pub_connection.channel()
+        telemetry_channel.exchange_declare(exchange='telemetry.exchange', exchange_type='fanout', durable=True)
+
+        config_channel = pub_connection.channel()
+        config_channel.queue_declare(queue='status', durable=True)
 
         while True:
             with self.lock:
-                started = self.is_started
+                paused = self.is_paused
                 speed = self.simulation_speed
                 step = self.simulation_step
 
-            if not started:
-                sleep(0.5)
+            self._broadcast_config(config_channel)
+            print("Published config.")
+
+            if paused:
+                sleep(1)
                 continue
 
             start_time = time()
@@ -104,8 +119,8 @@ class SimulationService:
 
                 simulation_result = {"run_id": self.run_id, **simulation_result}
 
-                pub_channel.basic_publish(
-                    exchange='district.telemetry.exchange',
+                telemetry_channel.basic_publish(
+                    exchange='telemetry.exchange',
                     routing_key='',
                     body=dumps(simulation_result),
                     properties=BasicProperties(
@@ -113,6 +128,8 @@ class SimulationService:
                         delivery_mode=DeliveryMode.Persistent
                     )
                 )
+
+                print("Published telemetry.")
 
                 target_sleep = step / speed
 

@@ -22,3 +22,21 @@ public class WeatherData
     [JsonPropertyName("sun_altitude")] public double SunAltitude { get; set; }
     [JsonPropertyName("sun_azimuth")] public double SunAzimuth { get; set; }
 }
+
+public class SimulationConfig
+{
+    [JsonPropertyName("is_paused")] public bool IsPaused { get; set; }
+    [JsonPropertyName("simulation_speed")] public int SimulationSpeed { get; set; }
+    [JsonPropertyName("simulation_step")] public int SimulationStep { get; set; }
+}
+
+public class SimulationStatus
+{
+    [JsonPropertyName("config")] public SimulationConfig Config { get; set; }
+}
+
+public class ControlMessage
+{
+    [JsonPropertyName("action")] public string Action { get; set; }
+    [JsonPropertyName("target_config")] public SimulationConfig? TargetConfig { get; set; }
+}

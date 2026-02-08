@@ -16,6 +16,7 @@ builder.Services.AddDbContext<HistoryDbContext>(options =>
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<TelemetryConsumer>();
+    x.AddConsumer<SimulationStatusConsumer>();
 
     x.UsingRabbitMq((ctx, cfg) =>
     {
@@ -30,12 +31,15 @@ builder.Services.AddMassTransit(x =>
             h.Password(parts[1]);
         });
 
+        cfg.UseRawJsonSerializer();
+
         cfg.ReceiveEndpoint("cache-service-queue", e =>
         {
-            e.Bind("district.telemetry.exchange");
-            e.UseRawJsonSerializer();
+            e.Bind("telemetry.exchange");
             e.ConfigureConsumer<TelemetryConsumer>(ctx);
         });
+
+        cfg.ReceiveEndpoint("status", e => { e.ConfigureConsumer<SimulationStatusConsumer>(ctx); });
     });
 });
 
