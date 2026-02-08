@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace history_service;
+namespace shared;
 
 public class HistoryDbContext(DbContextOptions<HistoryDbContext> options) : DbContext(options)
 {

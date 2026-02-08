@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Hosting;
-using history_service;
+﻿using history_service;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using shared;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -19,7 +20,8 @@ var host = Host.CreateDefaultBuilder(args)
             {
                 var connectionString = context.Configuration.GetConnectionString("RabbitMqConnection");
 
-                var uri = new Uri(connectionString ?? throw new InvalidOperationException("Invalid connection string."));
+                var uri = new Uri(connectionString ??
+                                  throw new InvalidOperationException("Invalid connection string."));
 
                 cfg.Host(uri.Host, (ushort)uri.Port, uri.AbsolutePath, h =>
                 {

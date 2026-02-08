@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace history_service;
+namespace shared;
 
 [Table("telemetry")]
 public class TelemetryEntity

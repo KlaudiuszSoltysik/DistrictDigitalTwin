@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using shared;
 
 namespace history_service;
 
@@ -23,7 +24,6 @@ public class DbMigrationWorker(IServiceProvider serviceProvider) : BackgroundSer
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Błąd migracji TimescaleDB: {ex.Message}");
             // ignored
         }
     }
