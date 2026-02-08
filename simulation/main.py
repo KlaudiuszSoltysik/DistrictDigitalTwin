@@ -11,7 +11,7 @@ from DistrictSimulation import DistrictSimulation
 
 class SimulationService:
     def __init__(self):
-        amqp_url = getenv('RABBITMQ_CONNECTION_STRING')
+        amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
 
         self.run_id = int(time())
 
@@ -45,7 +45,7 @@ class SimulationService:
                 connection = self._connect_with_retry()
                 channel = connection.channel()
 
-                channel.queue_declare(queue='commands', durable=True)
+                channel.queue_declare(queue="commands", durable=True)
 
                 def callback(ch, method, properties, body):
                     try:
@@ -54,7 +54,7 @@ class SimulationService:
                     except:
                         pass
 
-                channel.basic_consume(queue='commands', on_message_callback=callback, auto_ack=True)
+                channel.basic_consume(queue="commands", on_message_callback=callback, auto_ack=True)
                 channel.start_consuming()
 
             except:
@@ -73,8 +73,6 @@ class SimulationService:
                 if "simulation_step" in target_config:
                     self.simulation_step = target_config["simulation_step"]
 
-                print(f"Config updated: Paused={self.is_paused}, Speed={self.simulation_speed}")
-
             # elif action == "RESET":
             #     self._reset_simulation_logic()
 
@@ -85,19 +83,19 @@ class SimulationService:
             "simulation_step": self.simulation_step
         }}
         channel.basic_publish(
-            exchange='',
-            routing_key='status',
+            exchange="",
+            routing_key="status",
             body=dumps(config_payload),
-            properties=BasicProperties(content_type='application/json')
+            properties=BasicProperties(content_type="application/json")
         )
 
     def _run_physics_loop(self):
         pub_connection = self._connect_with_retry()
         telemetry_channel = pub_connection.channel()
-        telemetry_channel.exchange_declare(exchange='telemetry.exchange', exchange_type='fanout', durable=True)
+        telemetry_channel.exchange_declare(exchange="telemetry.exchange", exchange_type="fanout", durable=True)
 
         config_channel = pub_connection.channel()
-        config_channel.queue_declare(queue='status', durable=True)
+        config_channel.queue_declare(queue="status", durable=True)
 
         while True:
             with self.lock:
@@ -106,7 +104,6 @@ class SimulationService:
                 step = self.simulation_step
 
             self._broadcast_config(config_channel)
-            print("Published config.")
 
             if paused:
                 sleep(1)
@@ -120,16 +117,14 @@ class SimulationService:
                 simulation_result = {"run_id": self.run_id, **simulation_result}
 
                 telemetry_channel.basic_publish(
-                    exchange='telemetry.exchange',
-                    routing_key='',
+                    exchange="telemetry.exchange",
+                    routing_key="",
                     body=dumps(simulation_result),
                     properties=BasicProperties(
-                        content_type='application/json',
+                        content_type="application/json",
                         delivery_mode=DeliveryMode.Persistent
                     )
                 )
-
-                print("Published telemetry.")
 
                 target_sleep = step / speed
 
