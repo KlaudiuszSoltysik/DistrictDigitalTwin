@@ -1,0 +1,250 @@
+﻿@page "/"
+
+@inject IConfiguration Config
+@inject SimulationUiService SimulationService
+@using shared
+@implements IAsyncDisposable
+
+<PageTitle>District Digital Twin - Admin Panel</PageTitle>
+
+<div class="w-4/5 mx-auto mt-10 bg-gray-900 border border-gray-700 shadow-xl rounded-xl overflow-hidden font-sans text-gray-300 select-none">
+
+    <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white tracking-wide">Simulation Control Panel</h2>
+        <div class="h-2 w-2 rounded-full @(IsConnected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]")"></div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="bg-blue-900/40 text-blue-200 px-6 py-3 text-sm border-b border-blue-800/50 flex items-center gap-2">
+            @_message
+        </div>
+    }
+
+    <div class="p-6">
+        @if (SimulationService.CurrentStatus?.Config == null)
+        {
+            <div class="text-center py-12 text-gray-500 animate-pulse flex flex-col items-center gap-2">
+                <span>Waiting for configuration data...</span>
+            </div>
+        }
+        else
+        {
+            var config = SimulationService.CurrentStatus.Config;
+
+            <table class="w-full text-left border-collapse">
+                <tbody>
+                    <tr class="border-b border-gray-700/50">
+                        <td class="py-5 px-2 font-medium text-gray-400 w-1/4 uppercase text-xs tracking-wider">Control</td>
+                        <td class="py-5 px-2">
+                            <div class="flex gap-3">
+                                @if (config.IsPaused)
+                                {
+                                    <button @onclick="Resume" class="bg-green-700 hover:bg-green-600 text-white font-medium px-5 py-2 rounded-md shadow transition-all border border-green-600 hover:border-green-500">
+                                        Start
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button @onclick="Pause" class="bg-amber-700 hover:bg-amber-600 text-white font-medium px-5 py-2 rounded-md shadow transition-all border border-amber-600 hover:border-amber-500">
+                                        Pause
+                                    </button>
+                                }
+                                <button @onclick="Reset" class="bg-red-900/80 hover:bg-red-800 text-red-100 font-medium px-5 py-2 rounded-md shadow transition-all border border-red-800 hover:border-red-700">
+                                    Reset
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr class="border-b border-gray-700/50">
+                        <td class="py-5 px-2 font-medium text-gray-400 uppercase text-xs tracking-wider">
+                            Speed: <span class="text-white ml-1 text-sm normal-case">x@(config.SimulationSpeed)</span>
+                        </td>
+                        <td class="py-5 px-2">
+                            <div class="flex items-center w-full">
+                                <input type="range"
+                                       class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400"
+                                       min="1" max="100" step="1"
+                                       value="@config.SimulationSpeed"
+                                       @onchange="UpdateSpeed"/>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="py-5 px-2 font-medium text-gray-400 uppercase text-xs tracking-wider">
+                            Step: <span class="text-white ml-1 text-sm normal-case">@(config.SimulationStep)s</span>
+                        </td>
+                        <td class="py-5 px-2">
+                            <input type="number"
+                                   class="bg-gray-800 border border-gray-600 text-white text-sm rounded focus:ring-indigo-500 focus:border-indigo-500 block w-32 p-2.5 shadow-sm"
+                                   value="@config.SimulationStep"
+                                   @onchange="UpdateStep"/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="bg-gray-800/50 px-6 py-3 border-t border-gray-700 text-xs text-gray-500 flex justify-between items-center">
+        <span>ADMIN CONSOLE</span>
+        <div class="flex items-center gap-2">
+            <span>CONNECTION:</span>
+            <span class="font-bold @(IsConnected ? "text-green-400" : "text-red-400") tracking-wide">
+                @_connectionStatus.ToUpper()
+            </span>
+        </div>
+    </div>
+</div>
+
+@if (_telemetryData == null && _telemetryHistory.Count == 0)
+{
+    <p>Waiting...</p>
+}
+else
+{
+    <div style="display: flex; gap: 20px;">
+
+        <div style="flex: 1; border: 1px solid #ccc; padding: 10px;">
+            <h4>Last telemetry frame</h4>
+            @if (_telemetryData != null)
+            {
+                <pre>@JsonSerializer.Serialize(_telemetryData, new JsonSerializerOptions { WriteIndented = true })</pre>
+            }
+        </div>
+
+        <div style="flex: 1; border: 1px solid #ccc; padding: 10px;">
+            <h4>History</h4>
+            <div style="height: 400px; overflow-y: scroll;">
+                <table class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Enumerable.Reverse(_telemetryHistory))
+                    {
+                        <tr>
+                            <td>@item.Timestamp.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private HubConnection? _hubConnection;
+    private SimulationTelemetry? _telemetryData;
+
+    private List<SimulationTelemetry> _telemetryHistory = [];
+
+    private string _connectionStatus = "Disconnected";
+    private string _message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var baseApiUrl = Config["BaseApiUrl"];
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl($"{baseApiUrl}/hubs/simulation")
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", data =>
+        {
+            _telemetryData = data;
+            _telemetryHistory.Add(data);
+
+            if (_telemetryHistory.Count > 2000) _telemetryHistory.RemoveAt(0);
+
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", history =>
+        {
+            _telemetryHistory = history;
+
+            if (_telemetryHistory.Any())
+            {
+                _telemetryData = _telemetryHistory.Last();
+            }
+
+            InvokeAsync(StateHasChanged);
+        });
+
+        SimulationService.OnStatusChanged += StateHasChanged;
+
+        try
+        {
+            await _hubConnection.StartAsync();
+            _connectionStatus = "Connected";
+        }
+        catch (Exception ex)
+        {
+            _connectionStatus = ex.Message;
+        }
+    }
+
+    private bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+
+    private async Task Pause()
+    {
+        await SendUpdate(true);
+    }
+
+    private async Task Resume()
+    {
+        await SendUpdate(false);
+    }
+
+    private async Task UpdateSpeed(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var speed))
+        {
+            await SendUpdate(speed: speed);
+        }
+    }
+
+    private async Task UpdateStep(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var step))
+        {
+            await SendUpdate(step: step);
+        }
+    }
+
+    private async Task SendUpdate(bool? isPaused = null, int? speed = null, int? step = null)
+    {
+        var current = SimulationService.CurrentStatus.Config;
+
+        var newConfig = new SimulationConfig
+        {
+            IsPaused = isPaused ?? current.IsPaused,
+            SimulationSpeed = speed ?? current.SimulationSpeed,
+            SimulationStep = step ?? current.SimulationStep
+        };
+
+        await SimulationService.SendCommandAsync("UPDATE_CONFIG", newConfig);
+
+        _message = "Config update sent.";
+    }
+
+    private async Task Reset()
+    {
+        await SimulationService.SendCommandAsync("RESET");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SimulationService.OnStatusChanged -= StateHasChanged;
+
+        if (_hubConnection is not null) await _hubConnection.DisposeAsync();
+    }
+
+}

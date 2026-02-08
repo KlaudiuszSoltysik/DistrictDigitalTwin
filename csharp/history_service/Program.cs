@@ -32,7 +32,7 @@ var host = Host.CreateDefaultBuilder(args)
 
                 cfg.ReceiveEndpoint("history-service-queue", e =>
                 {
-                    e.Bind("district.telemetry.exchange");
+                    e.Bind("telemetry.exchange");
                     e.UseRawJsonSerializer();
                     e.ConfigureConsumer<TelemetryConsumer>(ctx);
                 });

@@ -73,8 +73,6 @@ class SimulationService:
                 if "simulation_step" in target_config:
                     self.simulation_step = target_config["simulation_step"]
 
-                print(f"Config updated: Paused={self.is_paused}, Speed={self.simulation_speed}")
-
             # elif action == "RESET":
             #     self._reset_simulation_logic()
 
@@ -106,7 +104,6 @@ class SimulationService:
                 step = self.simulation_step
 
             self._broadcast_config(config_channel)
-            print("Published config.")
 
             if paused:
                 sleep(1)
@@ -128,8 +125,6 @@ class SimulationService:
                         delivery_mode=DeliveryMode.Persistent
                     )
                 )
-
-                print("Published telemetry.")
 
                 target_sleep = step / speed
 
