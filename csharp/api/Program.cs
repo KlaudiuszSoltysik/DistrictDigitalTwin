@@ -1,12 +1,17 @@
 using api;
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
+
+builder.Services.AddDbContext<HistoryDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("HistoryDbConnection")));
 
 builder.Services.AddMassTransit(x =>
 {

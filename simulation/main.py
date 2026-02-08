@@ -2,8 +2,8 @@
 from os import getenv
 from threading import Lock, Thread
 from time import sleep, time
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from pika import BlockingConnection, URLParameters, exceptions, DeliveryMode, BasicProperties
 
 from DistrictSimulation import DistrictSimulation
@@ -19,7 +19,6 @@ class SimulationService:
 
         self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv")
 
-        # TODO: lock autostart
         self.lock = Lock()
         self.is_started = True
         self.simulation_speed = 30
@@ -38,7 +37,7 @@ class SimulationService:
                 if connection.is_open:
                     return connection
             except (exceptions.AMQPConnectionError, OSError):
-                time.sleep(5)
+                sleep(5)
 
     def _listen_for_commands(self):
         while True:
@@ -59,7 +58,7 @@ class SimulationService:
                 channel.start_consuming()
 
             except:
-                time.sleep(5)
+                sleep(5)
 
     def _process_command(self, cmd):
         with self.lock:
@@ -114,8 +113,6 @@ class SimulationService:
                         delivery_mode=DeliveryMode.Persistent
                     )
                 )
-
-                print(f"Telemetry has been sent: {simulation_result}")
 
                 target_sleep = step / speed
 

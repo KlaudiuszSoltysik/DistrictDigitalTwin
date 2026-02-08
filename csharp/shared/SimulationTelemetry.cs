@@ -6,7 +6,10 @@ public class SimulationTelemetry
 {
     [JsonPropertyName("run_id")] public long RunId { get; set; }
     [JsonPropertyName("timestamp")] public DateTime Timestamp { get; set; }
-    [JsonPropertyName("room_temperatures")] public Dictionary<string, double> RoomTemperatures { get; set; } = new();
+
+    [JsonPropertyName("room_temperatures")]
+    public Dictionary<string, double> RoomTemperatures { get; set; } = new();
+
     [JsonPropertyName("weather")] public WeatherData Weather { get; set; }
 }
 

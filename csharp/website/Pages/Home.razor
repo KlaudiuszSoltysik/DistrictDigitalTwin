@@ -4,16 +4,16 @@
 @using shared
 @implements IAsyncDisposable
 
-<PageTitle>Smart District Dashboard</PageTitle>
+<PageTitle>District Digital Twin</PageTitle>
 
 <h3>Pulpit Symulacji</h3>
 
 <div class="mb-3">
     <strong>Status:</strong> <span style="color: @(IsConnected ? "green" : "red")">@_connectionStatus</span>
-    <span> | Załadowana historia: <strong>@_historyList.Count</strong> punktów</span>
+    <span> | Załadowana historia: <strong>@_telemetryHistory.Count</strong> punktów</span>
 </div>
 
-@if (_telemetryData == null && _historyList.Count == 0)
+@if (_telemetryData == null && _telemetryHistory.Count == 0)
 {
     <p><em>Łączenie i pobieranie danych...</em></p>
 }
@@ -46,7 +46,7 @@ else
                     </tr>
                     </thead>
                     <tbody>
-                    @foreach (var item in Enumerable.Reverse(_historyList))
+                    @foreach (var item in Enumerable.Reverse(_telemetryHistory))
                     {
                         <tr>
                             <td>@item.Timestamp.ToString("dd.MM HH:mm")</td>
@@ -65,14 +65,13 @@ else
     private HubConnection? _hubConnection;
     private SimulationTelemetry? _telemetryData;
 
-    private List<SimulationTelemetry> _historyList = [];
+    private List<SimulationTelemetry> _telemetryHistory = [];
 
     private string _connectionStatus = "Disconnected";
 
     protected override async Task OnInitializedAsync()
     {
         var baseApiUrl = Config["BaseApiUrl"];
-        if (string.IsNullOrEmpty(baseApiUrl)) return;
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl($"{baseApiUrl}/hubs/simulation")
@@ -82,21 +81,20 @@ else
         _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", data =>
         {
             _telemetryData = data;
-            _historyList.Add(data);
+            _telemetryHistory.Add(data);
 
-            if (_historyList.Count > 2000) _historyList.RemoveAt(0);
+            if (_telemetryHistory.Count > 2000) _telemetryHistory.RemoveAt(0);
 
             InvokeAsync(StateHasChanged);
         });
 
         _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", history =>
         {
-            Console.WriteLine($"Otrzymano {history.Count} punktów historii z cache!");
-            _historyList = history;
+            _telemetryHistory = history;
 
-            if (_historyList.Any())
+            if (_telemetryHistory.Any())
             {
-                _telemetryData = _historyList.Last();
+                _telemetryData = _telemetryHistory.Last();
             }
 
             InvokeAsync(StateHasChanged);
@@ -109,7 +107,7 @@ else
         }
         catch (Exception ex)
         {
-            _connectionStatus = $"Error: {ex.Message}";
+            _connectionStatus = ex.Message;
         }
     }
 
