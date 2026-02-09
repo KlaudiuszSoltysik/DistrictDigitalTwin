@@ -1,0 +1,100 @@
+﻿@using shared
+<div class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none">
+    <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <p class="text-xl font-bold">Simulation Control Panel</p>
+        <div class="text-xs flex items-center gap-2">
+            <span>CONNECTION:</span>
+            <span class="font-bold @(IsConnected ? "text-green-500" : "text-red-500")">
+                @ConnectionStatus.ToUpper()
+            </span>
+        </div>
+    </div>
+
+    <div class="p-2">
+        @if (Config == null)
+        {
+            <div class="text-center py-12 animate-pulse flex flex-col items-center gap-2">
+                <span>Waiting for configuration data...</span>
+            </div>
+        }
+        else
+        {
+            <table class="w-full text-left">
+                <tbody>
+                <tr class="border-b border-gray-700">
+                    <td class="py-4 px-2 font-medium w-1/4 uppercase text-xs">Control</td>
+                    <td class="py-4 px-2">
+                        <div class="flex gap-4">
+                            @if (Config.IsPaused)
+                            {
+                                <button @onclick="OnResume"
+                                        class="bg-green-700 hover:bg-green-600 font-medium px-6 py-2 rounded-md shadow transition-all border border-green-600 hover:border-green-500">
+                                    Resume
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="OnPause"
+                                        class="bg-amber-700 hover:bg-amber-600 font-medium px-6 py-2 rounded-md shadow transition-all border border-amber-600 hover:border-amber-500">
+                                    Pause
+                                </button>
+                            }
+                            <button @onclick="OnReset"
+                                    class="bg-red-700 hover:bg-red-600 font-medium px-6 py-2 rounded-md shadow transition-all border border-red-600 hover:border-red-500">
+                                Reset
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr class="border-b border-gray-700">
+                    <td class="py-4 px-2 font-medium uppercase text-xs">Simulation speed</td>
+                    <td class="py-4 px-2">
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var speedValue in new[] { 1, 5, 10, 30, 60, 600 })
+                            {
+                                var isActive = Config.SimulationSpeed == speedValue;
+
+                                <button @onclick="() => OnSpeedChange.InvokeAsync(speedValue)"
+                                        class="px-4 py-2 rounded-md text-xs font-bold transition-all border @(isActive ? "bg-indigo-700 border-indigo-600" : "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600")">
+                                    x@(speedValue)
+                                </button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="py-5 px-2 font-medium uppercase text-xs">Simulation step</td>
+                    <td class="py-5 px-2">
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var stepValue in new[] { 60, 300, 600, 1800, 3600 })
+                            {
+                                var isActive = Config.SimulationStep == stepValue;
+                                var label = stepValue >= 60 ? $"{stepValue / 60}m" : $"{stepValue}s";
+
+                                <button @onclick="() => OnStepChange.InvokeAsync(stepValue)"
+                                        class="px-4 py-2 rounded-md text-xs font-bold transition-all border @(isActive ? "bg-indigo-700 border-indigo-600" : "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600")">
+                                    @label
+                                </button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsConnected { get; set; }
+    [Parameter] public string ConnectionStatus { get; set; } = "Disconnected";
+    [Parameter] public SimulationConfig? Config { get; set; }
+
+    [Parameter] public EventCallback OnResume { get; set; }
+    [Parameter] public EventCallback OnPause { get; set; }
+    [Parameter] public EventCallback OnReset { get; set; }
+    [Parameter] public EventCallback<int> OnSpeedChange { get; set; }
+    [Parameter] public EventCallback<int> OnStepChange { get; set; }
+}
