@@ -14,18 +14,31 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
 
     private ConcurrentQueue<SimulationTelemetry> _history = new();
 
+    private DateTime _lastTimestamp = DateTime.MinValue;
+
     public async Task ProcessMessageAsync(SimulationTelemetry msg)
     {
+        if (msg.Timestamp.Kind == DateTimeKind.Unspecified)
+        {
+            msg.Timestamp = DateTime.SpecifyKind(msg.Timestamp, DateTimeKind.Utc);
+        }
+
         if (msg.RunId != _currentRunId)
         {
             await _lock.WaitAsync();
             try
             {
-                _history = new ConcurrentQueue<SimulationTelemetry>();
+                if (msg.RunId != _currentRunId)
+                {
+                    _history = new ConcurrentQueue<SimulationTelemetry>();
 
-                await LoadHistoryFromDb(msg.RunId);
+                    await LoadHistoryFromDb(msg.RunId);
 
-                _currentRunId = msg.RunId;
+                    _currentRunId = msg.RunId;
+
+                    var lastFromDb = _history.LastOrDefault();
+                    _lastTimestamp = lastFromDb?.Timestamp ?? DateTime.MinValue;
+                }
             }
             finally
             {
@@ -33,7 +46,21 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
             }
         }
 
+        if (msg.Timestamp <= _lastTimestamp)
+        {
+            return;
+        }
+
         AddToQueue(msg);
+    }
+
+    private void AddToQueue(SimulationTelemetry telemetry)
+    {
+        _history.Enqueue(telemetry);
+
+        _lastTimestamp = telemetry.Timestamp;
+
+        while (_history.Count > MaxHistorySize) _history.TryDequeue(out _);
     }
 
     private async Task LoadHistoryFromDb(long runId)
@@ -54,7 +81,7 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
                 .Select(e => new SimulationTelemetry
                 {
                     RunId = e.RunId,
-                    Timestamp = e.Timestamp,
+                    Timestamp = DateTime.SpecifyKind(e.Timestamp, DateTimeKind.Utc),
                     Weather = new WeatherData
                     {
                         Temperature = e.Temperature,
@@ -70,12 +97,6 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
 
             foreach (var item in mappedData) _history.Enqueue(item);
         }
-    }
-
-    private void AddToQueue(SimulationTelemetry telemetry)
-    {
-        _history.Enqueue(telemetry);
-        while (_history.Count > MaxHistorySize) _history.TryDequeue(out _);
     }
 
     public List<SimulationTelemetry> GetHistory()

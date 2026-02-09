@@ -2,109 +2,26 @@
 
 @inject IConfiguration Config
 @inject SimulationUiService SimulationService
+@using website.Components
 @using shared
 @implements IAsyncDisposable
 
 <PageTitle>District Digital Twin - Admin Panel</PageTitle>
 
-<div class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none">
+<SimulationControls
+    IsConnected="@IsConnected"
+    ConnectionStatus="@_connectionStatus"
+    Config="@SimulationService.CurrentStatus?.Config"
+    ChosenSpeed="@_chosenSpeed"
+    ChosenStep="@_chosenStep"
+    OnResume="Resume"
+    OnPause="Pause"
+    OnReset="Reset"
+    OnSpeedChange="UpdateSpeed"
+    OnStepChange="UpdateStep"
+/>
 
-    <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
-        <p class="text-xl font-bold">Simulation Control Panel</p>
-        <div class="text-xs flex items-center gap-2">
-            <span>CONNECTION:</span>
-            <span class="font-bold @(IsConnected ? "text-green-500" : "text-red-500")">
-                @_connectionStatus.ToUpper()
-            </span>
-        </div>
-    </div>
-
-    <div class="p-2">
-        @if (SimulationService.CurrentStatus?.Config == null)
-        {
-            <div class="text-center py-12 animate-pulse flex flex-col items-center gap-2">
-                <span>Waiting for configuration data...</span>
-            </div>
-        }
-        else
-        {
-            var config = SimulationService.CurrentStatus.Config;
-
-            <table class="w-full text-left">
-                <tbody>
-                <tr class="border-b border-gray-700">
-                    <td class="py-4 px-2 font-medium w-1/4 uppercase text-xs">Control</td>
-                    <td class="py-4 px-2">
-                        <div class="flex gap-4">
-                            @if (config.IsPaused)
-                            {
-                                <button @onclick="Resume"
-                                        class="bg-green-700 hover:bg-green-600 font-medium px-6 py-2 rounded-md shadow transition-all border border-green-600 hover:border-green-500">
-                                    Start
-                                </button>
-                            }
-                            else
-                            {
-                                <button @onclick="Pause"
-                                        class="bg-amber-700 hover:bg-amber-600 font-medium px-6 py-2 rounded-md shadow transition-all border border-amber-600 hover:border-amber-500">
-                                    Pause
-                                </button>
-                            }
-                            <button @onclick="Reset"
-                                    class="bg-red-700 hover:bg-red-600 font-medium px-6 py-2 rounded-md shadow transition-all border border-red-600 hover:border-red-500">
-                                Reset
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-
-            <tr class="border-b border-gray-700">
-                <td class="py-4 px-2 font-medium uppercase text-xs">Simulation speed</td>
-                <td class="py-4 px-2">
-                    <div class="flex flex-wrap gap-2">
-                        @foreach (var speedValue in new[] { 1, 5, 10, 30, 60, 600 })
-                        {
-                            var isActive = config.SimulationSpeed == speedValue;
-                            var isChosen = _chosenSpeed == speedValue;
-
-                            <button @onclick="() => UpdateSpeed(speedValue)"
-                                    class="px-4 py-2 rounded-md text-xs font-bold transition-all border @(isActive ? "bg-indigo-700 border-indigo-600" : isChosen ? "bg-indigo-500 border-indigo-400" : "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600")">
-                                x@(speedValue)
-                            </button>
-                        }
-                    </div>
-                </td>
-            </tr>
-
-            <tr>
-                <td class="py-5 px-2 font-medium uppercase text-xs">Simulation step</td>
-                <td class="py-5 px-2">
-                    <div class="flex flex-wrap gap-2">
-                        @foreach (var stepValue in new[] { 60, 300, 600, 1800, 3600 })
-                        {
-                            var isActive = config.SimulationStep == stepValue;
-                            var isChosen = _chosenStep == stepValue;
-                            var label = stepValue >= 60 ? $"{stepValue / 60}m" : $"{stepValue}s";
-
-                            <button @onclick="() => UpdateStep(stepValue)"
-                                    class="px-4 py-2 rounded-md text-xs font-bold transition-all border @(isActive ? "bg-indigo-700 border-indigo-600" : isChosen ? "bg-indigo-500 border-indigo-400" : "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600")">
-                                @label
-                            </button>
-                        }
-                    </div>
-                </td>
-            </tr>
-                </tbody>
-            </table>
-        }
-    </div>
-</div>
-
-@if (_telemetryData == null && _telemetryHistory.Count == 0)
-{
-    <p>Waiting...</p>
-}
-else
+@if (_telemetryData != null && _telemetryHistory.Count != 0)
 {
     <div style="display: flex; gap: 20px;">
 
@@ -112,7 +29,9 @@ else
             <p>Last telemetry frame</p>
             @if (_telemetryData != null)
             {
-                <pre>@JsonSerializer.Serialize(_telemetryData, new JsonSerializerOptions { WriteIndented = true })</pre>
+                <div style="height: 400px; overflow-y: scroll;">
+                    <pre>@JsonSerializer.Serialize(_telemetryData, new JsonSerializerOptions { WriteIndented = true })</pre>
+                </div>
             }
         </div>
 
@@ -219,7 +138,7 @@ else
 
     private async Task SendUpdate(bool? isPaused = null, int? speed = null, int? step = null)
     {
-        var current = SimulationService.CurrentStatus.Config;
+        var current = SimulationService.CurrentStatus?.Config ?? new SimulationConfig();
 
         var newConfig = new SimulationConfig
         {
