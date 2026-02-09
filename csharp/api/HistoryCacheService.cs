@@ -19,9 +19,7 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
     public async Task ProcessMessageAsync(SimulationTelemetry msg)
     {
         if (msg.Timestamp.Kind == DateTimeKind.Unspecified)
-        {
             msg.Timestamp = DateTime.SpecifyKind(msg.Timestamp, DateTimeKind.Utc);
-        }
 
         if (msg.RunId != _currentRunId)
         {
@@ -46,10 +44,7 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
             }
         }
 
-        if (msg.Timestamp <= _lastTimestamp)
-        {
-            return;
-        }
+        if (msg.Timestamp <= _lastTimestamp) return;
 
         AddToQueue(msg);
     }

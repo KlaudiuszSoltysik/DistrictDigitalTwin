@@ -2,8 +2,8 @@
 
 @inject IConfiguration Config
 @inject SimulationUiService SimulationService
-@using website.Components
 @using shared
+@using website.Components
 @implements IAsyncDisposable
 
 <PageTitle>District Digital Twin - Admin Panel</PageTitle>
@@ -12,8 +12,6 @@
     IsConnected="@IsConnected"
     ConnectionStatus="@_connectionStatus"
     Config="@SimulationService.CurrentStatus?.Config"
-    ChosenSpeed="@_chosenSpeed"
-    ChosenStep="@_chosenStep"
     OnResume="Resume"
     OnPause="Pause"
     OnReset="Reset"
@@ -62,9 +60,6 @@
     private HubConnection? _hubConnection;
     private SimulationTelemetry? _telemetryData;
     private List<SimulationTelemetry> _telemetryHistory = [];
-
-    private int _chosenSpeed;
-    private int _chosenStep;
 
     private string _connectionStatus = "Disconnected";
 
@@ -124,15 +119,20 @@
         await SendUpdate(false);
     }
 
+    private async Task Reset()
+    {
+        _telemetryData = new SimulationTelemetry();
+        _telemetryHistory = [];
+        await SimulationService.SendCommandAsync("RESET");
+    }
+
     private async Task UpdateSpeed(int speed)
     {
-        _chosenSpeed = speed;
         await SendUpdate(speed: speed);
     }
 
     private async Task UpdateStep(int step)
     {
-        _chosenStep = step;
         await SendUpdate(step: step);
     }
 
@@ -148,11 +148,6 @@
         };
 
         await SimulationService.SendCommandAsync("UPDATE_CONFIG", newConfig);
-    }
-
-    private async Task Reset()
-    {
-        await SimulationService.SendCommandAsync("RESET");
     }
 
     public async ValueTask DisposeAsync()

@@ -1,6 +1,6 @@
 ﻿from json import dumps, loads
 from os import getenv
-from threading import Lock, Thread
+from threading import Lock, Thread, Event
 from time import sleep, time
 
 from dotenv import load_dotenv
@@ -13,13 +13,14 @@ class SimulationService:
     def __init__(self):
         amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
 
-        self.run_id = int(time())
-
         self.rabbit_params = URLParameters(amqp_url)
 
         self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv")
 
         self.lock = Lock()
+        self.wake_event = Event()
+
+        self.run_id = int(time())
         self.is_paused = True
         self.simulation_speed = 30
         self.simulation_step = 300
@@ -73,8 +74,10 @@ class SimulationService:
                 if "simulation_step" in target_config:
                     self.simulation_step = target_config["simulation_step"]
 
-            # elif action == "RESET":
-            #     self._reset_simulation_logic()
+            elif action == "RESET":
+                self._reset_simulation_logic()
+
+            self.wake_event.set()
 
     def _broadcast_config(self, channel):
         config_payload = {"config": {
@@ -89,6 +92,14 @@ class SimulationService:
             properties=BasicProperties(content_type="application/json")
         )
 
+    def _reset_simulation_logic(self):
+        self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv")
+
+        self.run_id = int(time())
+        self.is_paused = True
+        self.simulation_speed = 30
+        self.simulation_step = 300
+
     def _run_physics_loop(self):
         pub_connection = self._connect_with_retry()
         telemetry_channel = pub_connection.channel()
@@ -98,6 +109,8 @@ class SimulationService:
         config_channel.queue_declare(queue="status", durable=True)
 
         while True:
+            self.wake_event.clear()
+
             with self.lock:
                 paused = self.is_paused
                 speed = self.simulation_speed
@@ -106,7 +119,7 @@ class SimulationService:
             self._broadcast_config(config_channel)
 
             if paused:
-                sleep(1)
+                self.wake_event.wait(1.0)
                 continue
 
             start_time = time()
@@ -131,10 +144,10 @@ class SimulationService:
                 compute_time = time() - start_time
                 real_sleep = max(0.0, target_sleep - compute_time)
 
-                sleep(real_sleep)
+                self.wake_event.wait(real_sleep)
 
             except:
-                sleep(1)
+                self.wake_event.wait(1.0)
 
 
 if __name__ == "__main__":
