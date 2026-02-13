@@ -7,7 +7,7 @@ namespace api;
 
 public class HistoryCacheService(IServiceScopeFactory scopeFactory)
 {
-    private const int MaxHistorySize = 2000;
+    private const int MaxHistorySize = 86400;
 
     private readonly SemaphoreSlim _lock = new(1, 1);
     private long _currentRunId = -1;
@@ -18,8 +18,14 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
 
     public async Task ProcessMessageAsync(SimulationTelemetry msg)
     {
-        if (msg.Timestamp.Kind == DateTimeKind.Unspecified)
-            msg.Timestamp = DateTime.SpecifyKind(msg.Timestamp, DateTimeKind.Utc);
+        msg.Timestamp = msg.Timestamp.Kind switch
+        {
+            DateTimeKind.Local => msg.Timestamp.ToUniversalTime(),
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(msg.Timestamp, DateTimeKind.Utc),
+            _ => msg.Timestamp
+        };
+
+        var cutoffTime = msg.Timestamp.AddHours(-24);
 
         if (msg.RunId != _currentRunId)
         {
@@ -30,7 +36,7 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
                 {
                     _history = new ConcurrentQueue<SimulationTelemetry>();
 
-                    await LoadHistoryFromDb(msg.RunId);
+                    await LoadHistoryFromDb(msg.RunId, cutoffTime);
 
                     _currentRunId = msg.RunId;
 
@@ -46,25 +52,26 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
 
         if (msg.Timestamp <= _lastTimestamp) return;
 
-        AddToQueue(msg);
+        _history.Enqueue(msg);
+
+        TrimOldHistory(cutoffTime);
     }
 
-    private void AddToQueue(SimulationTelemetry telemetry)
+    private void TrimOldHistory(DateTime cutoff)
     {
-        _history.Enqueue(telemetry);
-
-        _lastTimestamp = telemetry.Timestamp;
-
-        while (_history.Count > MaxHistorySize) _history.TryDequeue(out _);
+        while (_history.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoff)
+        {
+            _history.TryDequeue(out _);
+        }
     }
 
-    private async Task LoadHistoryFromDb(long runId)
+    private async Task LoadHistoryFromDb(long runId, DateTime cutoff)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HistoryDbContext>();
 
         var dbData = await db.Telemetry
-            .Where(t => t.RunId == runId)
+            .Where(t => t.RunId == runId && t.Timestamp >= cutoff)
             .OrderByDescending(t => t.Timestamp)
             .Take(MaxHistorySize)
             .ToListAsync();

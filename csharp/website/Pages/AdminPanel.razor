@@ -37,16 +37,7 @@
                      YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
 </ApexChart>
 
-<ApexChart TItem="WindPoint" Title="Wind Direction History" Options="_windDirectionChartOptions" @ref="_chart3">
-    <ApexPointSeries TItem="WindPoint"
-                     SeriesType="SeriesType.Scatter"
-                     Name="Wind Direction"
-                     Items="_windPoints"
-                     XValue="@(e => e.X)"
-                     YValue="@(e => e.Y)"/>
-</ApexChart>
-
-<ApexChart TItem="SimulationTelemetry" Title="Sun radiation [W/m²]" Options="_sunRadiationChartOptions" @ref="_chart4">
+<ApexChart TItem="SimulationTelemetry" Title="Sun radiation [W/m²]" Options="_sunRadiationChartOptions" @ref="_chart3">
     <ApexPointSeries TItem="SimulationTelemetry"
                      SeriesType="SeriesType.Line"
                      Name="Sun radiation"
@@ -55,13 +46,25 @@
                      YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
 </ApexChart>
 
-<ApexChart TItem="SimulationTelemetry" Title="Sun altitude [°]" Options="_sunAltitudeChartOptions" @ref="_chart5">
+<ApexChart TItem="SimulationTelemetry" Title="Sun altitude [°]" Options="_sunAltitudeChartOptions" @ref="_chart4">
     <ApexPointSeries TItem="SimulationTelemetry"
                      SeriesType="SeriesType.Line"
-                     Name="Temperature"
+                     Name="Sun altitude"
                      Items="_telemetryHistory"
                      XValue="@(t => t.Timestamp)"
                      YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
+</ApexChart>
+
+<ApexChart TItem="SimulationTelemetry" Title="Room temperatures [°C]" Options="_roomTemperaturesOptions" @ref="_chart5">
+    @foreach (var roomName in _roomNames)
+    {
+        <ApexPointSeries TItem="SimulationTelemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="@roomName"
+                         Items="_telemetryHistory"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => GetRoomTemperature(t, roomName))"/>
+    }
 </ApexChart>
 
 @if (_telemetryData != null && _telemetryHistory.Count != 0)
@@ -103,13 +106,7 @@
 
 @code {
 
-    public class WindPoint
-    {
-        public decimal X { get; set; }
-        public decimal Y { get; set; }
-    }
-
-    private List<WindPoint> _windPoints = [];
+    private int _updateCounter;
 
     private HubConnection? _hubConnection;
     private SimulationTelemetry? _telemetryData;
@@ -118,14 +115,16 @@
 
     private ApexChart<SimulationTelemetry> _chart1 = new();
     private ApexChart<SimulationTelemetry> _chart2 = new();
-    private ApexChart<WindPoint> _chart3 = new();
+    private ApexChart<SimulationTelemetry> _chart3 = new();
     private ApexChart<SimulationTelemetry> _chart4 = new();
     private ApexChart<SimulationTelemetry> _chart5 = new();
     private ApexChartOptions<SimulationTelemetry>? _temperatureChartOptions;
     private ApexChartOptions<SimulationTelemetry>? _windSpeedChartOptions;
-    private ApexChartOptions<WindPoint>? _windDirectionChartOptions;
     private ApexChartOptions<SimulationTelemetry>? _sunRadiationChartOptions;
     private ApexChartOptions<SimulationTelemetry>? _sunAltitudeChartOptions;
+    private ApexChartOptions<SimulationTelemetry>? _roomTemperaturesOptions;
+
+    private HashSet<string> _roomNames = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -133,33 +132,7 @@
         _windSpeedChartOptions = GenerateOptions(" km/h");
         _sunRadiationChartOptions = GenerateOptions(" W/m²");
         _sunAltitudeChartOptions = GenerateOptions("°");
-
-        _windDirectionChartOptions = new ApexChartOptions<WindPoint>
-        {
-            Chart = new Chart
-            {
-                Type = ChartType.Scatter,
-                Toolbar = new Toolbar { Show = false },
-                Animations = new Animations { Enabled = false }
-            },
-            Xaxis = new XAxis
-            {
-                Labels = new XAxisLabels { Show = false },
-                AxisBorder = new AxisBorder { Show = false },
-                Min = -1.1m,
-                Max = 1.1m
-            },
-            Yaxis =
-            [
-                new YAxis
-                {
-                    Labels = new YAxisLabels { Show = false },
-                    Min = -2050,
-                    Max = 2050
-                }
-            ],
-            Grid = new Grid { Show = true }
-        };
+        _roomTemperaturesOptions = GenerateOptions("°C");
 
         var baseApiUrl = Config["BaseApiUrl"];
 
@@ -173,17 +146,30 @@
             _telemetryData = data;
             _telemetryHistory.Add(data);
 
-            if (_telemetryHistory.Count > 2000) _telemetryHistory.RemoveAt(0);
+            var cutoffTime = data.Timestamp.AddHours(-24);
 
-            await InvokeAsync(StateHasChanged);
+            while (_telemetryHistory.Count > 0 && _telemetryHistory[0].Timestamp < cutoffTime)
+            {
+                _telemetryHistory.RemoveAt(0);
+            }
 
-            UpdateWindPoints();
+            _updateCounter++;
 
-            await _chart1.UpdateSeriesAsync();
-            await _chart2.UpdateSeriesAsync();
-            await _chart3.UpdateSeriesAsync();
-            await _chart4.UpdateSeriesAsync();
-            await _chart5.UpdateSeriesAsync();
+            if (_updateCounter % 10 == 0)
+            {
+                foreach (var key in data.RoomTemperatures.Keys)
+                {
+                    _roomNames.Add(key);
+                }
+
+                await InvokeAsync(StateHasChanged);
+
+                await _chart1.UpdateSeriesAsync();
+                await _chart2.UpdateSeriesAsync();
+                await _chart3.UpdateSeriesAsync();
+                await _chart4.UpdateSeriesAsync();
+                await _chart5.UpdateSeriesAsync();
+            }
         });
 
         _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", async history =>
@@ -195,15 +181,17 @@
                 _telemetryData = _telemetryHistory.Last();
             }
 
-            await InvokeAsync(StateHasChanged);
+            foreach (var key in history[0].RoomTemperatures.Keys)
+            {
+                _roomNames.Add(key);
+            }
 
-            UpdateWindPoints();
+            await InvokeAsync(StateHasChanged);
 
             await _chart1.UpdateSeriesAsync();
             await _chart2.UpdateSeriesAsync();
             await _chart3.UpdateSeriesAsync();
             await _chart4.UpdateSeriesAsync();
-            await _chart5.UpdateSeriesAsync();
         });
 
         SimulationService.OnStatusChanged += StateHasChanged;
@@ -220,25 +208,6 @@
     }
 
     private bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
-
-    private void UpdateWindPoints()
-    {
-        var count = _telemetryHistory.Count;
-        if (count == 0) return;
-
-        _windPoints = _telemetryHistory.Select((t, index) =>
-        {
-            var angleRad = Math.PI / 180.0 * t.Weather.WindDirection;
-
-            var normalizedRadius = count > 1 ? (double)index / (count - 1) : 1.0;
-
-            return new WindPoint
-            {
-                X = (decimal)(normalizedRadius * Math.Sin(angleRad)),
-                Y = (decimal)(normalizedRadius * Math.Cos(angleRad))
-            };
-        }).ToList();
-    }
 
     private async Task Pause()
     {
@@ -315,6 +284,15 @@
                 X = new TooltipX { Format = "dd-MM-yyyy HH:mm" }
             }
         };
+    }
+
+    private static decimal? GetRoomTemperature(SimulationTelemetry item, string roomName)
+    {
+        if (item.RoomTemperatures.TryGetValue(roomName, out var temp))
+        {
+            return (decimal)temp;
+        }
+        return null;
     }
 
     public async ValueTask DisposeAsync()
