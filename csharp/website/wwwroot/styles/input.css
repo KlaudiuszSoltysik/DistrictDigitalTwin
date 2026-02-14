@@ -1,3 +1,13 @@
 ﻿@import "tailwindcss";
 
+@layer components {
+    .apexcharts-tooltip {
+        @apply !border-gray-700 !bg-gray-800 !text-white;
+    }
+
+    .apexcharts-tooltip-title {
+        @apply !border-gray-700 !bg-gray-700;
+    }
+}
+
 /*npx @tailwindcss/cli -i ./wwwroot/styles/input.css -o ./wwwroot/styles/tailwind.css --watch*/

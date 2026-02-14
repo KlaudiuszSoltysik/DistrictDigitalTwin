@@ -5,6 +5,27 @@
 
 A scalable Thermodynamic Digital Twin for residential districts, leveraging Model Predictive Control (MPC) and high-fidelity physics simulations to optimize energy efficiency.
 
+symulacja (Python):
+
+- plik konfiguracyjny .yml do zdefniowania osiedla (podłogi sufity dachy ściany wewnętrzne i zewnętrzne okna)
+- zaawansofany model fizyczny termodynamiki (słońce, wiatr, dokładność do pojedynczego pokoju)
+
+RabbitMQ:
+
+- warstwa komunikacyjna między symulacją a api
+
+api (.NET):
+
+- obdieranie i cachowanie wyników symulacji
+
+history_service:
+
+- zapis danych telemetrycznych do timescaledb
+
+website:
+
+- panel administracyjny symulacji
+
 🏙️ ResiFlow: Community Energy Management System (CEMS)
 Koncepcja: Zaawansowana platforma IoT/SaaS do zarządzania energią i komfortem w budownictwie wielorodzinnym. System wykorzystuje technologię Digital Twin do symulacji fizyki budynku oraz algorytmy predykcyjne do optymalizacji kosztów ogrzewania i bilansowania mocy przyłączeniowej.
 

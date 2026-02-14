@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿@page "/simulation-panel"
 
 @inject IConfiguration Config
 @inject SimulationUiService SimulationService
@@ -19,49 +19,17 @@
     OnStepChange="UpdateStep"
 />
 
-@if (_telemetryData != null && _telemetryHistory.Count != 0)
-{
-    <div style="display: flex; gap: 20px;">
+<SimulationCharts @ref="_simulationChartsComponent"/>
 
-        <div style="flex: 1; border: 1px solid #ccc; padding: 10px;">
-            <p>Last telemetry frame</p>
-            @if (_telemetryData != null)
-            {
-                <div style="height: 400px; overflow-y: scroll;">
-                    <pre>@JsonSerializer.Serialize(_telemetryData, new JsonSerializerOptions { WriteIndented = true })</pre>
-                </div>
-            }
-        </div>
-
-        <div style="flex: 1; border: 1px solid #ccc; padding: 10px;">
-            <p>History</p>
-            <div style="height: 400px; overflow-y: scroll;">
-                <table class="table table-sm">
-                    <thead>
-                    <tr>
-                        <th>Timestamp</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var item in Enumerable.Reverse(_telemetryHistory))
-                    {
-                        <tr>
-                            <td>@item.Timestamp.ToString("dd.MM.yyyy HH:mm")</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-}
+<SimulationJson TelemetryHistory="_telemetryHistory"/>
 
 @code {
-    private HubConnection? _hubConnection;
-    private SimulationTelemetry? _telemetryData;
-    private List<SimulationTelemetry> _telemetryHistory = [];
 
+    private HubConnection? _hubConnection;
+    private List<SimulationTelemetry> _telemetryHistory = [];
     private string _connectionStatus = "Disconnected";
+
+    private SimulationCharts? _simulationChartsComponent;
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,26 +40,35 @@
             .WithAutomaticReconnect()
             .Build();
 
-        _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", data =>
+        _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", async msg =>
         {
-            _telemetryData = data;
-            _telemetryHistory.Add(data);
+            _telemetryHistory.Add(msg);
 
-            if (_telemetryHistory.Count > 2000) _telemetryHistory.RemoveAt(0);
+            var cutoffTime = msg.Timestamp.AddHours(-24);
 
-            InvokeAsync(StateHasChanged);
+            while (_telemetryHistory.Count > 0 && _telemetryHistory[0].Timestamp < cutoffTime)
+            {
+                _telemetryHistory.RemoveAt(0);
+            }
+
+            if (_simulationChartsComponent != null)
+            {
+                await _simulationChartsComponent.AddTelemetryAsync(msg);
+            }
+
+            await InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", history =>
+        _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", async history =>
         {
             _telemetryHistory = history;
 
-            if (_telemetryHistory.Any())
+            if (_simulationChartsComponent != null)
             {
-                _telemetryData = _telemetryHistory.Last();
+                await _simulationChartsComponent.LoadHistoryAsync(history);
             }
 
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         });
 
         SimulationService.OnStatusChanged += StateHasChanged;
@@ -121,8 +98,13 @@
 
     private async Task Reset()
     {
-        _telemetryData = new SimulationTelemetry();
         _telemetryHistory = [];
+
+        if (_simulationChartsComponent != null)
+        {
+            await _simulationChartsComponent.ClearChartsAsync();
+        }
+
         await SimulationService.SendCommandAsync("RESET");
     }
 
