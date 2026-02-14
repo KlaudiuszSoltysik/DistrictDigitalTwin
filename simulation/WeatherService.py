@@ -4,8 +4,9 @@ import pvlib
 
 
 class WeatherService:
-    def __init__(self, weather_path, timezone_str, latitude, longitude):
+    def __init__(self, weather_path, timezone_str, latitude, longitude, is_digital_twin=False):
         df = pd.read_csv(weather_path)
+
         self.latitude = latitude
         self.longitude = longitude
 
@@ -16,6 +17,31 @@ class WeatherService:
         df["wind_v"] = np.cos(rad)
 
         self.weather_history = df.set_index("timestamp").sort_index()
+
+        if is_digital_twin:
+            self.randomize_weather()
+
+    def randomize_weather(self):
+        df = self.weather_history.copy()
+        n = len(df)
+
+        if 'temperature' in df.columns:
+            df['temperature'] += np.random.normal(loc=0.0, scale=0.5, size=n)
+
+        if 'wind_u' in df.columns:
+            df['wind_u'] += np.random.normal(loc=0.0, scale=0.5, size=n)
+        if 'wind_v' in df.columns:
+            df['wind_v'] += np.random.normal(loc=0.0, scale=0.5, size=n)
+
+        if 'wind_speed' in df.columns:
+            df['wind_speed'] += np.random.normal(loc=0.0, scale=0.5, size=n)
+            df['wind_speed'] = df['wind_speed'].clip(lower=0.0)
+
+        if 'sun_radiation' in df.columns:
+            df['sun_radiation'] += np.random.normal(loc=0.0, scale=20.0, size=n)
+            df['sun_radiation'] = df['sun_radiation'].clip(lower=0.0)
+
+        self.weather_history = df
 
     def get_weather(self, current_time):
         now = pd.Timestamp(current_time)

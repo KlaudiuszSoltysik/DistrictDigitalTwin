@@ -9,7 +9,7 @@ from WeatherSolver import WeatherSolver
 
 
 class DistrictSimulation:
-    def __init__(self, config_path, weather_path):
+    def __init__(self, config_path, weather_path, is_digital_twin=False):
         parser = DistrictModelParser(config_path)
         self.metadata = parser.raw_data["metadata"]
         G, G_ext_air, G_ext_ground, C, N, external_connections, standards, nodes = parser.parse()
@@ -26,7 +26,7 @@ class DistrictSimulation:
 
         self.current_time = pd.Timestamp("2024-01-01 00:00:00").tz_localize(self.metadata["timezone"])
         self.weather_service = WeatherService(weather_path, self.metadata["timezone"], self.metadata["latitude"],
-                                              self.metadata["longitude"])
+                                              self.metadata["longitude"], is_digital_twin)
 
         self.index_to_id = {v: k for k, v in nodes.items()}
 

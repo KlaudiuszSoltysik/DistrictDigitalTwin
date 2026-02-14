@@ -35,7 +35,8 @@ class WeatherSolver:
 
                     wall_net_area = connection["area_gross"] - win_area_sum
 
-                    q_net[room_idx] += (wall_net_area * sun_rad * connection["absorptance"] * cos_theta * (connection["u_value"] / self.H_EXTERNAL))
+                    q_net[room_idx] += (wall_net_area * sun_rad * connection["absorptance"] * cos_theta * (
+                            connection["u_value"] / self.H_EXTERNAL))
 
         for connection in self.connections:
             room_idx = connection["room_idx"]
