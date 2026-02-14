@@ -1,0 +1,142 @@
+﻿@page "/simulation-panel"
+
+@inject IConfiguration Config
+@inject SimulationUiService SimulationService
+@using shared
+@using website.Components
+@implements IAsyncDisposable
+
+<PageTitle>District Digital Twin - Admin Panel</PageTitle>
+
+<SimulationControls
+    IsConnected="@IsConnected"
+    ConnectionStatus="@_connectionStatus"
+    Config="@SimulationService.CurrentStatus?.Config"
+    OnResume="Resume"
+    OnPause="Pause"
+    OnReset="Reset"
+    OnSpeedChange="UpdateSpeed"
+    OnStepChange="UpdateStep"
+/>
+
+<SimulationCharts @ref="_simulationChartsComponent"/>
+
+<SimulationJson TelemetryHistory="_telemetryHistory"/>
+
+@code {
+
+    private HubConnection? _hubConnection;
+    private List<SimulationTelemetry> _telemetryHistory = [];
+    private string _connectionStatus = "Disconnected";
+
+    private SimulationCharts? _simulationChartsComponent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var baseApiUrl = Config["BaseApiUrl"];
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl($"{baseApiUrl}/hubs/simulation")
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", async msg =>
+        {
+            _telemetryHistory.Add(msg);
+
+            var cutoffTime = msg.Timestamp.AddHours(-24);
+
+            while (_telemetryHistory.Count > 0 && _telemetryHistory[0].Timestamp < cutoffTime)
+            {
+                _telemetryHistory.RemoveAt(0);
+            }
+
+            if (_simulationChartsComponent != null)
+            {
+                await _simulationChartsComponent.AddTelemetryAsync(msg);
+            }
+
+            await InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", async history =>
+        {
+            _telemetryHistory = history;
+
+            if (_simulationChartsComponent != null)
+            {
+                await _simulationChartsComponent.LoadHistoryAsync(history);
+            }
+
+            await InvokeAsync(StateHasChanged);
+        });
+
+        SimulationService.OnStatusChanged += StateHasChanged;
+
+        try
+        {
+            await _hubConnection.StartAsync();
+            _connectionStatus = "Connected";
+        }
+        catch (Exception ex)
+        {
+            _connectionStatus = ex.Message;
+        }
+    }
+
+    private bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+
+    private async Task Pause()
+    {
+        await SendUpdate(true);
+    }
+
+    private async Task Resume()
+    {
+        await SendUpdate(false);
+    }
+
+    private async Task Reset()
+    {
+        _telemetryHistory = [];
+
+        if (_simulationChartsComponent != null)
+        {
+            await _simulationChartsComponent.ClearChartsAsync();
+        }
+
+        await SimulationService.SendCommandAsync("RESET");
+    }
+
+    private async Task UpdateSpeed(int speed)
+    {
+        await SendUpdate(speed: speed);
+    }
+
+    private async Task UpdateStep(int step)
+    {
+        await SendUpdate(step: step);
+    }
+
+    private async Task SendUpdate(bool? isPaused = null, int? speed = null, int? step = null)
+    {
+        var current = SimulationService.CurrentStatus?.Config ?? new SimulationConfig();
+
+        var newConfig = new SimulationConfig
+        {
+            IsPaused = isPaused ?? current.IsPaused,
+            SimulationSpeed = speed ?? current.SimulationSpeed,
+            SimulationStep = step ?? current.SimulationStep
+        };
+
+        await SimulationService.SendCommandAsync("UPDATE_CONFIG", newConfig);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SimulationService.OnStatusChanged -= StateHasChanged;
+
+        if (_hubConnection is not null) await _hubConnection.DisposeAsync();
+    }
+
+}

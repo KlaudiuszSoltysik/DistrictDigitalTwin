@@ -24,8 +24,7 @@ history_service:
 
 website:
 
-- panel konfiguracyjny symulacji
-- wykresy
+- panel administracyjny symulacji
 
 🏙️ ResiFlow: Community Energy Management System (CEMS)
 Koncepcja: Zaawansowana platforma IoT/SaaS do zarządzania energią i komfortem w budownictwie wielorodzinnym. System wykorzystuje technologię Digital Twin do symulacji fizyki budynku oraz algorytmy predykcyjne do optymalizacji kosztów ogrzewania i bilansowania mocy przyłączeniowej.

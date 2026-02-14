@@ -59,10 +59,7 @@ public class HistoryCacheService(IServiceScopeFactory scopeFactory)
 
     private void TrimOldHistory(DateTime cutoff)
     {
-        while (_history.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoff)
-        {
-            _history.TryDequeue(out _);
-        }
+        while (_history.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoff) _history.TryDequeue(out _);
     }
 
     private async Task LoadHistoryFromDb(long runId, DateTime cutoff)
