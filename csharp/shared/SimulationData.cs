@@ -28,6 +28,7 @@ public class SimulationConfig
     [JsonPropertyName("is_paused")] public bool IsPaused { get; set; }
     [JsonPropertyName("simulation_speed")] public int SimulationSpeed { get; set; }
     [JsonPropertyName("simulation_step")] public int SimulationStep { get; set; }
+    [JsonPropertyName("room_temperature_noise_sigma")] public double RoomTemperatureNoiseSigma { get; set; }
 }
 
 public class SimulationStatus

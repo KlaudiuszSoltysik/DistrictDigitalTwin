@@ -17,6 +17,7 @@
     OnReset="Reset"
     OnSpeedChange="UpdateSpeed"
     OnStepChange="UpdateStep"
+    OnSigmaChange="UpdateSigma"
 />
 
 <SimulationCharts @ref="_simulationChartsComponent"/>
@@ -118,7 +119,12 @@
         await SendUpdate(step: step);
     }
 
-    private async Task SendUpdate(bool? isPaused = null, int? speed = null, int? step = null)
+    private async Task UpdateSigma(double sigma)
+    {
+        await SendUpdate(sigma: sigma);
+    }
+
+    private async Task SendUpdate(bool? isPaused = null, int? speed = null, int? step = null, double? sigma = null)
     {
         var current = SimulationService.CurrentStatus?.Config ?? new SimulationConfig();
 
@@ -126,7 +132,8 @@
         {
             IsPaused = isPaused ?? current.IsPaused,
             SimulationSpeed = speed ?? current.SimulationSpeed,
-            SimulationStep = step ?? current.SimulationStep
+            SimulationStep = step ?? current.SimulationStep,
+            RoomTemperatureNoiseSigma = sigma ?? current.RoomTemperatureNoiseSigma
         };
 
         await SimulationService.SendCommandAsync("UPDATE_CONFIG", newConfig);
