@@ -6,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "api", "api\api.csproj", "{9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "shared", "shared\shared.csproj", "{CD9FA09F-9A72-4371-A855-E57D6687F058}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "history_service", "history_service\history_service.csproj", "{81901ADD-735E-4BC2-A3F7-58E5FDAA06FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "telemetry_service", "telemetry_service\telemetry_service.csproj", "{81901ADD-735E-4BC2-A3F7-58E5FDAA06FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

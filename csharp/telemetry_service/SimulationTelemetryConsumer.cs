@@ -3,24 +3,24 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using shared;
 
-namespace history_service;
+namespace telemetry_service;
 
-public class TelemetryConsumer(HistoryDbContext db) : IConsumer<SimulationTelemetry>
+public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Telemetry>
 {
-    private static long _currentRunIdCache;
+    private static long _currentRunId;
 
-    public async Task Consume(ConsumeContext<SimulationTelemetry> context)
+    public async Task Consume(ConsumeContext<Telemetry> context)
     {
         var msg = context.Message;
 
-        if (_currentRunIdCache != msg.RunId)
+        if (_currentRunId != msg.RunId)
         {
-            await db.Database.ExecuteSqlRawAsync("DELETE FROM telemetry WHERE \"RunId\" != {0}", msg.RunId);
+            await db.Database.ExecuteSqlRawAsync("DELETE FROM SimulationTelemetry WHERE \"RunId\" != {0}", msg.RunId);
 
-            _currentRunIdCache = msg.RunId;
+            _currentRunId = msg.RunId;
         }
 
-        var entity = new TelemetryEntity
+        var entity = new SimulationTelemetryEntity
         {
             RunId = msg.RunId,
             Timestamp = msg.Timestamp.ToUniversalTime(),
@@ -33,7 +33,7 @@ public class TelemetryConsumer(HistoryDbContext db) : IConsumer<SimulationTeleme
             RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures)
         };
 
-        db.Telemetry.Add(entity);
+        db.SimulationTelemetry.Add(entity);
         await db.SaveChangesAsync();
     }
 }

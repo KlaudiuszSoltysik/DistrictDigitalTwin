@@ -1,20 +1,20 @@
-﻿using history_service;
-using MassTransit;
+﻿using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using shared;
+using telemetry_service;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
-        services.AddDbContext<HistoryDbContext>(options =>
+        services.AddDbContext<TelemetryDbContext>(options =>
             options.UseNpgsql(context.Configuration.GetConnectionString("HistoryDbConnection")));
 
         services.AddMassTransit(x =>
         {
-            x.AddConsumer<TelemetryConsumer>();
+            x.AddConsumer<SimulationTelemetryConsumer>();
 
             x.UsingRabbitMq((ctx, cfg) =>
             {
@@ -30,11 +30,18 @@ var host = Host.CreateDefaultBuilder(args)
                     h.Password(parts[1]);
                 });
 
-                cfg.ReceiveEndpoint("history-service-queue", e =>
+                cfg.UseRawJsonSerializer();
+
+                cfg.ReceiveEndpoint("simulation-telemetry-queue-db", e =>
                 {
-                    e.Bind("telemetry.exchange");
-                    e.UseRawJsonSerializer();
-                    e.ConfigureConsumer<TelemetryConsumer>(ctx);
+                    e.Bind("simulation-telemetry.exchange");
+                    e.ConfigureConsumer<SimulationTelemetryConsumer>(ctx);
+                });
+
+                cfg.ReceiveEndpoint("digital-twin-telemetry-queue-db", e =>
+                {
+                    e.Bind("digital_twin_telemetry.exchange");
+                    e.ConfigureConsumer<DigitalTwinTelemetryConsumer>(ctx);
                 });
             });
         });

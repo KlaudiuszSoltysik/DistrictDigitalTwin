@@ -1,6 +1,6 @@
 ﻿from json import dumps, loads
 from os import getenv
-from time import sleep
+from time import sleep, time
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,8 @@ class DigitalTwinService:
         self.rabbit_params = URLParameters(amqp_url)
 
         self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv", True)
+
+        self.run_id = int(time())
 
         self.simulation_step = 300
         self.pub_connection = None
@@ -39,14 +41,14 @@ class DigitalTwinService:
                 connection = self.connect_with_retry()
                 channel = connection.channel()
 
-                channel.queue_declare(queue="digital_twin_commands", durable=True)
+                channel.queue_declare(queue="digital-twin-commands", durable=True)
 
                 def callback(ch, method, properties, body):
                     cmd = loads(body)
                     self.process_command(cmd)
 
                 channel.basic_consume(
-                    queue="digital_twin_commands",
+                    queue="digital-twin-commands",
                     on_message_callback=callback,
                     auto_ack=True
                 )
@@ -69,7 +71,7 @@ class DigitalTwinService:
 
         while self.simulation.current_time < end_timestamp:
             step_data = self.simulation.run_step(self.simulation_step)
-            simulation_result.append(step_data)
+            simulation_result.append({"run_id": self.run_id, **step_data})
 
         try:
             pub_conn = self.connect_with_retry()
@@ -77,13 +79,13 @@ class DigitalTwinService:
             telemetry_channel = pub_conn.channel()
 
             telemetry_channel.exchange_declare(
-                exchange="digital_twin_telemetry.exchange",
+                exchange="digital-twin-telemetry.exchange",
                 exchange_type="fanout",
                 durable=True
             )
 
             telemetry_channel.basic_publish(
-                exchange="digital_twin_telemetry.exchange",
+                exchange="digital-twin-telemetry.exchange",
                 routing_key="",
                 body=dumps(simulation_result),
                 properties=BasicProperties(

@@ -2,13 +2,19 @@
 
 namespace api;
 
-public class SimulationHub(HistoryCacheService historyCacheService) : Hub
+public class SimulationHub(CacheService cacheService) : Hub
 {
     public override async Task OnConnectedAsync()
     {
-        var history = historyCacheService.GetHistory();
+        var simulationTelemetry = cacheService.GetSimulationTelemetry();
 
-        if (history.Count != 0) await Clients.Caller.SendAsync("ReceiveHistory", history);
+        if (simulationTelemetry.Count != 0)
+            await Clients.Caller.SendAsync("ReceiveSimulationTelemetryDb", simulationTelemetry);
+
+        var digitalTwinTelemetry = cacheService.GetDigitalTwinTelemetry();
+
+        if (digitalTwinTelemetry.Count != 0)
+            await Clients.Caller.SendAsync("ReceiveDigitalTwinTelemetry", digitalTwinTelemetry);
 
         await base.OnConnectedAsync();
     }

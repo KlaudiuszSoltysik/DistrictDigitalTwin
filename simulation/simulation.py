@@ -103,11 +103,11 @@ class SimulationService:
                     pub_conn = self.connect_with_retry()
 
                     telemetry_channel = pub_conn.channel()
-                    telemetry_channel.exchange_declare(exchange="telemetry.exchange", exchange_type="fanout",
+                    telemetry_channel.exchange_declare(exchange="simulation-telemetry.exchange", exchange_type="fanout",
                                                        durable=True)
 
                     config_channel = pub_conn.channel()
-                    config_channel.queue_declare(queue="status", durable=True)
+                    config_channel.queue_declare(queue="simulation-status", durable=True)
 
                 pub_conn.process_data_events(time_limit=0)
 
@@ -123,7 +123,7 @@ class SimulationService:
                 simulation_result = {"run_id": self.run_id, **simulation_result}
 
                 telemetry_channel.basic_publish(
-                    exchange="telemetry.exchange",
+                    exchange="simulation-telemetry.exchange",
                     routing_key="",
                     body=dumps(simulation_result),
                     properties=BasicProperties(
@@ -155,7 +155,7 @@ class SimulationService:
         }}
         channel.basic_publish(
             exchange="",
-            routing_key="status",
+            routing_key="simulation-status",
             body=dumps(config_payload),
             properties=BasicProperties(content_type="application/json")
         )

@@ -1,0 +1,229 @@
+﻿@using shared
+@if (_simulationTelemetry.Count != 0)
+{
+    <ApexChart TItem="Telemetry" Title="Temperature [°C]" Options="_temperatureChartOptions" @ref="_chart1">
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Temperature"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.Temperature)"/>
+
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Temperature forecast"
+                         Items="_digitalTwinTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.Temperature)"/>
+    </ApexChart>
+
+    <ApexChart TItem="Telemetry" Title="Wind speed [km/h]" Options="_windSpeedChartOptions" @ref="_chart2">
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Wind speed"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
+
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Wind speed forecast"
+                         Items="_digitalTwinTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
+    </ApexChart>
+
+    <ApexChart TItem="Telemetry" Title="Sun radiation [W/m²]" Options="_sunRadiationChartOptions"
+               @ref="_chart3">
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Sun radiation"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
+
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Sun radiation forecast"
+                         Items="_digitalTwinTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
+    </ApexChart>
+
+    <ApexChart TItem="Telemetry" Title="Sun altitude [°]" Options="_sunAltitudeChartOptions" @ref="_chart4">
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Sun altitude"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
+
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Sun altitude forecast"
+                         Items="_digitalTwinTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
+    </ApexChart>
+
+    <ApexChart TItem="Telemetry" Title="Room temperatures [°C]" Options="_roomTemperaturesOptions"
+               @ref="_chart5">
+        @foreach (var roomName in _roomNames)
+        {
+            <ApexPointSeries TItem="Telemetry"
+                             SeriesType="SeriesType.Line"
+                             Name="@roomName"
+                             Items="_simulationTelemetry"
+                             XValue="@(t => t.Timestamp)"
+                             YValue="@(t => GetRoomTemperature(t, roomName))"/>
+
+            <ApexPointSeries TItem="Telemetry"
+                             SeriesType="SeriesType.Line"
+                             Name="$@{roomName} digital twin"
+                             Items="_digitalTwinTelemetry"
+                             XValue="@(t => t.Timestamp)"
+                             YValue="@(t => GetRoomTemperature(t, roomName))"/>
+        }
+    </ApexChart>
+}
+
+@code {
+    private int _updateCounter;
+    private List<Telemetry> _simulationTelemetry = [];
+    private List<Telemetry> _digitalTwinTelemetry = [];
+    private List<string> _roomNames = [];
+
+    private ApexChart<Telemetry> _chart1 = new();
+    private ApexChart<Telemetry> _chart2 = new();
+    private ApexChart<Telemetry> _chart3 = new();
+    private ApexChart<Telemetry> _chart4 = new();
+    private ApexChart<Telemetry> _chart5 = new();
+
+    private ApexChartOptions<Telemetry> _temperatureChartOptions = new();
+    private ApexChartOptions<Telemetry> _windSpeedChartOptions = new();
+    private ApexChartOptions<Telemetry> _sunRadiationChartOptions = new();
+    private ApexChartOptions<Telemetry> _sunAltitudeChartOptions = new();
+    private ApexChartOptions<Telemetry> _roomTemperaturesOptions = new();
+
+    protected override void OnInitialized()
+    {
+        _temperatureChartOptions = GenerateOptions("°C");
+        _windSpeedChartOptions = GenerateOptions(" km/h");
+        _sunRadiationChartOptions = GenerateOptions(" W/m²");
+        _sunAltitudeChartOptions = GenerateOptions("°");
+        _roomTemperaturesOptions = GenerateOptions("°C", 600);
+    }
+
+    public async Task AddSimulationTelemetryAsync(Telemetry msg)
+    {
+        _updateCounter++;
+
+        _simulationTelemetry.Add(msg);
+
+        if (_updateCounter % 5 == 0)
+        {
+            var cutoffTime = msg.Timestamp.AddHours(-24);
+
+            while (_simulationTelemetry.Count > 0 && _simulationTelemetry[0].Timestamp < cutoffTime)
+            {
+                _simulationTelemetry.RemoveAt(0);
+            }
+
+            _roomNames = [];
+            foreach (var key in msg.RoomTemperatures.Keys)
+            {
+                _roomNames.Add(key);
+            }
+
+            await Task.WhenAll(
+                InvokeAsync(StateHasChanged),
+                _chart1.UpdateSeriesAsync(),
+                _chart2.UpdateSeriesAsync(),
+                _chart3.UpdateSeriesAsync(),
+                _chart4.UpdateSeriesAsync(),
+                _chart5.UpdateSeriesAsync()
+            );
+        }
+    }
+
+    public async Task LoadSimulationTelemetryAsync(List<Telemetry> msgs)
+    {
+        _simulationTelemetry = msgs;
+
+        _roomNames.Clear();
+        var latest = _simulationTelemetry.LastOrDefault();
+        if (latest?.RoomTemperatures != null)
+        {
+            _roomNames.AddRange(latest.RoomTemperatures.Keys);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task LoadDigitalTwinTelemetryAsync(List<Telemetry> msg)
+    {
+        _digitalTwinTelemetry = msg;
+
+        await Task.WhenAll(
+            InvokeAsync(StateHasChanged),
+            _chart1.UpdateSeriesAsync(),
+            _chart2.UpdateSeriesAsync(),
+            _chart3.UpdateSeriesAsync(),
+            _chart4.UpdateSeriesAsync(),
+            _chart5.UpdateSeriesAsync()
+        );
+    }
+
+    public async Task ClearChartsAsync()
+    {
+        _simulationTelemetry.Clear();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static ApexChartOptions<Telemetry> GenerateOptions(string unitSuffix, int height = 300)
+    {
+        return new ApexChartOptions<Telemetry>
+        {
+            Chart = new Chart
+            {
+                Height = height,
+                Type = ChartType.Line,
+                Animations = new Animations { Enabled = false },
+                Toolbar = new Toolbar { Show = false },
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke { Curve = Curve.Stepline, Width = 1 },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Labels = new XAxisLabels { Format = "HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false }
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = $"function (value) {{ return value + '{unitSuffix}'; }}"
+                    }
+                }
+            ],
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM-yyyy HH:mm" }
+            }
+        };
+    }
+
+    private static decimal? GetRoomTemperature(Telemetry item, string roomName)
+    {
+        if (item.RoomTemperatures.TryGetValue(roomName, out var temp))
+        {
+            return (decimal)temp;
+        }
+
+        return null;
+    }
+
+}
