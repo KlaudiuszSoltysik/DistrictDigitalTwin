@@ -55,7 +55,7 @@
 @code {
     private int _updateCounter;
     private List<SimulationTelemetry> _telemetryHistory = [];
-    private readonly List<string> _roomNames = [];
+    private List<string> _roomNames = [];
 
     private ApexChart<SimulationTelemetry> _chart1 = new();
     private ApexChart<SimulationTelemetry> _chart2 = new();
@@ -75,7 +75,7 @@
         _windSpeedChartOptions = GenerateOptions(" km/h");
         _sunRadiationChartOptions = GenerateOptions(" W/m²");
         _sunAltitudeChartOptions = GenerateOptions("°");
-        _roomTemperaturesOptions = GenerateOptions("°C");
+        _roomTemperaturesOptions = GenerateOptions("°C", 600);
     }
 
     public async Task AddTelemetryAsync(SimulationTelemetry msg)
@@ -95,12 +95,15 @@
                     _telemetryHistory.RemoveAt(0);
                 }
 
+                _roomNames = [];
                 foreach (var key in msg.RoomTemperatures.Keys)
                 {
                     _roomNames.Add(key);
                 }
 
                 await Task.WhenAll(
+                    InvokeAsync(StateHasChanged),
+
                     _chart1.UpdateSeriesAsync(),
                     _chart2.UpdateSeriesAsync(),
                     _chart3.UpdateSeriesAsync(),
@@ -135,19 +138,19 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private static ApexChartOptions<SimulationTelemetry> GenerateOptions(string unitSuffix)
+    private static ApexChartOptions<SimulationTelemetry> GenerateOptions(string unitSuffix, int height = 300)
     {
         return new ApexChartOptions<SimulationTelemetry>
         {
             Chart = new Chart
             {
-                Height = 300,
+                Height = height,
                 Type = ChartType.Line,
                 Animations = new Animations { Enabled = false },
                 Toolbar = new Toolbar { Show = false },
                 Zoom = new Zoom { Enabled = false }
             },
-            Stroke = new Stroke { Curve = Curve.Stepline, Width = 2 },
+            Stroke = new Stroke { Curve = Curve.Stepline, Width = 1 },
             Xaxis = new XAxis
             {
                 Type = XAxisType.Datetime,
@@ -160,7 +163,7 @@
                 {
                     Labels = new YAxisLabels
                     {
-                        Formatter = $"function (value) {{ return value.toFixed(0) + '{unitSuffix}'; }}"
+                        Formatter = $"function (value) {{ return value + '{unitSuffix}'; }}"
                     }
                 }
             ],

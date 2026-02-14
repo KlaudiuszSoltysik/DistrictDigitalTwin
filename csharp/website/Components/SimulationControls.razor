@@ -64,7 +64,7 @@
                     </td>
                 </tr>
 
-                <tr>
+                <tr class="border-b border-gray-700">
                     <td class="py-5 px-2 font-medium uppercase text-xs">Simulation step</td>
                     <td class="py-5 px-2">
                         <div class="flex flex-wrap gap-2">
@@ -76,6 +76,23 @@
                                 <button @onclick="() => OnStepChange.InvokeAsync(stepValue)"
                                         class="px-4 py-2 rounded-md text-xs font-bold transition-all border @(isActive ? "bg-indigo-700 border-indigo-600" : "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600")">
                                     @label
+                                </button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="py-5 px-2 font-medium uppercase text-xs">Room temperature noise factor</td>
+                    <td class="py-5 px-2">
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var sigmaValue in new[] { 0.0, 0.1, 0.2, 0.5, 1.0, 1.5})
+                            {
+                                var isActive = Math.Abs(Config.RoomTemperatureNoiseSigma - sigmaValue) < 0.001;
+
+                                <button @onclick="() => OnSigmaChange.InvokeAsync(sigmaValue)"
+                                        class="px-4 py-2 rounded-md text-xs font-bold transition-all border @(isActive ? "bg-indigo-700 border-indigo-600" : "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600")">
+                                    @sigmaValue
                                 </button>
                             }
                         </div>
@@ -97,4 +114,5 @@
     [Parameter] public EventCallback OnReset { get; set; }
     [Parameter] public EventCallback<int> OnSpeedChange { get; set; }
     [Parameter] public EventCallback<int> OnStepChange { get; set; }
+    [Parameter] public EventCallback<double> OnSigmaChange { get; set; }
 }

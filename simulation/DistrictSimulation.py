@@ -30,7 +30,7 @@ class DistrictSimulation:
 
         self.index_to_id = {v: k for k, v in nodes.items()}
 
-    def run_step(self, dt_seconds):
+    def run_step(self, dt_seconds, drift_sigma=0.0):
         try:
             weather = self.weather_service.get_weather(self.current_time)
 
@@ -39,7 +39,7 @@ class DistrictSimulation:
                 weather["wind_speed"], weather["wind_direction"], weather["temperature"], self.thermal_solver.T
             )
 
-            temperatures_array = self.thermal_solver.step(dt_seconds, weather["temperature"], q_env)
+            temperatures_array = self.thermal_solver.step(dt_seconds, weather["temperature"], q_env, drift_sigma)
 
             temperatures_array = [round(x, 2) for x in temperatures_array]
 
