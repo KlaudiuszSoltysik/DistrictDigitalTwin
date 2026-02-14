@@ -16,7 +16,7 @@ builder.Services.AddScoped(_ => new HttpClient
     BaseAddress = new Uri(baseApiUrl)
 });
 
-builder.Services.AddScoped<SimulationUiService>(sp =>
+builder.Services.AddScoped<SimulationStatusService>(sp =>
 {
     var httpClient = sp.GetRequiredService<HttpClient>();
 
@@ -25,7 +25,7 @@ builder.Services.AddScoped<SimulationUiService>(sp =>
         .WithAutomaticReconnect()
         .Build();
 
-    return new SimulationUiService(hubConnection, httpClient);
+    return new SimulationStatusService(hubConnection, httpClient);
 });
 
 await builder.Build().RunAsync();

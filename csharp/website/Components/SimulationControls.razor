@@ -86,7 +86,7 @@
                     <td class="py-5 px-2 font-medium uppercase text-xs">Room temperature noise factor</td>
                     <td class="py-5 px-2">
                         <div class="flex flex-wrap gap-2">
-                            @foreach (var sigmaValue in new[] { 0.0, 0.1, 0.2, 0.5, 1.0, 1.5})
+                            @foreach (var sigmaValue in new[] { 0.0, 0.1, 0.2, 0.5, 1.0, 1.5 })
                             {
                                 var isActive = Math.Abs(Config.RoomTemperatureNoiseSigma - sigmaValue) < 0.001;
 

@@ -1,7 +1,7 @@
 ﻿@page "/simulation-panel"
 
 @inject IConfiguration Config
-@inject SimulationUiService SimulationService
+@inject SimulationStatusService SimulationStatusService
 @using shared
 @using website.Components
 @implements IAsyncDisposable
@@ -11,7 +11,7 @@
 <SimulationControls
     IsConnected="@IsConnected"
     ConnectionStatus="@_connectionStatus"
-    Config="@SimulationService.CurrentStatus?.Config"
+    Config="@SimulationStatusService.CurrentStatus?.Config"
     OnResume="Resume"
     OnPause="Pause"
     OnReset="Reset"
@@ -20,17 +20,19 @@
     OnSigmaChange="UpdateSigma"
 />
 
-<SimulationCharts @ref="_simulationChartsComponent"/>
+<TelemetryCharts @ref="_telemetryChartsComponent"/>
 
-<SimulationJson TelemetryHistory="_telemetryHistory"/>
+<SimulationJson SimulationTelemetry="_simulationTelemetry" DigitalTwinTelemetry="_digitalTwinTelemetry"/>
 
 @code {
 
     private HubConnection? _hubConnection;
-    private List<SimulationTelemetry> _telemetryHistory = [];
     private string _connectionStatus = "Disconnected";
 
-    private SimulationCharts? _simulationChartsComponent;
+    private List<Telemetry> _simulationTelemetry = [];
+    private List<Telemetry> _digitalTwinTelemetry = [];
+
+    private TelemetryCharts? _telemetryChartsComponent;
 
     protected override async Task OnInitializedAsync()
     {
@@ -41,38 +43,50 @@
             .WithAutomaticReconnect()
             .Build();
 
-        _hubConnection.On<SimulationTelemetry>("ReceiveSimulationData", async msg =>
+        _hubConnection.On<Telemetry>("ReceiveSimulationTelemetry", async msg =>
         {
-            _telemetryHistory.Add(msg);
+            _simulationTelemetry.Add(msg);
 
             var cutoffTime = msg.Timestamp.AddHours(-24);
 
-            while (_telemetryHistory.Count > 0 && _telemetryHistory[0].Timestamp < cutoffTime)
+            while (_simulationTelemetry.Count > 0 && _simulationTelemetry[0].Timestamp < cutoffTime)
             {
-                _telemetryHistory.RemoveAt(0);
+                _simulationTelemetry.RemoveAt(0);
             }
 
-            if (_simulationChartsComponent != null)
+            if (_telemetryChartsComponent != null)
             {
-                await _simulationChartsComponent.AddTelemetryAsync(msg);
+                await _telemetryChartsComponent.AddSimulationTelemetryAsync(msg);
             }
 
             await InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.On<List<SimulationTelemetry>>("ReceiveHistory", async history =>
+        _hubConnection.On<List<Telemetry>>("ReceiveSimulationTelemetryDb", async msgs =>
         {
-            _telemetryHistory = history;
+            _simulationTelemetry = msgs;
 
-            if (_simulationChartsComponent != null)
+            if (_telemetryChartsComponent != null)
             {
-                await _simulationChartsComponent.LoadHistoryAsync(history);
+                await _telemetryChartsComponent.LoadSimulationTelemetryAsync(msgs);
             }
 
             await InvokeAsync(StateHasChanged);
         });
 
-        SimulationService.OnStatusChanged += StateHasChanged;
+        _hubConnection.On<List<Telemetry>>("ReceiveDigitalTwinTelemetry", async msg =>
+        {
+            _digitalTwinTelemetry = msg;
+
+            if (_telemetryChartsComponent != null)
+            {
+                await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(msg);
+            }
+
+            await InvokeAsync(StateHasChanged);
+        });
+
+        SimulationStatusService.OnStatusChanged += StateHasChanged;
 
         try
         {
@@ -99,14 +113,15 @@
 
     private async Task Reset()
     {
-        _telemetryHistory = [];
+        _simulationTelemetry = [];
+        _digitalTwinTelemetry = [];
 
-        if (_simulationChartsComponent != null)
+        if (_telemetryChartsComponent != null)
         {
-            await _simulationChartsComponent.ClearChartsAsync();
+            await _telemetryChartsComponent.ClearChartsAsync();
         }
 
-        await SimulationService.SendCommandAsync("RESET");
+        await SimulationStatusService.SendCommandAsync("RESET");
     }
 
     private async Task UpdateSpeed(int speed)
@@ -126,7 +141,7 @@
 
     private async Task SendUpdate(bool? isPaused = null, int? speed = null, int? step = null, double? sigma = null)
     {
-        var current = SimulationService.CurrentStatus?.Config ?? new SimulationConfig();
+        var current = SimulationStatusService.CurrentStatus?.Config ?? new SimulationConfig();
 
         var newConfig = new SimulationConfig
         {
@@ -136,12 +151,12 @@
             RoomTemperatureNoiseSigma = sigma ?? current.RoomTemperatureNoiseSigma
         };
 
-        await SimulationService.SendCommandAsync("UPDATE_CONFIG", newConfig);
+        await SimulationStatusService.SendCommandAsync("UPDATE_CONFIG", newConfig);
     }
 
     public async ValueTask DisposeAsync()
     {
-        SimulationService.OnStatusChanged -= StateHasChanged;
+        SimulationStatusService.OnStatusChanged -= StateHasChanged;
 
         if (_hubConnection is not null) await _hubConnection.DisposeAsync();
     }

@@ -10,12 +10,12 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
-builder.Services.AddDbContext<HistoryDbContext>(options =>
+builder.Services.AddDbContext<TelemetryDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("HistoryDbConnection")));
 
 builder.Services.AddMassTransit(x =>
 {
-    x.AddConsumer<TelemetryConsumer>();
+    x.AddConsumer<SimulationTelemetryConsumer>();
     x.AddConsumer<SimulationStatusConsumer>();
 
     x.UsingRabbitMq((ctx, cfg) =>
@@ -33,13 +33,19 @@ builder.Services.AddMassTransit(x =>
 
         cfg.UseRawJsonSerializer();
 
-        cfg.ReceiveEndpoint("cache-service-queue", e =>
+        cfg.ReceiveEndpoint("simulation-telemetry-queue", e =>
         {
-            e.Bind("telemetry.exchange");
-            e.ConfigureConsumer<TelemetryConsumer>(ctx);
+            e.Bind("simulation-telemetry.exchange");
+            e.ConfigureConsumer<SimulationTelemetryConsumer>(ctx);
         });
 
-        cfg.ReceiveEndpoint("status", e => { e.ConfigureConsumer<SimulationStatusConsumer>(ctx); });
+        cfg.ReceiveEndpoint("digital-twin-telemetry-queue", e =>
+        {
+            e.Bind("digital_twin_telemetry.exchange");
+            e.ConfigureConsumer<DigitalTwinConsumer>(ctx);
+        });
+
+        cfg.ReceiveEndpoint("simulation-status", e => { e.ConfigureConsumer<SimulationStatusConsumer>(ctx); });
     });
 });
 
@@ -55,7 +61,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddSingleton<HistoryCacheService>();
+builder.Services.AddSingleton<CacheService>();
 
 var app = builder.Build();
 

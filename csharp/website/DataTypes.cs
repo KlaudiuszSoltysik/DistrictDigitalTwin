@@ -27,9 +27,9 @@
 //     public required double SunAzimuth { get; set; }
 // }
 //
-// public class SimulationTelemetry
+// public class Telemetry
 // {
-//     public string Type { get; set; } = "SimulationTelemetry";
+//     public string Type { get; set; } = "Telemetry";
 //     public required WeatherData Weather { get; set; }
 //     public Dictionary<string, double> Temperatures { get; set; } = new();
 //     public double SpeedFactor { get; set; }

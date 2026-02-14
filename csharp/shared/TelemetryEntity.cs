@@ -16,3 +16,7 @@ public class TelemetryEntity
     public double SunAzimuth { get; set; }
     [Column(TypeName = "jsonb")] public string RoomTemperatures { get; set; } = "{}";
 }
+
+public class SimulationTelemetryEntity : TelemetryEntity;
+
+public class DigitalTwinTelemetryEntity : TelemetryEntity;

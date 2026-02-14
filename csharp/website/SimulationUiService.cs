@@ -4,12 +4,12 @@ using shared;
 
 namespace website;
 
-public class SimulationUiService
+public class SimulationStatusService
 {
     private readonly HttpClient _httpClient;
     private readonly HubConnection _hubConnection;
 
-    public SimulationUiService(HubConnection hubConnection, HttpClient httpClient)
+    public SimulationStatusService(HubConnection hubConnection, HttpClient httpClient)
     {
         _hubConnection = hubConnection;
         _httpClient = httpClient;
