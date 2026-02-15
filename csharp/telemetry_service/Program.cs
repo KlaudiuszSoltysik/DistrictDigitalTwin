@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using shared;
 using telemetry_service;
+using telemetry_service.Consumers;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>

@@ -1,4 +1,5 @@
 using api;
+using api.Consumers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;

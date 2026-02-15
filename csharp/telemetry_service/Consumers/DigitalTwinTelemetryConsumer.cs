@@ -3,7 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using shared;
 
-namespace telemetry_service;
+namespace telemetry_service.Consumers;
 
 public class DigitalTwinTelemetryConsumer(TelemetryDbContext db) : IConsumer<Telemetry[]>
 {

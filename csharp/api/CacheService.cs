@@ -169,4 +169,27 @@ public class CacheService(IServiceScopeFactory scopeFactory)
     {
         return _digitalTwinTelemetry.ToList();
     }
+
+    public async Task ClearDataAndCacheAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            _currentSimulationRunId = -1;
+            _lastTimestamp = DateTime.MinValue;
+
+            _simulationTelemetry = new ConcurrentQueue<Telemetry>();
+            _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
+
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
+
+            await db.SimulationTelemetry.ExecuteDeleteAsync();
+            await db.DigitalTwinTelemetry.ExecuteDeleteAsync();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
 }

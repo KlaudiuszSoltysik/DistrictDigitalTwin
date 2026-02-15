@@ -30,7 +30,7 @@
     private string _connectionStatus = "Disconnected";
 
     private List<Telemetry> _simulationTelemetry = [];
-    private List<Telemetry> _digitalTwinTelemetry = [];
+    private readonly List<Telemetry> _digitalTwinTelemetry = [];
 
     private TelemetryCharts? _telemetryChartsComponent;
 
@@ -76,11 +76,26 @@
 
         _hubConnection.On<List<Telemetry>>("ReceiveDigitalTwinTelemetry", async msg =>
         {
-            _digitalTwinTelemetry = msg;
+            foreach (var incomingItem in msg)
+            {
+                var existingIndex = _digitalTwinTelemetry.FindIndex(t => t.Timestamp == incomingItem.Timestamp);
+
+                if (existingIndex >= 0)
+                {
+                    _digitalTwinTelemetry[existingIndex] = incomingItem;
+                }
+                else
+                {
+                    _digitalTwinTelemetry.Add(incomingItem);
+                }
+            }
+
+            var cutoffTime = msg[0].Timestamp.AddHours(-24);
+            _digitalTwinTelemetry.RemoveAll(t => t.Timestamp < cutoffTime);
 
             if (_telemetryChartsComponent != null)
             {
-                await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(msg);
+                await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(_digitalTwinTelemetry);
             }
 
             await InvokeAsync(StateHasChanged);
