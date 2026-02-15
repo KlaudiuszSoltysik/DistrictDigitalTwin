@@ -174,6 +174,16 @@
     public async Task ClearChartsAsync()
     {
         _simulationTelemetry.Clear();
+        _digitalTwinTelemetry.Clear();
+
+        await Task.WhenAll(
+            _chart1.UpdateSeriesAsync(),
+            _chart2.UpdateSeriesAsync(),
+            _chart3.UpdateSeriesAsync(),
+            _chart4.UpdateSeriesAsync(),
+            _chart5.UpdateSeriesAsync()
+        );
+
         await InvokeAsync(StateHasChanged);
     }
 

@@ -5,17 +5,19 @@ using shared;
 
 namespace telemetry_service;
 
-public class DigitalTwinTelemetryConsumer(TelemetryDbContext db) : IConsumer<List<Telemetry>>
+public class DigitalTwinTelemetryConsumer(TelemetryDbContext db) : IConsumer<Telemetry[]>
 {
     private static long _currentRunId;
 
-    public async Task Consume(ConsumeContext<List<Telemetry>> context)
+    public async Task Consume(ConsumeContext<Telemetry[]> context)
     {
-        var msgs = context.Message;
+        var messageArray = context.Message;
 
-        if (msgs.Count == 0) return;
+        var msgList = messageArray.ToList();
 
-        var msg = msgs.FirstOrDefault();
+        if (msgList.Count == 0) return;
+
+        var msg = msgList.FirstOrDefault();
 
         if (msg == null) return;
 
@@ -29,7 +31,7 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db) : IConsumer<Lis
         }
 
         var currentRunId = msg.RunId;
-        var startTimestamp = msgs.Min(m => m.Timestamp).ToUniversalTime();
+        var startTimestamp = msgList.Min(m => m.Timestamp).ToUniversalTime();
 
         await db.DigitalTwinTelemetry
             .Where(t => t.RunId != currentRunId)
@@ -39,7 +41,7 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db) : IConsumer<Lis
             .Where(t => t.RunId == currentRunId && t.Timestamp >= startTimestamp)
             .ExecuteDeleteAsync();
 
-        var entities = msgs.Select(m => new DigitalTwinTelemetryEntity
+        var entities = msgList.Select(m => new DigitalTwinTelemetryEntity
         {
             RunId = m.RunId,
             Timestamp = m.Timestamp.ToUniversalTime(),

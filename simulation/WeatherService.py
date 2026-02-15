@@ -1,6 +1,17 @@
 ﻿import numpy as np
 import pandas as pd
 import pvlib
+from scipy.signal import lfilter
+
+
+def generate_drift_noise(n, rho, target_std):
+    step_scale = target_std * np.sqrt(1 - rho**2)
+
+    shocks = np.random.normal(loc=0.0, scale=step_scale, size=n)
+
+    noise = lfilter([1.0], [1.0, -rho], shocks)
+
+    return noise
 
 
 class WeatherService:
@@ -25,21 +36,27 @@ class WeatherService:
         df = self.weather_history.copy()
         n = len(df)
 
-        if 'temperature' in df.columns:
-            df['temperature'] += np.random.normal(loc=0.0, scale=0.5, size=n)
+        rho_value = 0.95
 
-        if 'wind_u' in df.columns:
-            df['wind_u'] += np.random.normal(loc=0.0, scale=0.5, size=n)
-        if 'wind_v' in df.columns:
-            df['wind_v'] += np.random.normal(loc=0.0, scale=0.5, size=n)
+        if "temperature" in df.columns:
+            df["temperature"] += generate_drift_noise(n, rho_value, 0.5)
 
-        if 'wind_speed' in df.columns:
-            df['wind_speed'] += np.random.normal(loc=0.0, scale=0.5, size=n)
-            df['wind_speed'] = df['wind_speed'].clip(lower=0.0)
+        if "wind_u" in df.columns:
+            df["wind_u"] += generate_drift_noise(n, rho_value, 0.5)
 
-        if 'sun_radiation' in df.columns:
-            df['sun_radiation'] += np.random.normal(loc=0.0, scale=20.0, size=n)
-            df['sun_radiation'] = df['sun_radiation'].clip(lower=0.0)
+        if "wind_v" in df.columns:
+            df["wind_v"] += generate_drift_noise(n, rho_value, 0.5)
+
+        if "wind_speed" in df.columns:
+            df["wind_speed"] += generate_drift_noise(n, rho_value, 0.5)
+            df["wind_speed"] = df["wind_speed"].clip(lower=0.0)
+
+        if "sun_radiation" in df.columns:
+            drift_noise = generate_drift_noise(n, rho_value, 25.0)
+
+            mask = df["sun_radiation"] > 0
+            df.loc[mask, "sun_radiation"] += drift_noise[mask]
+            df["sun_radiation"] = df["sun_radiation"].clip(lower=0.0)
 
         self.weather_history = df
 
