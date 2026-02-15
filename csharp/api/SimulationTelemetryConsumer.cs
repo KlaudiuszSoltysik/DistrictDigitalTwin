@@ -4,7 +4,7 @@ using shared;
 
 namespace api;
 
-public class SimulationTelemetryConsumer(IHubContext<SimulationHub> simulationHubContext, CacheService cacheService)
+public class SimulationTelemetryConsumer(IHubContext<TelemetryHub> simulationHubContext, CacheService cacheService)
     : IConsumer<Telemetry>
 {
     public async Task Consume(ConsumeContext<Telemetry> context)

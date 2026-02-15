@@ -11,12 +11,13 @@ builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<TelemetryDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("HistoryDbConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("TelemetryDbConnection")));
 
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<SimulationTelemetryConsumer>();
     x.AddConsumer<SimulationStatusConsumer>();
+    x.AddConsumer<DigitalTwinTelemetryConsumer>();
 
     x.UsingRabbitMq((ctx, cfg) =>
     {
@@ -41,11 +42,16 @@ builder.Services.AddMassTransit(x =>
 
         cfg.ReceiveEndpoint("digital-twin-telemetry-queue", e =>
         {
-            e.Bind("digital_twin_telemetry.exchange");
-            e.ConfigureConsumer<DigitalTwinConsumer>(ctx);
+            e.Bind("digital-twin-telemetry.exchange");
+            e.ConfigureConsumer<DigitalTwinTelemetryConsumer>(ctx);
         });
 
-        cfg.ReceiveEndpoint("simulation-status", e => { e.ConfigureConsumer<SimulationStatusConsumer>(ctx); });
+        cfg.ReceiveEndpoint("simulation-status", e =>
+        {
+            e.Durable = false;
+            e.SetQueueArgument("x-message-ttl", 1000);
+            e.ConfigureConsumer<SimulationStatusConsumer>(ctx);
+        });
     });
 });
 
@@ -75,7 +81,7 @@ app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapHub<SimulationHub>("/hubs/simulation");
+app.MapHub<TelemetryHub>("/hubs/simulation");
 
 app.Run();
 

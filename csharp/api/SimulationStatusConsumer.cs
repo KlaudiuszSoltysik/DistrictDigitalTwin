@@ -4,7 +4,7 @@ using shared;
 
 namespace api;
 
-public class SimulationStatusConsumer(IHubContext<SimulationHub> hubContext) : IConsumer<SimulationStatus>
+public class SimulationStatusConsumer(IHubContext<TelemetryHub> hubContext) : IConsumer<SimulationStatus>
 {
     public async Task Consume(ConsumeContext<SimulationStatus> context)
     {

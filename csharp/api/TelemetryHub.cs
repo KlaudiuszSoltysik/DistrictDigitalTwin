@@ -2,7 +2,7 @@
 
 namespace api;
 
-public class SimulationHub(CacheService cacheService) : Hub
+public class TelemetryHub(CacheService cacheService) : Hub
 {
     public override async Task OnConnectedAsync()
     {

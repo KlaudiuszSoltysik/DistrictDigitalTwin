@@ -37,13 +37,13 @@ class SimulationService:
                 connection = self.connect_with_retry()
                 channel = connection.channel()
 
-                channel.queue_declare(queue="commands", durable=True)
+                channel.queue_declare(queue="simulation-commands", durable=True)
 
                 def callback(ch, method, properties, body):
                     cmd = loads(body)
                     self.process_command(cmd)
 
-                channel.basic_consume(queue="commands", on_message_callback=callback, auto_ack=True)
+                channel.basic_consume(queue="simulation-commands", on_message_callback=callback, auto_ack=True)
                 channel.start_consuming()
 
             except:
@@ -107,7 +107,13 @@ class SimulationService:
                                                        durable=True)
 
                     config_channel = pub_conn.channel()
-                    config_channel.queue_declare(queue="simulation-status", durable=True)
+                    config_channel.queue_declare(
+                        queue="simulation-status",
+                        durable=False,
+                        arguments={
+                            "x-message-ttl": 1000
+                        }
+                    )
 
                 pub_conn.process_data_events(time_limit=0)
 

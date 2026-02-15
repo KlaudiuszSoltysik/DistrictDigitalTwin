@@ -21,7 +21,9 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db) : IConsumer<Lis
 
         if (_currentRunId != msg.RunId)
         {
-            await db.Database.ExecuteSqlRawAsync("DELETE FROM DigitalTwinTelemetry WHERE \"RunId\" != {0}", msg.RunId);
+            await db.DigitalTwinTelemetry
+                .Where(t => t.RunId != msg.RunId)
+                .ExecuteDeleteAsync();
 
             _currentRunId = msg.RunId;
         }

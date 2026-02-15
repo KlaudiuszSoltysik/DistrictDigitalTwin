@@ -10,11 +10,12 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.AddDbContext<TelemetryDbContext>(options =>
-            options.UseNpgsql(context.Configuration.GetConnectionString("HistoryDbConnection")));
+            options.UseNpgsql(context.Configuration.GetConnectionString("TelemetryDbConnection")));
 
         services.AddMassTransit(x =>
         {
             x.AddConsumer<SimulationTelemetryConsumer>();
+            x.AddConsumer<DigitalTwinTelemetryConsumer>();
 
             x.UsingRabbitMq((ctx, cfg) =>
             {
@@ -40,7 +41,7 @@ var host = Host.CreateDefaultBuilder(args)
 
                 cfg.ReceiveEndpoint("digital-twin-telemetry-queue-db", e =>
                 {
-                    e.Bind("digital_twin_telemetry.exchange");
+                    e.Bind("digital-twin-telemetry.exchange");
                     e.ConfigureConsumer<DigitalTwinTelemetryConsumer>(ctx);
                 });
             });
