@@ -22,7 +22,7 @@
 
 <TelemetryCharts @ref="_telemetryChartsComponent"/>
 
-<SimulationJson SimulationTelemetry="_simulationTelemetry" DigitalTwinTelemetry="_digitalTwinTelemetry"/>
+<TelemetryJson SimulationTelemetry="_simulationTelemetry" DigitalTwinTelemetry="_digitalTwinTelemetry"/>
 
 @code {
 
@@ -113,13 +113,15 @@
 
     private async Task Reset()
     {
-        _simulationTelemetry = [];
-        _digitalTwinTelemetry = [];
+        _simulationTelemetry.Clear();
+        _digitalTwinTelemetry.Clear();
 
         if (_telemetryChartsComponent != null)
         {
             await _telemetryChartsComponent.ClearChartsAsync();
         }
+
+        StateHasChanged();
 
         await SimulationStatusService.SendCommandAsync("RESET");
     }

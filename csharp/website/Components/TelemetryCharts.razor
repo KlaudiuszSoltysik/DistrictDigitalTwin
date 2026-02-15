@@ -1,91 +1,88 @@
 ﻿@using shared
-@if (_simulationTelemetry.Count != 0)
-{
-    <ApexChart TItem="Telemetry" Title="Temperature [°C]" Options="_temperatureChartOptions" @ref="_chart1">
+<ApexChart TItem="Telemetry" Title="Temperature [°C]" Options="_temperatureChartOptions" @ref="_chart1">
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Temperature"
+                     Items="_simulationTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.Temperature)"/>
+
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Temperature forecast"
+                     Items="_digitalTwinTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.Temperature)"/>
+</ApexChart>
+
+<ApexChart TItem="Telemetry" Title="Wind speed [km/h]" Options="_windSpeedChartOptions" @ref="_chart2">
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Wind speed"
+                     Items="_simulationTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
+
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Wind speed forecast"
+                     Items="_digitalTwinTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
+</ApexChart>
+
+<ApexChart TItem="Telemetry" Title="Sun radiation [W/m²]" Options="_sunRadiationChartOptions"
+           @ref="_chart3">
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Sun radiation"
+                     Items="_simulationTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
+
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Sun radiation forecast"
+                     Items="_digitalTwinTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
+</ApexChart>
+
+<ApexChart TItem="Telemetry" Title="Sun altitude [°]" Options="_sunAltitudeChartOptions" @ref="_chart4">
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Sun altitude"
+                     Items="_simulationTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
+
+    <ApexPointSeries TItem="Telemetry"
+                     SeriesType="SeriesType.Line"
+                     Name="Sun altitude forecast"
+                     Items="_digitalTwinTelemetry"
+                     XValue="@(t => t.Timestamp)"
+                     YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
+</ApexChart>
+
+<ApexChart TItem="Telemetry" Title="Room temperatures [°C]" Options="_roomTemperaturesOptions"
+           @ref="_chart5">
+    @foreach (var roomName in _roomNames)
+    {
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Temperature"
+                         Name="@roomName"
                          Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Temperature)"/>
+                         YValue="@(t => GetRoomTemperature(t, roomName))"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Temperature forecast"
+                         Name="@($"{roomName} digital twin")"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Temperature)"/>
-    </ApexChart>
-
-    <ApexChart TItem="Telemetry" Title="Wind speed [km/h]" Options="_windSpeedChartOptions" @ref="_chart2">
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Wind speed"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
-
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Wind speed forecast"
-                         Items="_digitalTwinTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
-    </ApexChart>
-
-    <ApexChart TItem="Telemetry" Title="Sun radiation [W/m²]" Options="_sunRadiationChartOptions"
-               @ref="_chart3">
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Sun radiation"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
-
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Sun radiation forecast"
-                         Items="_digitalTwinTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
-    </ApexChart>
-
-    <ApexChart TItem="Telemetry" Title="Sun altitude [°]" Options="_sunAltitudeChartOptions" @ref="_chart4">
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Sun altitude"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
-
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Sun altitude forecast"
-                         Items="_digitalTwinTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
-    </ApexChart>
-
-    <ApexChart TItem="Telemetry" Title="Room temperatures [°C]" Options="_roomTemperaturesOptions"
-               @ref="_chart5">
-        @foreach (var roomName in _roomNames)
-        {
-            <ApexPointSeries TItem="Telemetry"
-                             SeriesType="SeriesType.Line"
-                             Name="@roomName"
-                             Items="_simulationTelemetry"
-                             XValue="@(t => t.Timestamp)"
-                             YValue="@(t => GetRoomTemperature(t, roomName))"/>
-
-            <ApexPointSeries TItem="Telemetry"
-                             SeriesType="SeriesType.Line"
-                             Name="$@{roomName} digital twin"
-                             Items="_digitalTwinTelemetry"
-                             XValue="@(t => t.Timestamp)"
-                             YValue="@(t => GetRoomTemperature(t, roomName))"/>
-        }
-    </ApexChart>
-}
+                         YValue="@(t => GetRoomTemperature(t, roomName))"/>
+    }
+</ApexChart>
 
 @code {
     private int _updateCounter;
@@ -177,6 +174,16 @@
     public async Task ClearChartsAsync()
     {
         _simulationTelemetry.Clear();
+        _digitalTwinTelemetry.Clear();
+
+        await Task.WhenAll(
+            _chart1.UpdateSeriesAsync(),
+            _chart2.UpdateSeriesAsync(),
+            _chart3.UpdateSeriesAsync(),
+            _chart4.UpdateSeriesAsync(),
+            _chart5.UpdateSeriesAsync()
+        );
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -192,7 +199,7 @@
                 Toolbar = new Toolbar { Show = false },
                 Zoom = new Zoom { Enabled = false }
             },
-            Stroke = new Stroke { Curve = Curve.Stepline, Width = 1 },
+            Stroke = new Stroke { Curve = Curve.Stepline, Width = 2 },
             Xaxis = new XAxis
             {
                 Type = XAxisType.Datetime,

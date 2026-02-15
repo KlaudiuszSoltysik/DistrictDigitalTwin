@@ -43,3 +43,9 @@ public class ControlMessage
     [JsonPropertyName("action")] public string Action { get; set; }
     [JsonPropertyName("target_config")] public SimulationConfig? TargetConfig { get; set; }
 }
+
+public class DigitalTwinRequest
+{
+    [JsonPropertyName("start_timestamp")] public DateTime StartTimestamp { get; set; }
+    [JsonPropertyName("t")] public Dictionary<string, double> T { get; set; } = new();
+}

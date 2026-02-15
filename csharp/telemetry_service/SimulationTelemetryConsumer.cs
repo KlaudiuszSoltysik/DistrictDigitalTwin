@@ -8,14 +8,20 @@ namespace telemetry_service;
 public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Telemetry>
 {
     private static long _currentRunId;
+    private static int _lastProcessedHour = -1;
 
     public async Task Consume(ConsumeContext<Telemetry> context)
     {
         var msg = context.Message;
+        var currentTimestamp = msg.Timestamp.ToUniversalTime();
+        var isNewRun = _currentRunId != msg.RunId;
+        var isNewHour = _lastProcessedHour != -1 && currentTimestamp.Hour != _lastProcessedHour;
 
-        if (_currentRunId != msg.RunId)
+        if (isNewRun)
         {
-            await db.Database.ExecuteSqlRawAsync("DELETE FROM SimulationTelemetry WHERE \"RunId\" != {0}", msg.RunId);
+            await db.SimulationTelemetry
+                .Where(t => t.RunId != msg.RunId)
+                .ExecuteDeleteAsync();
 
             _currentRunId = msg.RunId;
         }
@@ -35,5 +41,19 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Tele
 
         db.SimulationTelemetry.Add(entity);
         await db.SaveChangesAsync();
+
+        if (isNewRun || isNewHour)
+        {
+            _lastProcessedHour = currentTimestamp.Hour;
+
+            var twinRequest = new DigitalTwinRequest
+            {
+                StartTimestamp = currentTimestamp,
+                T = msg.RoomTemperatures
+            };
+
+            var sendEndpoint = await context.GetSendEndpoint(new Uri("queue:digital-twin-commands"));
+            await sendEndpoint.Send(twinRequest);
+        }
     }
 }

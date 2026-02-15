@@ -62,7 +62,7 @@ class DigitalTwinService:
         end_ts = start_ts.normalize() + pd.Timedelta(days=2)
 
         self.simulation.current_time = start_ts
-        self.simulation.thermal_solver.T = np.array(cmd_json["T"])
+        self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
 
         self.run_physics_loop(end_ts)
 

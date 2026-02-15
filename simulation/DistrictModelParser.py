@@ -30,7 +30,7 @@ class DistrictModelParser:
         for building in self.raw_data["buildings"]:
             for apartment in building["apartments"]:
                 for room in apartment["rooms"]:
-                    room_id = f"{building['id']}:{apartment['id']}:{room['id']}"
+                    room_id = f"{building["id"]}:{apartment["id"]}:{room["id"]}"
 
                     self.nodes[room_id] = idx
                     self.room_data.append({
@@ -74,8 +74,8 @@ class DistrictModelParser:
         )
 
     def _apply_internal_connection(self, connection, standards, building_id):
-        idx_a = self.nodes[f"{building_id}:{connection['from']}"]
-        idx_b = self.nodes[f"{building_id}:{connection['to']}"]
+        idx_a = self.nodes[f"{building_id}:{connection["from"]}"]
+        idx_b = self.nodes[f"{building_id}:{connection["to"]}"]
 
         code = standards[connection["thermal_code"]]
         ua = connection["area"] * code["u_value"]
@@ -89,7 +89,7 @@ class DistrictModelParser:
         self.C[idx_b] += wall_capacity * 0.5
 
     def _apply_external_connection(self, connection, standards, building_id):
-        idx_a = self.nodes[f"{building_id}:{connection['from']}"]
+        idx_a = self.nodes[f"{building_id}:{connection["from"]}"]
         target = connection["to"]
         thermal_code = standards[connection["thermal_code"]]
 

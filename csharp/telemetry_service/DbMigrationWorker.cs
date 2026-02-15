@@ -12,16 +12,16 @@ public class DbMigrationWorker(IServiceProvider serviceProvider) : BackgroundSer
         using var scope = serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
 
-        await db.Database.EnsureCreatedAsync(stoppingToken);
+        await db.Database.MigrateAsync(stoppingToken);
 
         await db.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;", stoppingToken);
 
         await db.Database.ExecuteSqlRawAsync(
-            "SELECT create_hypertable('SimulationTelemetry', 'Timestamp', if_not_exists => TRUE, migrate_data => TRUE);",
-            stoppingToken);
+            "SELECT create_hypertable('\"SimulationTelemetry\"', 'Timestamp', if_not_exists => TRUE, migrate_data => TRUE);"
+            , stoppingToken);
 
         await db.Database.ExecuteSqlRawAsync(
-            "SELECT create_hypertable('DigitalTwinTelemetry', 'Timestamp', if_not_exists => TRUE, migrate_data => TRUE);",
-            stoppingToken);
+            "SELECT create_hypertable('\"DigitalTwinTelemetry\"', 'Timestamp', if_not_exists => TRUE, migrate_data => TRUE);"
+            , stoppingToken);
     }
 }

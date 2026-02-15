@@ -5,145 +5,76 @@
 
 A scalable Thermodynamic Digital Twin for residential districts, leveraging Model Predictive Control (MPC) and high-fidelity physics simulations to optimize energy efficiency.
 
-symulacja (Python):
+## 💡 Concept
 
-- plik konfiguracyjny .yml do zdefniowania osiedla (podłogi sufity dachy ściany wewnętrzne i zewnętrzne okna)
-- zaawansofany model fizyczny termodynamiki (słońce, wiatr, dokładność do pojedynczego pokoju)
+**🏙️ ResiFlow: Community Energy Management System (CEMS)**
+An advanced IoT/SaaS platform for managing energy and comfort in multi-family residential buildings. The system uses Digital Twin technology to simulate building physics and predictive algorithms to optimize heating costs and balance power grid connections.
 
-RabbitMQ:
+## 🎯 Main Goal
 
-- warstwa komunikacyjna między symulacją a api
+Creating a scalable backend system that manages a "virtual residential block" (and eventually an entire district), solving real problems of modern energy management:
 
-api (.NET):
+- **Dynamic Load Management (DLM):** Preventing grid failures when charging electric vehicles (EVs).
+- **Hybrid Optimization:** Automatic selection of the heat source (Gas vs. Heat Pump) depending on weather and electricity prices.
+- **Fair Billing:** Precise billing for residents based on virtual heat meters.
 
-- obdieranie i cachowanie wyników symulacji
+## 🏗️ Infrastructure
 
-history_service:
+- **Heat Source:** Hybrid heat substation (Gas Boiler + Heat Pump + Buffer Tank).
+- **Power Source:** Rooftop PV installation + Grid connection (with power limit).
+- **Load:** Household appliances/living loads + EV chargers in the garage.
 
-- zapis danych telemetrycznych do timescaledb
+## 🚀 Key Algorithms (Challenges)
 
-website:
+**A. "Load Shedding" Algorithm (Garage)**
 
-- panel administracyjny symulacji
+- **Problem:** The grid connection is 40kW. 6 apartments consume 20kW. Two Teslas want 11kW each (total 42kW). The breaker will trip.
+- **Solution:** The backend detects increased consumption in apartments and dynamically throttles EV chargers (e.g., down to 2kW), opening them back up at night.
 
-🏙️ ResiFlow: Community Energy Management System (CEMS)
-Koncepcja: Zaawansowana platforma IoT/SaaS do zarządzania energią i komfortem w budownictwie wielorodzinnym. System wykorzystuje technologię Digital Twin do symulacji fizyki budynku oraz algorytmy predykcyjne do optymalizacji kosztów ogrzewania i bilansowania mocy przyłączeniowej.
+**B. "Economic Broker" Algorithm (Boiler Room)**
 
-🎯 Główny Cel
-Stworzenie skalowalnego systemu backendowego, który zarządza "wirtualnym blokiem" (a docelowo całym osiedlem), rozwiązując realne problemy współczesnej energetyki:
+- **Problem:** What source should be used for heating?
+- **Solution:**
+  - _Scenario 1:_ The sun is shining (free PV electricity) -> Heat with the Heat Pump at maximum capacity (store heat in the buffer).
+  - _Scenario 2:_ Night, freezing -15°C (Heat Pump has low COP, electricity is paid) -> Turn off the Heat Pump, start the Gas Boiler.
 
-Dynamiczne Bilansowanie Mocy (DLM): Zapobieganie awariom sieci przy ładowaniu aut elektrycznych (EV).
+**C. Multi-tenancy & Security**
 
-Optymalizacja Hybrydowa: Automatyczny wybór źródła ciepła (Gaz vs Pompa Ciepła) w zależności od pogody i cen prądu.
+- **Data Isolation:** Neighbor A cannot see Neighbor B's bills.
+- **RBAC (Role-Based Access Control):** Only the Property Manager can change the main boiler's heating curve.
 
-Sprawiedliwe Rozliczanie: Precyzyjny billing dla mieszkańców na podstawie wirtualnych liczników ciepła.
+## ⚙️ Architecture & Components
 
-🏢 Model Obiektu (The Digital Twin)
-Symulowany obiekt to nowoczesny, 3-kondygnacyjny blok mieszkalny ("Sześciopak").
+**Engine (Python)**
 
-Struktura: 6 mieszkań (układ 3 piętra x 2 lokale) + Garaż podziemny.
+- Simulation microservice and Digital Twin that share the core engine code. The difference is that the simulation adds noise to simulated physical phenomena (to add realism), while the Digital Twin adds noise to the weather (simulating an imperfect weather forecast).
+- Building thermodynamics simulation down to the individual room level. Includes heat transfer through floors, ceilings, roofs, external walls, windows, internal walls, wind impact (angle and speed), and solar radiation (angle and radiation).
+- District definition via a `.yml` file.
 
-Fizyka (Thermal Coupling): Zaimplementowane przenikanie ciepła między sąsiadami (macierz sąsiedztwa). Mieszkanie środkowe traci mniej ciepła niż narożne.
+**RabbitMQ**
 
-Infrastruktura:
+- Bidirectional communication layer between the simulation and the API.
+- Utilizes exchanges and queues.
 
-Źródło ciepła: Hybrydowy węzeł cieplny (Kocioł Gazowy + Pompa Ciepła + Bufor).
+**API (.NET)**
 
-Źródło prądu: Instalacja PV na dachu + Przyłącze sieciowe (z limitem mocy).
+- Receiving and caching simulation results.
+- Communication broker between the website and the engine.
 
-Obciążenie: 6x AGD/Bytowe + 2x Ładowarka EV w garażu.
+**Telemetry Service (.NET)**
 
-🛠️ Architektura Techniczna
-System podzielony na dwie główne domeny zgodnie z zasadą Separation of Concerns:
+- Saving telemetry data to TimescaleDB.
 
-1. The Physics Engine (Python) 🐍
-   Mikroserwis odpowiedzialny za "Prawdę Fizyczną". Stateless Compute.
+**Website (.NET)**
 
-Rola: Symuluje termodynamikę budynku krok po kroku (np. co 1s).
+- Control panel for the simulation.
 
-Technologia: Python + NumPy (macierze cieplne).
+## 📊 Monitoring
 
-Komunikacja: gRPC (wysoka wydajność).
+- Properly configured Grafana and infrastructure.
 
-Kluczowe Klasy:
+## 📝 To-Do (Next Tasks)
 
-BuildingMatrix: Reprezentacja siatki mieszkań i przepływów ciepła.
-
-SensorMock: Generuje odczyty z szumem (Noise) i awariami.
-
-ActuatorMock: Symuluje bezwładność zaworów i urządzeń.
-
-2. The Orchestrator (.NET 9) 🧠
-   Mózg systemu, Sterownik PLC/SCADA i Logika Biznesowa.
-
-Rola: Podejmuje decyzje, zarządza użytkownikami, liczy pieniądze.
-
-Technologia: .NET 9, Aspire, MassTransit (RabbitMQ).
-
-Baza Danych: PostgreSQL (Dane relacyjne/Konfiguracja) + TimescaleDB (Time-series/History).
-
-Kluczowe Moduły:
-
-Control Loop: Pętla sterowania (odczyt sensorów -> decyzja -> sterowanie).
-
-Billing Engine: Agregacja zużycia energii i wyliczanie kosztów w PLN.
-
-Load Balancer (EV): Algorytm obcinający moc ładowarek, gdy mieszkańcy gotują obiady.
-
-3. Frontend (Blazor / Web) 🖥️
-   Panel Mieszkańca: Ustawianie temperatury, podgląd rachunku, wykresy zużycia.
-
-Panel Zarządcy: Heatmapa budynku (2D), status węzła cieplnego, alerty awarii.
-
-🚀 Kluczowe Algorytmy (Backend Challenges)
-A. Algorytm "Load Shedding" (Garaż)
-Problem: Przyłącze ma 40kW. 6 mieszkań zużywa 20kW. Dwie Tesle chcą po 11kW (razem 42kW). Wywali bezpiecznik.
-
-Rozwiązanie: Backend wykrywa wzrost zużycia w mieszkaniach i dynamicznie dławi ładowarki EV (np. do 2kW), a w nocy je odkręca.
-
-B. Algorytm "Economic Broker" (Kotłownia)
-Problem: Czym grzać?
-
-Rozwiązanie:
-
-Scenario 1: Świeci słońce (darmowy prąd z PV) -> Grzejemy Pompą Ciepła na maxa (magazynujemy ciepło w buforze).
-
-Scenario 2: Noc, mróz -15°C (Pompa ma słabe COP, prąd płatny) -> Wyłączamy Pompę, odpalamy Gaz.
-
-C. Multi-tenancy & Security
-Izolacja danych: Sąsiad A nie widzi rachunków Sąsiada B.
-
-RBAC: Tylko Zarządca może zmienić krzywą grzewczą pieca głównego.
-
-📅 Plan Implementacji (Roadmap)
-Faza 1: Python Core (Grid 2x3)
-
-Stworzenie macierzy wymiany ciepła dla 6 mieszkań w numpy.
-
-Wystawienie prostego interfejsu (gRPC) do pobierania temperatur.
-
-Faza 2: .NET Foundation
-
-Postawienie projektu Aspire.
-
-Implementacja pętli sterowania (Control Loop), która "popycha" czas w Pythonie.
-
-Baza danych TimescaleDB.
-
-Faza 3: Logika "Sześciopaka"
-
-Dodanie węzła cieplnego i logiki rozdzielania ciepła na mieszkania.
-
-Pierwszy Dashboard (Heatmapa).
-
-Faza 4: Advanced Features (To co "sprzedaje" w CV)
-
-Dodanie Garażu i algorytmu ładowania EV.
-
-Billing i konta użytkowników.
-
-Skalowanie (architektura pod obsługę wielu bloków jednocześnie - "Rój").
-
-własny autoscaling (zasymulowanie aws)
-
-porządnie zrobiona grafana
+- Digital Twin (DT) is parsed incorrectly to the website.
+- Reset action should clear the DB and API cache, not just the website.
+- Check if the Digital Twin is offset by UTC / Local time, or if the simulation fails to simulate upon initialization.

@@ -8,12 +8,19 @@
     .apexcharts-tooltip-title {
         @apply !border-gray-700 !bg-gray-700;
     }
+
+    .apexcharts-text.apexcharts-xaxis-label,
+    .apexcharts-text.apexcharts-yaxis-label,
+    .apexcharts-title-text,
+    .apexcharts-legend-text  {
+        @apply !fill-gray-300 !text-gray-300;
+    }
 }
 
 @layer base {
     html {
         scrollbar-width: thin;
-        scrollbar-color: theme('colors.gray.700') theme('colors.gray.900');
+        scrollbar-color: theme("colors.gray.700") theme("colors.gray.900");
     }
 
     ::-webkit-scrollbar {
@@ -22,17 +29,17 @@
     }
 
     ::-webkit-scrollbar-track {
-        background: theme('colors.gray.900');
+        background: theme("colors.gray.900");
     }
 
     ::-webkit-scrollbar-thumb {
-        background: theme('colors.gray.700');
+        background: theme("colors.gray.700");
         border-radius: 5px;
-        border: 2px solid theme('colors.gray.900');
+        border: 2px solid theme("colors.gray.900");
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: theme('colors.gray.600');
+        background: theme("colors.gray.600");
     }
 }
 

@@ -6,15 +6,15 @@ namespace api;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SimulationController(ISendEndpointProvider sendEndpointProvider) : ControllerBase
+public class TelemetryController(ISendEndpointProvider sendEndpointProvider) : ControllerBase
 {
-    [HttpPost("control")]
+    [HttpPost("simulation-commands")]
     public async Task<IActionResult> SendControlMessage([FromBody] ControlMessage command)
     {
         if (string.IsNullOrEmpty(command.Action))
             return BadRequest("Action is required.");
 
-        var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:commands"));
+        var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:simulation-commands"));
 
         await endpoint.Send(command);
 
