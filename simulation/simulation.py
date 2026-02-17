@@ -6,7 +6,7 @@ from time import sleep, time
 from dotenv import load_dotenv
 from pika import BlockingConnection, URLParameters, exceptions, DeliveryMode, BasicProperties
 
-from DistrictSimulation import DistrictSimulation
+from shared.DistrictSimulation import DistrictSimulation
 
 
 class SimulationService:

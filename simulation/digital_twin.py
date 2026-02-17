@@ -7,7 +7,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from pika import BlockingConnection, URLParameters, DeliveryMode, BasicProperties
 
-from DistrictSimulation import DistrictSimulation
+from shared.DistrictSimulation import DistrictSimulation
 
 
 class DigitalTwinService:

@@ -75,7 +75,6 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 
 ## 📝 To-Do (Next Tasks)
 
-- poprawić dt telemetry z api żeby były sprzzed 24h
-- Digital Twin (DT) is parsed incorrectly to the website.
-- Reset action should clear the DB and API cache, not just the website.
-- Check if the Digital Twin is offset by UTC / Local time, or if the simulation fails to simulate upon initialization.
+- rozjazd przy przesyłaniu timestampa api -> dt (prawdopodobnie symulacja przesunięta)
+- jak odświerza się to local jest a nie utc
+- dodać z kiedy jest predykcja (godzina)

@@ -14,7 +14,8 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Tele
     {
         var msg = context.Message;
         var currentTimestamp = msg.Timestamp.ToUniversalTime();
-        var isNewRun = _currentRunId != msg.RunId;
+
+        var isNewRun = msg.RunId != _currentRunId;
         var isNewHour = currentTimestamp.Hour != _lastProcessedHour;
 
         if (isNewRun)
