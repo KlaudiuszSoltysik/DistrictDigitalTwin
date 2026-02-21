@@ -74,7 +74,3 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - Properly configured Grafana and infrastructure.
 
 ## 📝 To-Do (Next Tasks)
-
-- rozjazd przy przesyłaniu timestampa api -> dt (prawdopodobnie symulacja przesunięta)
-- jak odświerza się to local jest a nie utc
-- dodać z kiedy jest predykcja (godzina)

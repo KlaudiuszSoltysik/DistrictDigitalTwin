@@ -105,12 +105,12 @@
     [Parameter] public List<Telemetry> SimulationTelemetry { get; set; } = [];
     [Parameter] public List<Telemetry> DigitalTwinTelemetry { get; set; } = [];
 
-    private readonly HashSet<DateTime> _expandedSimulationItems = [];
-    private readonly HashSet<DateTime> _expandedDigitalTwinItems = [];
+    private readonly HashSet<DateTimeOffset> _expandedSimulationItems = [];
+    private readonly HashSet<DateTimeOffset> _expandedDigitalTwinItems = [];
 
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
-    private void ToggleSimulationExpand(DateTime timestamp)
+    private void ToggleSimulationExpand(DateTimeOffset timestamp)
     {
         if (!_expandedSimulationItems.Add(timestamp))
         {
@@ -123,7 +123,7 @@
         _expandedSimulationItems.Clear();
     }
 
-    private void ToggleDigitalTwinExpand(DateTime timestamp)
+    private void ToggleDigitalTwinExpand(DateTimeOffset timestamp)
     {
         if (!_expandedDigitalTwinItems.Add(timestamp))
         {

@@ -7,7 +7,7 @@ public class TelemetryEntity
 {
     public int Id { get; set; }
     public long RunId { get; set; }
-    public DateTime Timestamp { get; set; }
+    public DateTimeOffset Timestamp { get; set; }
     public double Temperature { get; set; }
     public double WindSpeed { get; set; }
     public double WindDirection { get; set; }

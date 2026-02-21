@@ -121,10 +121,8 @@
         {
             var cutoffTime = msg.Timestamp.AddHours(-24);
 
-            while (_simulationTelemetry.Count > 0 && _simulationTelemetry[0].Timestamp < cutoffTime)
-            {
-                _simulationTelemetry.RemoveAt(0);
-            }
+            _simulationTelemetry.RemoveAll(t => t.Timestamp < cutoffTime);
+            _digitalTwinTelemetry.RemoveAll(t => t.Timestamp < cutoffTime);
 
             _roomNames = [];
             foreach (var key in msg.RoomTemperatures.Keys)

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using shared;
@@ -11,9 +12,11 @@ using shared;
 namespace shared.Migrations
 {
     [DbContext(typeof(TelemetryDbContext))]
-    partial class TelemetryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260217213504_migration3")]
+    partial class migration3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -24,14 +27,14 @@ namespace shared.Migrations
 
             modelBuilder.Entity("shared.DigitalTwinTelemetryEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
                     b.Property<long>("RunId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
 
                     b.Property<string>("RoomTemperatures")
                         .IsRequired()
@@ -55,7 +58,7 @@ namespace shared.Migrations
                     b.Property<double>("WindSpeed")
                         .HasColumnType("double precision");
 
-                    b.HasKey("Id", "RunId", "Timestamp");
+                    b.HasKey("RunId", "Timestamp");
 
                     b.HasIndex("RunId");
 

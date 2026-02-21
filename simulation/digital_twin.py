@@ -17,7 +17,7 @@ class DigitalTwinService:
 
         self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv", True)
 
-        self.run_id = int(time())
+        self.run_id = 0
 
         self.simulation_step = 300
         self.pub_connection = None
@@ -59,7 +59,7 @@ class DigitalTwinService:
 
     def process_command(self, cmd_json):
         start_ts = pd.Timestamp(cmd_json["start_timestamp"])
-        end_ts = start_ts.normalize() + pd.Timedelta(days=2)
+        end_ts = start_ts + pd.Timedelta(hours=24)
 
         self.simulation.current_time = start_ts
         self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))

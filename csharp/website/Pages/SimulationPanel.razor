@@ -90,9 +90,6 @@
                 }
             }
 
-            var cutoffTime = msg[0].Timestamp.AddHours(-24);
-            _digitalTwinTelemetry.RemoveAll(t => t.Timestamp < cutoffTime);
-
             if (_telemetryChartsComponent != null)
             {
                 await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(_digitalTwinTelemetry);

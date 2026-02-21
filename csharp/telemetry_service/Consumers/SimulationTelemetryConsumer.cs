@@ -13,7 +13,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Tele
     public async Task Consume(ConsumeContext<Telemetry> context)
     {
         var msg = context.Message;
-        var currentTimestamp = msg.Timestamp.ToUniversalTime();
+        var currentTimestamp = msg.Timestamp;
 
         var isNewRun = msg.RunId != _currentRunId;
         var isNewHour = currentTimestamp.Hour != _lastProcessedHour;
@@ -30,7 +30,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Tele
         var entity = new SimulationTelemetryEntity
         {
             RunId = msg.RunId,
-            Timestamp = msg.Timestamp.ToUniversalTime(),
+            Timestamp = msg.Timestamp,
             Temperature = msg.Weather.Temperature,
             WindSpeed = msg.Weather.WindSpeed,
             WindDirection = msg.Weather.WindDirection,

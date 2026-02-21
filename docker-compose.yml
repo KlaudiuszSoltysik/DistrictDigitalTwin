@@ -1,3 +1,4 @@
+
 services:
   postgres:
     image: timescale/timescaledb:latest-pg16
@@ -77,95 +78,16 @@ services:
         reservations:
           memory: 256M
 
-  #   api:
-  #     container_name: ddt_api
-  #     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/api:latest
-  #     labels:
-  #       - "com.centurylinklabs.watchtower.enable=true"
-  #     environment:
-  #       - ASPNETCORE_ENVIRONMENT=Production
-  #       - ConnectionStrings__PostgresConnection=Host=postgres;Port=${RABBITMQ_USER};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-  #       - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-  #     depends_on:
-  #       timescaledb:
-  #         condition: service_healthy
-  #       rabbitmq:
-  #         condition: service_healthy
-  #     networks:
-  #       - ddt_net
-  #     deploy:
-  #       resources:
-  #         limits:
-  #           cpus: "0.5"
-  #           memory: 512M
-  #         reservations:
-  #           memory: 256M
-  #
-  #   website:
-  #     container_name: ddt_website
-  #     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/website:latest
-  #     labels:
-  #       - "com.centurylinklabs.watchtower.enable=true"
-  #     depends_on:
-  #       api:
-  #         condition: service_started
-  #     networks:
-  #       - ddt_net
-  #     deploy:
-  #       resources:
-  #         limits:
-  #           cpus: "0.5"
-  #           memory: 256M
-  #         reservations:
-  #           memory: 64M
-  #
-  #   simulation:
-  #     container_name: ddt_simulation
-  #     build:
-  #       context: ./simulation
-  #       dockerfile: Dockerfile
-  #     environment:
-  #       - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-  #     depends_on:
-  #       rabbitmq:
-  #         condition: service_healthy
-  #     networks:
-  #       - ddt_net
-  #     deploy:
-  #       resources:
-  #         limits:
-  #           cpus: "0.5"
-  #           memory: 512M
-  #         reservations:
-  #           memory: 128M
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: ddt_watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 --cleanup --label-enable
+  simulation:
+    container_name: ddt_simulation
+    build:
+      context: ./simulation
+    command: python simulation.py
     environment:
-      - DOCKER_API_VERSION=1.45
-    networks:
-      - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 64M
-        reservations:
-          memory: 32M
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: ddt_cadvisor
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
+      - RABBITMQ_CONNECTION_STRING=${RABBITMQ_CONNECTION_STRING}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
       - ddt_net
     deploy:
@@ -176,80 +98,179 @@ services:
         reservations:
           memory: 256M
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: ddt_prometheus
-    volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=15d"
-    networks:
-      - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 256M
-        reservations:
-          memory: 128M
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: ddt_grafana
-    user: "472"
+  digital-twin:
+    container_name: ddt_digital_twin
+    build:
+      context: ./simulation
+    command: python digital_twin.py
+    environment:
+      - RABBITMQ_CONNECTION_STRING=${RABBITMQ_CONNECTION_STRING}
     depends_on:
-      - prometheus
-    volumes:
-      - grafana_data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
+      rabbitmq:
+        condition: service_healthy
     networks:
       - ddt_net
     deploy:
       resources:
         limits:
-          cpus: "0.25"
+          cpus: "0.5"
+          memory: 512M
+        reservations:
           memory: 256M
-        reservations:
-          memory: 128M
 
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: ddt_portainer
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - portainer_data:/data
-    networks:
-      - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          memory: 64M
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: ddt_tunnel
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-    networks:
-      - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 64M
-        reservations:
-          memory: 32M
+#   api:
+#     container_name: ddt_api
+#     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/api:latest
+#     labels:
+#       - "com.centurylinklabs.watchtower.enable=true"
+#     environment:
+#       - ASPNETCORE_ENVIRONMENT=Production
+#       - ConnectionStrings__PostgresConnection=Host=postgres;Port=${RABBITMQ_USER};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+#       - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+#     depends_on:
+#       timescaledb:
+#         condition: service_healthy
+#       rabbitmq:
+#         condition: service_healthy
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: 512M
+#         reservations:
+#           memory: 256M
+# 
+#   website:
+#     container_name: ddt_website
+#     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/website:latest
+#     labels:
+#       - "com.centurylinklabs.watchtower.enable=true"
+#     depends_on:
+#       api:
+#         condition: service_started
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: 256M
+#         reservations:
+#           memory: 64M
+#
+#   watchtower:
+#     image: containrrr/watchtower
+#     container_name: ddt_watchtower
+#     volumes:
+#       - /var/run/docker.sock:/var/run/docker.sock
+#     command: --interval 30 --cleanup --label-enable
+#     environment:
+#       - DOCKER_API_VERSION=1.45
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.25"
+#           memory: 64M
+#         reservations:
+#           memory: 32M
+# 
+#   cadvisor:
+#     image: gcr.io/cadvisor/cadvisor:latest
+#     container_name: ddt_cadvisor
+#     volumes:
+#       - /:/rootfs:ro
+#       - /var/run:/var/run:ro
+#       - /sys:/sys:ro
+#       - /var/lib/docker/:/var/lib/docker:ro
+#       - /dev/disk/:/dev/disk:ro
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: 512M
+#         reservations:
+#           memory: 256M
+# 
+#   prometheus:
+#     image: prom/prometheus:latest
+#     container_name: ddt_prometheus
+#     volumes:
+#       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#       - prometheus_data:/prometheus
+#     command:
+#       - "--config.file=/etc/prometheus/prometheus.yml"
+#       - "--storage.tsdb.retention.time=15d"
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.25"
+#           memory: 256M
+#         reservations:
+#           memory: 128M
+# 
+#   grafana:
+#     image: grafana/grafana:latest
+#     container_name: ddt_grafana
+#     user: "472"
+#     depends_on:
+#       - prometheus
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#     environment:
+#       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+#       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+#       - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.25"
+#           memory: 256M
+#         reservations:
+#           memory: 128M
+# 
+#   portainer:
+#     image: portainer/portainer-ce:latest
+#     container_name: ddt_portainer
+#     security_opt:
+#       - no-new-privileges:true
+#     volumes:
+#       - /var/run/docker.sock:/var/run/docker.sock:ro
+#       - portainer_data:/data
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.25"
+#           memory: 128M
+#         reservations:
+#           memory: 64M
+# 
+#   cloudflared:
+#     image: cloudflare/cloudflared:latest
+#     container_name: ddt_tunnel
+#     command: tunnel run
+#     environment:
+#       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+#     networks:
+#       - ddt_net
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.25"
+#           memory: 64M
+#         reservations:
+#           memory: 32M
 
 networks:
   ddt_net:

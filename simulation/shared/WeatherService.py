@@ -15,13 +15,13 @@ def generate_drift_noise(n, rho, target_std):
 
 
 class WeatherService:
-    def __init__(self, weather_path, timezone_str, latitude, longitude, is_digital_twin=False):
+    def __init__(self, weather_path, latitude, longitude, is_digital_twin=False):
         df = pd.read_csv(weather_path)
+
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
 
         self.latitude = latitude
         self.longitude = longitude
-
-        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_convert(timezone_str)
 
         rad = np.radians(df["wind_direction"])
         df["wind_u"] = np.sin(rad)
@@ -61,13 +61,10 @@ class WeatherService:
         self.weather_history = df
 
     def get_weather(self, current_time):
-        now = pd.Timestamp(current_time)
-        now = now.tz_convert(self.weather_history.index.tz)
-
-        idx_after = self.weather_history.index.searchsorted(now)
+        idx_after = self.weather_history.index.searchsorted(current_time)
 
         t1, t2 = self.weather_history.index[idx_after - 1], self.weather_history.index[idx_after]
-        weight2 = (now - t1).total_seconds() / (t2 - t1).total_seconds()
+        weight2 = (current_time - t1).total_seconds() / (t2 - t1).total_seconds()
         weight1 = 1 - weight2
 
         interp_row = (self.weather_history.loc[t1] * weight1) + (self.weather_history.loc[t2] * weight2)
@@ -77,7 +74,7 @@ class WeatherService:
         raw_weather["wind_direction"] = (np.degrees(wind_dir_rad) + 360) % 360
 
         solar_pos = pvlib.solarposition.get_solarposition(
-            time=pd.DatetimeIndex([now]),
+            time=pd.DatetimeIndex([current_time]),
             latitude=self.latitude,
             longitude=self.longitude
         )
