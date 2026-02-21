@@ -7,28 +7,52 @@ namespace api;
 
 public class CacheService(IServiceScopeFactory scopeFactory)
 {
-    private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly SemaphoreSlim _simulationLock = new(1, 1);
+    private readonly SemaphoreSlim _digitalTwinLock = new(1, 1);
 
     private long _currentSimulationRunId = -1;
-    private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
-    private DateTime _lastTimestamp = DateTime.MinValue;
+    private long _currentDigitalTwinRunId = -1;
 
     private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
+    private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
+
+    public async Task InitializeCacheAsync()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
+
+        var latestSim = await db.SimulationTelemetry
+            .AsNoTracking()
+            .OrderByDescending(t => t.Timestamp)
+            .FirstOrDefaultAsync();
+
+        if (latestSim != null)
+        {
+            _currentSimulationRunId = latestSim.RunId;
+            var cutoff = latestSim.Timestamp.AddHours(-24);
+            await LoadSimulationTelemetryFromDb(latestSim.RunId, cutoff);
+        }
+
+        var latestTwin = await db.DigitalTwinTelemetry
+            .AsNoTracking()
+            .OrderByDescending(t => t.Timestamp)
+            .FirstOrDefaultAsync();
+
+        if (latestTwin != null)
+        {
+            _currentDigitalTwinRunId = latestTwin.RunId;
+            var cutoff = latestTwin.Timestamp.AddHours(-24);
+            await LoadDigitalTwinTelemetryFromDb(cutoff);
+        }
+    }
 
     public async Task ProcessSimulationTelemetryMessageAsync(Telemetry msg)
     {
-        msg.Timestamp = msg.Timestamp.Kind switch
-        {
-            DateTimeKind.Local => msg.Timestamp.ToUniversalTime(),
-            DateTimeKind.Unspecified => DateTime.SpecifyKind(msg.Timestamp, DateTimeKind.Utc),
-            _ => msg.Timestamp
-        };
-
         var cutoffTime = msg.Timestamp.AddHours(-24);
 
         if (msg.RunId != _currentSimulationRunId)
         {
-            await _lock.WaitAsync();
+            await _simulationLock.WaitAsync();
             try
             {
                 if (msg.RunId != _currentSimulationRunId)
@@ -38,18 +62,13 @@ public class CacheService(IServiceScopeFactory scopeFactory)
                     await LoadSimulationTelemetryFromDb(msg.RunId, cutoffTime);
 
                     _currentSimulationRunId = msg.RunId;
-
-                    var lastFromDb = _simulationTelemetry.LastOrDefault();
-                    _lastTimestamp = lastFromDb?.Timestamp ?? DateTime.MinValue;
                 }
             }
             finally
             {
-                _lock.Release();
+                _simulationLock.Release();
             }
         }
-
-        if (msg.Timestamp <= _lastTimestamp) return;
 
         _simulationTelemetry.Enqueue(msg);
 
@@ -57,49 +76,14 @@ public class CacheService(IServiceScopeFactory scopeFactory)
             _simulationTelemetry.TryDequeue(out _);
     }
 
-    public async Task ProcessDigitalTwinTelemetryMessageAsync(List<Telemetry> msgs)
-    {
-        if (msgs.Count == 0) return;
-
-        foreach (var msg in msgs)
-            msg.Timestamp = msg.Timestamp.Kind switch
-            {
-                DateTimeKind.Local => msg.Timestamp.ToUniversalTime(),
-                DateTimeKind.Unspecified => DateTime.SpecifyKind(msg.Timestamp, DateTimeKind.Utc),
-                _ => msg.Timestamp
-            };
-
-        var firstNewMsg = msgs.First();
-        var runId = firstNewMsg.RunId;
-        var newBatchStartTime = firstNewMsg.Timestamp;
-        var cutoffTime = newBatchStartTime.Date;
-
-        var pastTwinMsgs = await LoadDigitalTwinTelemetryFromDb(runId, cutoffTime, newBatchStartTime);
-
-        await _lock.WaitAsync();
-        try
-        {
-            var newQueue = new ConcurrentQueue<Telemetry>();
-
-            foreach (var pastMsg in pastTwinMsgs) newQueue.Enqueue(pastMsg);
-
-            foreach (var newMsg in msgs) newQueue.Enqueue(newMsg);
-
-            _digitalTwinTelemetry = newQueue;
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
-
-    private async Task LoadSimulationTelemetryFromDb(long runId, DateTime cutoff)
+    private async Task LoadSimulationTelemetryFromDb(long runId, DateTimeOffset cutoffTime)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
 
         var dbData = await db.SimulationTelemetry
-            .Where(t => t.RunId == runId && t.Timestamp >= cutoff)
+            .AsNoTracking()
+            .Where(t => t.RunId == runId && t.Timestamp >= cutoffTime)
             .OrderByDescending(t => t.Timestamp)
             .ToListAsync();
 
@@ -110,7 +94,7 @@ public class CacheService(IServiceScopeFactory scopeFactory)
                 .Select(e => new Telemetry
                 {
                     RunId = e.RunId,
-                    Timestamp = DateTime.SpecifyKind(e.Timestamp, DateTimeKind.Utc),
+                    Timestamp = e.Timestamp,
                     Weather = new WeatherData
                     {
                         Temperature = e.Temperature,
@@ -128,36 +112,70 @@ public class CacheService(IServiceScopeFactory scopeFactory)
         }
     }
 
-    private async Task<List<Telemetry>> LoadDigitalTwinTelemetryFromDb(long runId, DateTime cutoffTime,
-        DateTime newBatchStartTime)
+    public async Task ProcessDigitalTwinTelemetryMessageAsync(List<Telemetry> msgs)
+    {
+        var cutoffTime = msgs[0].Timestamp.AddHours(-24);
+
+        if (_currentDigitalTwinRunId == -1)
+        {
+            await _digitalTwinLock.WaitAsync();
+            try
+            {
+                if (_currentDigitalTwinRunId == -1)
+                {
+                    _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
+
+                    await LoadDigitalTwinTelemetryFromDb(cutoffTime);
+
+                    _currentDigitalTwinRunId = 1;
+                }
+            }
+            finally
+            {
+                _digitalTwinLock.Release();
+            }
+        }
+
+        foreach (var msg in msgs)
+            _digitalTwinTelemetry.Enqueue(msg);
+
+        while (_digitalTwinTelemetry.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoffTime)
+            _digitalTwinTelemetry.TryDequeue(out _);
+    }
+
+    private async Task LoadDigitalTwinTelemetryFromDb(DateTimeOffset cutoffTime)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
 
-        var pastTwinEntities = await db.DigitalTwinTelemetry
+        var dbData = await db.DigitalTwinTelemetry
             .AsNoTracking()
-            .Where(t => t.RunId == runId && t.Timestamp >= cutoffTime && t.Timestamp < newBatchStartTime)
-            .OrderBy(t => t.Timestamp)
+            .Where(t => t.Timestamp >= cutoffTime)
+            .OrderByDescending(t => t.Timestamp)
             .ToListAsync();
 
-        var pastTwinMsgs = pastTwinEntities.Select(e => new Telemetry
+        if (dbData.Count > 0)
         {
-            RunId = e.RunId,
-            Timestamp = e.Timestamp,
-            Weather = new WeatherData
-            {
-                Temperature = e.Temperature,
-                WindSpeed = e.WindSpeed,
-                WindDirection = e.WindDirection,
-                SunRadiation = e.SunRadiation,
-                SunAltitude = e.SunAltitude,
-                SunAzimuth = e.SunAzimuth
-            },
-            RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
-                               new Dictionary<string, double>()
-        }).ToList();
+            var mappedData = dbData
+                .Select(e => new Telemetry
+                {
+                    RunId = e.RunId,
+                    Timestamp = e.Timestamp,
+                    Weather = new WeatherData
+                    {
+                        Temperature = e.Temperature,
+                        WindSpeed = e.WindSpeed,
+                        WindDirection = e.WindDirection,
+                        SunAltitude = e.SunAltitude,
+                        SunAzimuth = e.SunAzimuth,
+                        SunRadiation = e.SunRadiation
+                    },
+                    RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
+                                       new Dictionary<string, double>()
+                });
 
-        return pastTwinMsgs;
+            foreach (var item in mappedData) _digitalTwinTelemetry.Enqueue(item);
+        }
     }
 
     public List<Telemetry> GetSimulationTelemetry()
@@ -168,5 +186,30 @@ public class CacheService(IServiceScopeFactory scopeFactory)
     public List<Telemetry> GetDigitalTwinTelemetry()
     {
         return _digitalTwinTelemetry.ToList();
+    }
+
+    public async Task ClearDataAndCacheAsync()
+    {
+        await _simulationLock.WaitAsync();
+        await _digitalTwinLock.WaitAsync();
+        try
+        {
+            _currentSimulationRunId = -1;
+            _currentDigitalTwinRunId = -1;
+
+            _simulationTelemetry = new ConcurrentQueue<Telemetry>();
+            _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
+
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
+
+            await db.SimulationTelemetry.ExecuteDeleteAsync();
+            await db.DigitalTwinTelemetry.ExecuteDeleteAsync();
+        }
+        finally
+        {
+            _simulationLock.Release();
+            _digitalTwinLock.Release();
+        }
     }
 }

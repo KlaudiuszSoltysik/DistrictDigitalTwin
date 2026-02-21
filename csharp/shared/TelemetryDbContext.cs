@@ -18,7 +18,7 @@ public class TelemetryDbContext(DbContextOptions<TelemetryDbContext> options) : 
             .HasIndex(t => t.RunId);
 
         modelBuilder.Entity<DigitalTwinTelemetryEntity>()
-            .HasKey(t => new { t.RunId, t.Timestamp });
+            .HasKey(t => new { t.Id, t.RunId, t.Timestamp });
         modelBuilder.Entity<DigitalTwinTelemetryEntity>()
             .HasIndex(t => t.RunId);
     }

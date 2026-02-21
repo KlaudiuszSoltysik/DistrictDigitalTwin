@@ -5,7 +5,7 @@ namespace shared;
 public class Telemetry
 {
     [JsonPropertyName("run_id")] public long RunId { get; set; }
-    [JsonPropertyName("timestamp")] public DateTime Timestamp { get; set; }
+    [JsonPropertyName("timestamp")] public DateTimeOffset Timestamp { get; set; }
 
     [JsonPropertyName("room_temperatures")]
     public Dictionary<string, double> RoomTemperatures { get; set; } = new();
@@ -46,6 +46,6 @@ public class ControlMessage
 
 public class DigitalTwinRequest
 {
-    [JsonPropertyName("start_timestamp")] public DateTime StartTimestamp { get; set; }
+    [JsonPropertyName("start_timestamp")] public DateTimeOffset StartTimestamp { get; set; }
     [JsonPropertyName("t")] public Dictionary<string, double> T { get; set; } = new();
 }

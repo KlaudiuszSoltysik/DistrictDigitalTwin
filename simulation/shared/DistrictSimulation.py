@@ -2,10 +2,10 @@
 
 import pandas as pd
 
-from DistrictModelParser import DistrictModelParser
-from ThermalSolver import ThermalSolver
-from WeatherService import WeatherService
-from WeatherSolver import WeatherSolver
+from shared.DistrictModelParser import DistrictModelParser
+from shared.ThermalSolver import ThermalSolver
+from shared.WeatherService import WeatherService
+from shared.WeatherSolver import WeatherSolver
 
 
 class DistrictSimulation:
@@ -24,8 +24,10 @@ class DistrictSimulation:
 
         self.weather_solver = WeatherSolver(external_connections, standards, N)
 
-        self.current_time = pd.Timestamp("2024-01-01 00:00:00").tz_localize(self.metadata["timezone"])
-        self.weather_service = WeatherService(weather_path, self.metadata["timezone"], self.metadata["latitude"],
+        self.current_time = pd.Timestamp("2024-12-31 23:00+00:00")
+        self.end_timestamp = pd.Timestamp("2025-12-31 23:00+00:00")
+
+        self.weather_service = WeatherService(weather_path, self.metadata["latitude"],
                                               self.metadata["longitude"], is_digital_twin)
 
         self.index_to_id = {v: k for k, v in nodes.items()}
@@ -58,8 +60,8 @@ class DistrictSimulation:
             output_timestamp = self.current_time.isoformat()
             self.current_time += timedelta(seconds=dt_seconds)
 
-            if self.current_time.year >= 2025:
-                self.current_time = pd.Timestamp("2024-01-01 00:00:00").tz_localize(self.metadata["timezone"])
+            if self.current_time >= self.end_timestamp:
+                self.current_time = pd.Timestamp("2024-12-31 23:00+00:00")
 
             return {
                 "timestamp": output_timestamp,

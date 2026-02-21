@@ -3,7 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using shared;
 
-namespace telemetry_service;
+namespace telemetry_service.Consumers;
 
 public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Telemetry>
 {
@@ -13,9 +13,10 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Tele
     public async Task Consume(ConsumeContext<Telemetry> context)
     {
         var msg = context.Message;
-        var currentTimestamp = msg.Timestamp.ToUniversalTime();
-        var isNewRun = _currentRunId != msg.RunId;
-        var isNewHour = _lastProcessedHour != -1 && currentTimestamp.Hour != _lastProcessedHour;
+        var currentTimestamp = msg.Timestamp;
+
+        var isNewRun = msg.RunId != _currentRunId;
+        var isNewHour = currentTimestamp.Hour != _lastProcessedHour;
 
         if (isNewRun)
         {
@@ -29,7 +30,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db) : IConsumer<Tele
         var entity = new SimulationTelemetryEntity
         {
             RunId = msg.RunId,
-            Timestamp = msg.Timestamp.ToUniversalTime(),
+            Timestamp = msg.Timestamp,
             Temperature = msg.Weather.Temperature,
             WindSpeed = msg.Weather.WindSpeed,
             WindDirection = msg.Weather.WindDirection,

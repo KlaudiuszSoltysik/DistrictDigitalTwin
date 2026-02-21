@@ -1,10 +1,13 @@
 using api;
+using api.Consumers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using shared;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHealthChecks();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -77,11 +80,18 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
     app.MapScalarApiReference();
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var cacheService = scope.ServiceProvider.GetRequiredService<CacheService>();
+    await cacheService.InitializeCacheAsync();
+}
+
 app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
 
 app.MapHub<TelemetryHub>("/hubs/simulation");
+app.MapHealthChecks("/health");
 
 app.Run();
 

@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.SignalR;
 using shared;
 
-namespace api;
+namespace api.Consumers;
 
 public class SimulationStatusConsumer(IHubContext<TelemetryHub> hubContext) : IConsumer<SimulationStatus>
 {

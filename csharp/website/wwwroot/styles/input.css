@@ -12,7 +12,7 @@
     .apexcharts-text.apexcharts-xaxis-label,
     .apexcharts-text.apexcharts-yaxis-label,
     .apexcharts-title-text,
-    .apexcharts-legend-text  {
+    .apexcharts-legend-text {
         @apply !fill-gray-300 !text-gray-300;
     }
 }
