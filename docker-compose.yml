@@ -1,4 +1,3 @@
-
 services:
   postgres:
     image: timescale/timescaledb:latest-pg16
@@ -73,8 +72,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
+          cpus: "1.0"
+          memory: 1G
         reservations:
           memory: 256M
 
@@ -84,7 +83,7 @@ services:
       context: ./simulation
     command: python simulation.py
     environment:
-      - RABBITMQ_CONNECTION_STRING=${RABBITMQ_CONNECTION_STRING}
+      - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -104,7 +103,7 @@ services:
       context: ./simulation
     command: python digital_twin.py
     environment:
-      - RABBITMQ_CONNECTION_STRING=${RABBITMQ_CONNECTION_STRING}
+      - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -118,48 +117,90 @@ services:
         reservations:
           memory: 256M
 
-#   api:
-#     container_name: ddt_api
-#     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/api:latest
-#     labels:
-#       - "com.centurylinklabs.watchtower.enable=true"
-#     environment:
-#       - ASPNETCORE_ENVIRONMENT=Production
-#       - ConnectionStrings__PostgresConnection=Host=postgres;Port=${RABBITMQ_USER};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-#       - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-#     depends_on:
-#       timescaledb:
-#         condition: service_healthy
-#       rabbitmq:
-#         condition: service_healthy
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.5"
-#           memory: 512M
-#         reservations:
-#           memory: 256M
-# 
-#   website:
-#     container_name: ddt_website
-#     image: ghcr.io/klaudiuszsoltysik/district-digital-twin/website:latest
-#     labels:
-#       - "com.centurylinklabs.watchtower.enable=true"
-#     depends_on:
-#       api:
-#         condition: service_started
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.5"
-#           memory: 256M
-#         reservations:
-#           memory: 64M
-#
+  api:
+    container_name: ddt_api
+    build:
+      context: csharp
+      dockerfile: api/Dockerfile
+    environment:
+      - ConnectionStrings__TelemetryDbConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      telemetry_service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - ddt_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  telemetry_service:
+    container_name: ddt_telemetry_service
+    build:
+      context: csharp
+      dockerfile: telemetry_service/Dockerfile
+    environment:
+      - ConnectionStrings__TelemetryDbConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - ddt_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  website:
+    container_name: ddt_website
+    build:
+      context: csharp
+      dockerfile: website/Dockerfile
+    environment:
+      - ConnectionStrings__TelemetryDbConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - "5000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - ddt_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+
 #   watchtower:
 #     image: containrrr/watchtower
 #     container_name: ddt_watchtower
@@ -177,7 +218,7 @@ services:
 #           memory: 64M
 #         reservations:
 #           memory: 32M
-# 
+#
 #   cadvisor:
 #     image: gcr.io/cadvisor/cadvisor:latest
 #     container_name: ddt_cadvisor
@@ -196,7 +237,7 @@ services:
 #           memory: 512M
 #         reservations:
 #           memory: 256M
-# 
+#
 #   prometheus:
 #     image: prom/prometheus:latest
 #     container_name: ddt_prometheus
@@ -215,7 +256,7 @@ services:
 #           memory: 256M
 #         reservations:
 #           memory: 128M
-# 
+#
 #   grafana:
 #     image: grafana/grafana:latest
 #     container_name: ddt_grafana
@@ -237,7 +278,7 @@ services:
 #           memory: 256M
 #         reservations:
 #           memory: 128M
-# 
+#
 #   portainer:
 #     image: portainer/portainer-ce:latest
 #     container_name: ddt_portainer
@@ -255,7 +296,7 @@ services:
 #           memory: 128M
 #         reservations:
 #           memory: 64M
-# 
+#
 #   cloudflared:
 #     image: cloudflare/cloudflared:latest
 #     container_name: ddt_tunnel

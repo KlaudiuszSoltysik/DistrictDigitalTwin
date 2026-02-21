@@ -74,3 +74,6 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - Properly configured Grafana and infrastructure.
 
 ## 📝 To-Do (Next Tasks)
+
+- jakiś dziwny bug podczas refresha
+- dodać ts ostatniej symulacji

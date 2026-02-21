@@ -12,10 +12,6 @@
         <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.8"/>
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3"/>
-        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.3">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0"/>
         <PackageReference Include="Scalar.AspNetCore" Version="2.12.40"/>
     </ItemGroup>
@@ -23,24 +19,4 @@
     <ItemGroup>
         <ProjectReference Include="..\shared\shared.csproj"/>
     </ItemGroup>
-
-    <PropertyGroup>
-        <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)</OpenApiDocumentsDirectory>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-        <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-        <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
-    </PropertyGroup>
-
-    <Target Name="RenameOpenApiFile" AfterTargets="GenerateOpenApiDocuments">
-        <Move SourceFiles="$(OpenApiDocumentsDirectory)\api.json"
-              DestinationFiles="$(OpenApiDocumentsDirectory)\api_documentation.json"
-              OverwriteReadOnlyFiles="true"
-              Condition="Exists('$(OpenApiDocumentsDirectory)\api.json')"/>
-    </Target>
-
 </Project>

@@ -16,6 +16,36 @@ public class CacheService(IServiceScopeFactory scopeFactory)
     private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
     private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
 
+    public async Task InitializeCacheAsync()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
+
+        var latestSim = await db.SimulationTelemetry
+            .AsNoTracking()
+            .OrderByDescending(t => t.Timestamp)
+            .FirstOrDefaultAsync();
+
+        if (latestSim != null)
+        {
+            _currentSimulationRunId = latestSim.RunId;
+            var cutoff = latestSim.Timestamp.AddHours(-24);
+            await LoadSimulationTelemetryFromDb(latestSim.RunId, cutoff);
+        }
+
+        var latestTwin = await db.DigitalTwinTelemetry
+            .AsNoTracking()
+            .OrderByDescending(t => t.Timestamp)
+            .FirstOrDefaultAsync();
+
+        if (latestTwin != null)
+        {
+            _currentDigitalTwinRunId = latestTwin.RunId;
+            var cutoff = latestTwin.Timestamp.AddHours(-24);
+            await LoadDigitalTwinTelemetryFromDb(cutoff);
+        }
+    }
+
     public async Task ProcessSimulationTelemetryMessageAsync(Telemetry msg)
     {
         var cutoffTime = msg.Timestamp.AddHours(-24);
@@ -44,37 +74,6 @@ public class CacheService(IServiceScopeFactory scopeFactory)
 
         while (_simulationTelemetry.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoffTime)
             _simulationTelemetry.TryDequeue(out _);
-    }
-
-    public async Task ProcessDigitalTwinTelemetryMessageAsync(List<Telemetry> msgs)
-    {
-        var cutoffTime = msgs[0].Timestamp.AddHours(-24);
-
-        if (_currentDigitalTwinRunId == -1)
-        {
-            await _digitalTwinLock.WaitAsync();
-            try
-            {
-                if (_currentDigitalTwinRunId == -1)
-                {
-                    _simulationTelemetry = new ConcurrentQueue<Telemetry>();
-
-                    await LoadDigitalTwinTelemetryFromDb(cutoffTime);
-
-                    _currentDigitalTwinRunId = 1;
-                }
-            }
-            finally
-            {
-                _digitalTwinLock.Release();
-            }
-        }
-
-        foreach (var msg in msgs)
-            _digitalTwinTelemetry.Enqueue(msg);
-
-        while (_digitalTwinTelemetry.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoffTime)
-            _digitalTwinTelemetry.TryDequeue(out _);
     }
 
     private async Task LoadSimulationTelemetryFromDb(long runId, DateTimeOffset cutoffTime)
@@ -113,6 +112,37 @@ public class CacheService(IServiceScopeFactory scopeFactory)
         }
     }
 
+    public async Task ProcessDigitalTwinTelemetryMessageAsync(List<Telemetry> msgs)
+    {
+        var cutoffTime = msgs[0].Timestamp.AddHours(-24);
+
+        if (_currentDigitalTwinRunId == -1)
+        {
+            await _digitalTwinLock.WaitAsync();
+            try
+            {
+                if (_currentDigitalTwinRunId == -1)
+                {
+                    _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
+
+                    await LoadDigitalTwinTelemetryFromDb(cutoffTime);
+
+                    _currentDigitalTwinRunId = 1;
+                }
+            }
+            finally
+            {
+                _digitalTwinLock.Release();
+            }
+        }
+
+        foreach (var msg in msgs)
+            _digitalTwinTelemetry.Enqueue(msg);
+
+        while (_digitalTwinTelemetry.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoffTime)
+            _digitalTwinTelemetry.TryDequeue(out _);
+    }
+
     private async Task LoadDigitalTwinTelemetryFromDb(DateTimeOffset cutoffTime)
     {
         using var scope = scopeFactory.CreateScope();
@@ -127,7 +157,6 @@ public class CacheService(IServiceScopeFactory scopeFactory)
         if (dbData.Count > 0)
         {
             var mappedData = dbData
-                .OrderBy(t => t.Timestamp)
                 .Select(e => new Telemetry
                 {
                     RunId = e.RunId,
