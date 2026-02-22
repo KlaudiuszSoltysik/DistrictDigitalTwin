@@ -1,4 +1,4 @@
-﻿@page "/simulation-panel"
+﻿@page "/admin-panel"
 
 @inject IConfiguration Config
 @inject SimulationStatusService SimulationStatusService
@@ -32,7 +32,7 @@
     private DateTimeOffset _digitalTwinTimestamp;
 
     private List<Telemetry> _simulationTelemetry = [];
-    private readonly List<Telemetry> _digitalTwinTelemetry = [];
+    private List<Telemetry> _digitalTwinTelemetry = [];
 
     private TelemetryCharts? _telemetryChartsComponent;
 
@@ -93,6 +93,8 @@
                     _digitalTwinTelemetry.Add(incomingItem);
                 }
             }
+
+            _digitalTwinTelemetry = _digitalTwinTelemetry.OrderBy(t => t.Timestamp).ToList();
 
             if (_telemetryChartsComponent != null)
             {

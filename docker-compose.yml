@@ -1,4 +1,3 @@
-
 services:
   postgres:
     image: timescale/timescaledb:latest-pg16
@@ -18,14 +17,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          memory: 128M
+      retries: 10
 
   postgres-backup:
     image: prodrigestivill/postgres-backup-local
@@ -33,8 +25,6 @@ services:
     user: postgres:postgres
     volumes:
       - ./backups:/backups
-    depends_on:
-      - postgres
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=${POSTGRES_DB}
@@ -42,15 +32,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SCHEDULE=@every 12h00m
       - BACKUP_KEEP_DAYS=7
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          memory: 64M
 
   rabbitmq:
     container_name: ddt_rabbitmq
@@ -69,14 +55,7 @@ services:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 1G
-        reservations:
-          memory: 256M
+      retries: 10
 
   simulation:
     container_name: ddt_simulation
@@ -90,13 +69,6 @@ services:
         condition: service_healthy
     networks:
       - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          memory: 256M
 
   digital-twin:
     container_name: ddt_digital_twin
@@ -110,13 +82,6 @@ services:
         condition: service_healthy
     networks:
       - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          memory: 256M
 
   api:
     container_name: ddt_api
@@ -127,14 +92,11 @@ services:
       - ConnectionStrings__TelemetryDbConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       - ASPNETCORE_ENVIRONMENT=Production
+    # TODO: remove later and use cloudflare tunnel instead
     ports:
       - "6101:8080"
     depends_on:
       telemetry_service:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
     networks:
       - ddt_net
@@ -142,14 +104,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 5s
       timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          memory: 256M
+      retries: 10
 
   telemetry_service:
     container_name: ddt_telemetry_service
@@ -171,14 +126,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 5s
       timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          memory: 256M
+      retries: 10
 
   website:
     container_name: ddt_website
@@ -186,9 +134,8 @@ services:
       context: csharp
       dockerfile: website/Dockerfile
     environment:
-      - ConnectionStrings__TelemetryDbConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       - ASPNETCORE_ENVIRONMENT=Production
+    # TODO: remove later and use cloudflare tunnel instead
     ports:
       - "6102:80"
     depends_on:
@@ -196,125 +143,124 @@ services:
         condition: service_healthy
     networks:
       - ddt_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-#   watchtower:
-#     image: containrrr/watchtower
-#     container_name: ddt_watchtower
-#     volumes:
-#       - /var/run/docker.sock:/var/run/docker.sock
-#     command: --interval 30 --cleanup --label-enable
-#     environment:
-#       - DOCKER_API_VERSION=1.45
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.25"
-#           memory: 64M
-#         reservations:
-#           memory: 32M
-#
-#   cadvisor:
-#     image: gcr.io/cadvisor/cadvisor:latest
-#     container_name: ddt_cadvisor
-#     volumes:
-#       - /:/rootfs:ro
-#       - /var/run:/var/run:ro
-#       - /sys:/sys:ro
-#       - /var/lib/docker/:/var/lib/docker:ro
-#       - /dev/disk/:/dev/disk:ro
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.5"
-#           memory: 512M
-#         reservations:
-#           memory: 256M
-#
-#   prometheus:
-#     image: prom/prometheus:latest
-#     container_name: ddt_prometheus
-#     volumes:
-#       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-#       - prometheus_data:/prometheus
-#     command:
-#       - "--config.file=/etc/prometheus/prometheus.yml"
-#       - "--storage.tsdb.retention.time=15d"
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.25"
-#           memory: 256M
-#         reservations:
-#           memory: 128M
-#
-#   grafana:
-#     image: grafana/grafana:latest
-#     container_name: ddt_grafana
-#     user: "472"
-#     depends_on:
-#       - prometheus
-#     volumes:
-#       - grafana_data:/var/lib/grafana
-#     environment:
-#       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
-#       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-#       - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.25"
-#           memory: 256M
-#         reservations:
-#           memory: 128M
-#
-#   portainer:
-#     image: portainer/portainer-ce:latest
-#     container_name: ddt_portainer
-#     security_opt:
-#       - no-new-privileges:true
-#     volumes:
-#       - /var/run/docker.sock:/var/run/docker.sock:ro
-#       - portainer_data:/data
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.25"
-#           memory: 128M
-#         reservations:
-#           memory: 64M
-#
-#   cloudflared:
-#     image: cloudflare/cloudflared:latest
-#     container_name: ddt_tunnel
-#     command: tunnel run
-#     environment:
-#       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-#     networks:
-#       - ddt_net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.25"
-#           memory: 64M
-#         reservations:
-#           memory: 32M
+  watchtower:
+    image: containrrr/watchtower
+    container_name: ddt_watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --cleanup --label-enable
+    environment:
+      - DOCKER_API_VERSION=1.45
+    networks:
+      - ddt_net
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: ddt_cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - ddt_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ddt_prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    depends_on:
+      cadvisor:
+        condition: service_healthy
+    networks:
+      - ddt_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  loki:
+    image: grafana/loki:latest
+    container_name: ddt_loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - ddt_net
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: ddt_promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/promtail/config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_started
+    networks:
+      - ddt_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9080/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ddt_grafana
+    user: "472"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_started
+    networks:
+      - ddt_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ddt_tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      website:
+        condition: service_healthy
+      grafana:
+        condition: service_healthy
+    networks:
+      - ddt_net
 
 networks:
   ddt_net:
