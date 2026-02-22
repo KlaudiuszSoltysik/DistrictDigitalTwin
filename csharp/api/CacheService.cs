@@ -7,14 +7,14 @@ namespace api;
 
 public class CacheService(IServiceScopeFactory scopeFactory)
 {
-    private readonly SemaphoreSlim _simulationLock = new(1, 1);
     private readonly SemaphoreSlim _digitalTwinLock = new(1, 1);
-
-    private long _currentSimulationRunId = -1;
+    private readonly SemaphoreSlim _simulationLock = new(1, 1);
     private long _currentDigitalTwinRunId = -1;
 
-    private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
+    private long _currentSimulationRunId = -1;
     private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
+
+    private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
 
     public async Task InitializeCacheAsync()
     {

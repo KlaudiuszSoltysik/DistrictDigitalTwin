@@ -21,7 +21,7 @@ builder.Services.AddScoped<SimulationStatusService>(sp =>
     var httpClient = sp.GetRequiredService<HttpClient>();
 
     var hubConnection = new HubConnectionBuilder()
-        .WithUrl($"{baseApiUrl}/hubs/simulation")
+        .WithUrl($"{baseApiUrl}hubs/simulation")
         .WithAutomaticReconnect()
         .Build();
 

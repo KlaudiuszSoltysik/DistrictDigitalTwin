@@ -2,11 +2,21 @@
 <div class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none">
     <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
         <p class="text-xl font-bold">Simulation Control Panel</p>
-        <div class="text-xs flex items-center gap-2">
-            <span>CONNECTION:</span>
-            <span class="font-bold @(IsConnected ? "text-green-500" : "text-red-500")">
-                @ConnectionStatus.ToUpper()
-            </span>
+
+        <div class="flex items-center gap-6">
+            <div class="text-xs flex items-center gap-2">
+                <span>Connection:</span>
+                <span class="font-bold @(IsConnected ? "text-green-500" : "text-red-500")">
+                    @ConnectionStatus.ToUpper()
+                </span>
+            </div>
+
+            <div class="text-xs flex items-center gap-2">
+                <span>Digital Twin timestamp:</span>
+                <span class="font-bold @(IsConnected ? "text-green-500" : "text-red-500")">
+                    @(DigitalTwinTimestamp.ToString("dd-MM-yyyy HH:mm zzz"))
+                </span>
+            </div>
         </div>
     </div>
 
@@ -107,6 +117,7 @@
 @code {
     [Parameter] public bool IsConnected { get; set; }
     [Parameter] public string ConnectionStatus { get; set; } = "Disconnected";
+    [Parameter] public DateTimeOffset DigitalTwinTimestamp { get; set; }
     [Parameter] public SimulationConfig? Config { get; set; }
 
     [Parameter] public EventCallback OnResume { get; set; }

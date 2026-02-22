@@ -11,6 +11,7 @@
 <SimulationControls
     IsConnected="@IsConnected"
     ConnectionStatus="@_connectionStatus"
+    DigitalTwinTimestamp="@_digitalTwinTimestamp"
     Config="@SimulationStatusService.CurrentStatus?.Config"
     OnResume="Resume"
     OnPause="Pause"
@@ -28,6 +29,7 @@
 
     private HubConnection? _hubConnection;
     private string _connectionStatus = "Disconnected";
+    private DateTimeOffset _digitalTwinTimestamp;
 
     private List<Telemetry> _simulationTelemetry = [];
     private readonly List<Telemetry> _digitalTwinTelemetry = [];
@@ -39,7 +41,7 @@
         var baseApiUrl = Config["BaseApiUrl"];
 
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{baseApiUrl}/hubs/simulation")
+            .WithUrl($"{baseApiUrl}hubs/simulation")
             .WithAutomaticReconnect()
             .Build();
 
@@ -76,6 +78,8 @@
 
         _hubConnection.On<List<Telemetry>>("ReceiveDigitalTwinTelemetry", async msg =>
         {
+            _digitalTwinTimestamp = msg[0].Timestamp;
+
             foreach (var incomingItem in msg)
             {
                 var existingIndex = _digitalTwinTelemetry.FindIndex(t => t.Timestamp == incomingItem.Timestamp);
