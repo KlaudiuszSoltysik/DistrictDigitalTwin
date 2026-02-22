@@ -75,5 +75,5 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 
 ## 📝 To-Do (Next Tasks)
 
-- jakiś dziwny bug podczas refresha
+- jakiś dziwny bug podczas refresha z wykresami
 - dodać ts ostatniej symulacji

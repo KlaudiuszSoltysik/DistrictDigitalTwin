@@ -90,8 +90,8 @@ app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapHub<TelemetryHub>("/hubs/simulation");
-app.MapHealthChecks("/health");
+app.MapHub<TelemetryHub>("/api/hubs/simulation");
+app.MapHealthChecks("/api/health");
 
 app.Run();
 

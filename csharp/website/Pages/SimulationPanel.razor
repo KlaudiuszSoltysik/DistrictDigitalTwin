@@ -39,7 +39,7 @@
         var baseApiUrl = Config["BaseApiUrl"];
 
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{baseApiUrl}/hubs/simulation")
+            .WithUrl($"{baseApiUrl}hubs/simulation")
             .WithAutomaticReconnect()
             .Build();
 
