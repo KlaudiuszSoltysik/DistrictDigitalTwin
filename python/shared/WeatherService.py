@@ -5,7 +5,7 @@ from scipy.signal import lfilter
 
 
 def generate_drift_noise(n, rho, target_std):
-    step_scale = target_std * np.sqrt(1 - rho**2)
+    step_scale = target_std * np.sqrt(1 - rho ** 2)
 
     shocks = np.random.normal(loc=0.0, scale=step_scale, size=n)
 
@@ -73,11 +73,8 @@ class WeatherService:
         wind_dir_rad = np.arctan2(raw_weather["wind_u"], raw_weather["wind_v"])
         raw_weather["wind_direction"] = (np.degrees(wind_dir_rad) + 360) % 360
 
-        solar_pos = pvlib.solarposition.get_solarposition(
-            time=pd.DatetimeIndex([current_time]),
-            latitude=self.latitude,
-            longitude=self.longitude
-        )
+        solar_pos = pvlib.solarposition.get_solarposition(time=pd.DatetimeIndex([current_time]), latitude=self.latitude,
+            longitude=self.longitude)
 
         raw_weather["sun_altitude"] = solar_pos["apparent_elevation"].iloc[0]
         raw_weather["sun_azimuth"] = solar_pos["azimuth"].iloc[0]

@@ -22,8 +22,8 @@ class WeatherSolver:
                 el_rad = math.radians(sun_altitude)
                 tilt_rad = math.radians(connection["tilt"])
 
-                cos_theta = (math.sin(el_rad) * math.cos(tilt_rad) +
-                             math.cos(el_rad) * math.sin(tilt_rad) * math.cos(azimuth_diff))
+                cos_theta = (math.sin(el_rad) * math.cos(tilt_rad) + math.cos(el_rad) * math.sin(tilt_rad) * math.cos(
+                    azimuth_diff))
 
                 if cos_theta > 0:
                     room_idx = connection["room_idx"]
