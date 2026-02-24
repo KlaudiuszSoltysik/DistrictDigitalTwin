@@ -4,17 +4,27 @@ using shared;
 
 namespace api.Consumers;
 
-public class DigitalTwinTelemetryConsumer(IHubContext<TelemetryHub> simulationHubContext, CacheService cacheService)
+public class DigitalTwinTelemetryConsumer(
+    IHubContext<TelemetryHub> simulationHubContext,
+    CacheService cacheService,
+    ILogger<DigitalTwinTelemetryConsumer> logger)
     : IConsumer<Telemetry[]>
 {
     public async Task Consume(ConsumeContext<Telemetry[]> context)
     {
-        var messageArray = context.Message;
+        List<Telemetry> msgs;
 
-        var msgList = messageArray.ToList();
+        try
+        {
+            msgs = context.Message.ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to parse and process message. Method: {method}", "Consume");
+            return;
+        }
 
-        await cacheService.ProcessDigitalTwinTelemetryMessageAsync(msgList);
-
-        await simulationHubContext.Clients.All.SendAsync("ReceiveDigitalTwinTelemetry", msgList);
+        await cacheService.ProcessDigitalTwinTelemetryMessageAsync(msgs);
+        await simulationHubContext.Clients.All.SendAsync("ReceiveDigitalTwinTelemetry", msgs);
     }
 }

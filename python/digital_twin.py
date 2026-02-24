@@ -34,7 +34,7 @@ class DigitalTwinService:
                 connection = BlockingConnection(self.rabbit_params)
                 if connection.is_open:
                     return connection
-            except Exception as e:
+            except Exception:
                 self.logger.warning("RabbitMQ connection failed. Retrying in 5 seconds...", exc_info=True,
                                     method="connect_with_retry")
                 sleep(5)
@@ -53,7 +53,7 @@ class DigitalTwinService:
 
                 channel.basic_consume(queue="digital-twin-commands", on_message_callback=callback, auto_ack=True)
                 channel.start_consuming()
-            except Exception as e:
+            except Exception:
                 self.logger.error("Consumer loop crashed", exc_info=True, method="listen_for_commands")
                 sleep(5)
 
@@ -66,7 +66,7 @@ class DigitalTwinService:
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
 
             self.run_physics_loop(end_ts)
-        except Exception as e:
+        except Exception:
             self.logger.error("Failed to parse and process command", exc_info=True, payload=cmd_json,
                               method="process_command")
 
@@ -90,7 +90,7 @@ class DigitalTwinService:
                 properties=BasicProperties(content_type="application/json", delivery_mode=DeliveryMode.Persistent))
 
             pub_conn.close()
-        except Exception as e:
+        except Exception:
             self.logger.error("Failed to publish telemetry to RabbitMQ", exc_info=True, method="run_physics_loop")
 
 

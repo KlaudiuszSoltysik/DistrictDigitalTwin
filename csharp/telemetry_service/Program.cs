@@ -71,7 +71,7 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Telemetry Service terminated unexpectedly");
+    Log.Fatal(ex, "Telemetry Service terminated unexpectedly.");
 }
 finally
 {

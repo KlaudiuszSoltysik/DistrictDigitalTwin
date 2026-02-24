@@ -113,7 +113,7 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "API terminated unexpectedly");
+    Log.Fatal(ex, "API terminated unexpectedly.");
 }
 finally
 {

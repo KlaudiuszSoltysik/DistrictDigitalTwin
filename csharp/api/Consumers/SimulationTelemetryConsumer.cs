@@ -12,7 +12,6 @@ public class SimulationTelemetryConsumer(IHubContext<TelemetryHub> simulationHub
         var msg = context.Message;
 
         await cacheService.ProcessSimulationTelemetryMessageAsync(msg);
-
         await simulationHubContext.Clients.All.SendAsync("ReceiveSimulationTelemetry", msg);
     }
 }
