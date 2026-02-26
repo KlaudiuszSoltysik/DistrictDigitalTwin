@@ -71,6 +71,15 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 
 ## 📊 Monitoring
 
-- Properly configured Grafana and infrastructure.
+- Custom logging across all services.
+- Custom Grafana dashboards made with SRE paradighms.
+- Data retention and db backups
 
 ## 📝 To-Do (Next Tasks)
+
+- grafana
+- notifications
+- container limits and reservations
+- k8s with 2 clusters
+- controller
+- tenant panels
