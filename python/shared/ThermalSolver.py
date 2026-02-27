@@ -25,11 +25,7 @@ class ThermalSolver:
         if drift_sigma_per_hour > 0:
             time_scale = np.sqrt(dt / 3600.0)
 
-            state_drift = np.random.normal(
-                loc=0.0,
-                scale=drift_sigma_per_hour * time_scale,
-                size=len(self.T)
-            )
+            state_drift = np.random.normal(loc=0.0, scale=drift_sigma_per_hour * time_scale, size=len(self.T))
 
             self.T += state_drift
 

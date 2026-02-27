@@ -5,16 +5,16 @@ using shared;
 
 namespace api;
 
-public class CacheService(IServiceScopeFactory scopeFactory)
+public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheService> logger)
 {
     private readonly SemaphoreSlim _digitalTwinLock = new(1, 1);
     private readonly SemaphoreSlim _simulationLock = new(1, 1);
-    private long _currentDigitalTwinRunId = -1;
 
     private long _currentSimulationRunId = -1;
-    private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
+    private long _currentDigitalTwinRunId = -1;
 
     private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
+    private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
 
     public async Task InitializeCacheAsync()
     {
@@ -40,7 +40,7 @@ public class CacheService(IServiceScopeFactory scopeFactory)
 
         if (latestTwin != null)
         {
-            _currentDigitalTwinRunId = latestTwin.RunId;
+            _currentDigitalTwinRunId = 1;
             var cutoff = latestTwin.Timestamp.AddHours(-24);
             await LoadDigitalTwinTelemetryFromDb(cutoff);
         }
@@ -48,42 +48,31 @@ public class CacheService(IServiceScopeFactory scopeFactory)
 
     public async Task ProcessSimulationTelemetryMessageAsync(Telemetry msg)
     {
-        var cutoffTime = msg.Timestamp.AddHours(-24);
+        var cutoff = msg.Timestamp.AddHours(-24);
 
         if (msg.RunId != _currentSimulationRunId)
         {
-            await _simulationLock.WaitAsync();
-            try
-            {
-                if (msg.RunId != _currentSimulationRunId)
-                {
-                    _simulationTelemetry = new ConcurrentQueue<Telemetry>();
+            _simulationTelemetry = new ConcurrentQueue<Telemetry>();
 
-                    await LoadSimulationTelemetryFromDb(msg.RunId, cutoffTime);
+            await LoadSimulationTelemetryFromDb(msg.RunId, cutoff);
 
-                    _currentSimulationRunId = msg.RunId;
-                }
-            }
-            finally
-            {
-                _simulationLock.Release();
-            }
+            _currentSimulationRunId = msg.RunId;
         }
 
         _simulationTelemetry.Enqueue(msg);
 
-        while (_simulationTelemetry.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoffTime)
+        while (_simulationTelemetry.TryPeek(out var oldest) && oldest.Timestamp < cutoff)
             _simulationTelemetry.TryDequeue(out _);
     }
 
-    private async Task LoadSimulationTelemetryFromDb(long runId, DateTimeOffset cutoffTime)
+    private async Task LoadSimulationTelemetryFromDb(long runId, DateTimeOffset cutoff)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
 
         var dbData = await db.SimulationTelemetry
             .AsNoTracking()
-            .Where(t => t.RunId == runId && t.Timestamp >= cutoffTime)
+            .Where(t => t.RunId == runId && t.Timestamp >= cutoff)
             .OrderByDescending(t => t.Timestamp)
             .ToListAsync();
 
@@ -114,32 +103,21 @@ public class CacheService(IServiceScopeFactory scopeFactory)
 
     public async Task ProcessDigitalTwinTelemetryMessageAsync(List<Telemetry> msgs)
     {
-        var cutoffTime = msgs[0].Timestamp.AddHours(-24);
+        var cutoff = msgs[0].Timestamp.AddHours(-24);
 
         if (_currentDigitalTwinRunId == -1)
         {
-            await _digitalTwinLock.WaitAsync();
-            try
-            {
-                if (_currentDigitalTwinRunId == -1)
-                {
-                    _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
+            _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
 
-                    await LoadDigitalTwinTelemetryFromDb(cutoffTime);
+            await LoadDigitalTwinTelemetryFromDb(cutoff);
 
-                    _currentDigitalTwinRunId = 1;
-                }
-            }
-            finally
-            {
-                _digitalTwinLock.Release();
-            }
+            _currentDigitalTwinRunId = 1;
         }
 
         foreach (var msg in msgs)
             _digitalTwinTelemetry.Enqueue(msg);
 
-        while (_digitalTwinTelemetry.TryPeek(out var oldestItem) && oldestItem.Timestamp < cutoffTime)
+        while (_digitalTwinTelemetry.TryPeek(out var oldest) && oldest.Timestamp < cutoff)
             _digitalTwinTelemetry.TryDequeue(out _);
     }
 
@@ -192,6 +170,7 @@ public class CacheService(IServiceScopeFactory scopeFactory)
     {
         await _simulationLock.WaitAsync();
         await _digitalTwinLock.WaitAsync();
+
         try
         {
             _currentSimulationRunId = -1;
@@ -205,6 +184,10 @@ public class CacheService(IServiceScopeFactory scopeFactory)
 
             await db.SimulationTelemetry.ExecuteDeleteAsync();
             await db.DigitalTwinTelemetry.ExecuteDeleteAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error. Method: {method}", "ClearDataAndCacheAsync");
         }
         finally
         {

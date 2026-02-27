@@ -1,53 +1,79 @@
 ﻿using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 using shared;
 using telemetry_service;
 using telemetry_service.Consumers;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Fatal)
+    .MinimumLevel.Override("System", LogEventLevel.Fatal)
+    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Fatal)
+    .MinimumLevel.Debug()
+    .Enrich.WithProperty("service", "telemetry_service")
+    .WriteTo.Console(new RenderedCompactJsonFormatter())
+    .CreateLogger();
 
-builder.Services.AddHealthChecks();
-
-builder.Services.AddDbContext<TelemetryDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("TelemetryDbConnection")));
-
-builder.Services.AddMassTransit(x =>
+try
 {
-    x.AddConsumer<SimulationTelemetryConsumer>();
-    x.AddConsumer<DigitalTwinTelemetryConsumer>();
+    var builder = WebApplication.CreateBuilder(args);
 
-    x.UsingRabbitMq((ctx, cfg) =>
+    builder.Logging.ClearProviders();
+    builder.Host.UseSerilog();
+
+    builder.Services.AddHealthChecks();
+
+    builder.Services.AddDbContext<TelemetryDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("TelemetryDbConnection")));
+
+    builder.Services.AddMassTransit(x =>
     {
-        var connectionString = builder.Configuration.GetConnectionString("RabbitMqConnection");
-        var uri = new Uri(connectionString ?? throw new InvalidOperationException("Invalid connection string."));
+        x.AddConsumer<SimulationTelemetryConsumer>();
+        x.AddConsumer<DigitalTwinTelemetryConsumer>();
 
-        cfg.Host(uri.Host, (ushort)uri.Port, uri.AbsolutePath, h =>
+        x.UsingRabbitMq((ctx, cfg) =>
         {
-            var parts = uri.UserInfo.Split(':');
-            h.Username(parts[0]);
-            h.Password(parts[1]);
-        });
+            var connectionString = builder.Configuration.GetConnectionString("RabbitMqConnection");
+            var uri = new Uri(connectionString ?? throw new InvalidOperationException("Invalid connection string."));
 
-        cfg.UseRawJsonSerializer();
+            cfg.Host(uri.Host, (ushort)uri.Port, uri.AbsolutePath, h =>
+            {
+                var parts = uri.UserInfo.Split(':');
+                h.Username(parts[0]);
+                h.Password(parts[1]);
+            });
 
-        cfg.ReceiveEndpoint("simulation-telemetry-queue-db", e =>
-        {
-            e.Bind("simulation-telemetry.exchange");
-            e.ConfigureConsumer<SimulationTelemetryConsumer>(ctx);
-        });
+            cfg.UseRawJsonSerializer();
 
-        cfg.ReceiveEndpoint("digital-twin-telemetry-queue-db", e =>
-        {
-            e.Bind("digital-twin-telemetry.exchange");
-            e.ConfigureConsumer<DigitalTwinTelemetryConsumer>(ctx);
+            cfg.ReceiveEndpoint("simulation-telemetry-queue-db", e =>
+            {
+                e.Bind("simulation-telemetry.exchange");
+                e.ConfigureConsumer<SimulationTelemetryConsumer>(ctx);
+            });
+
+            cfg.ReceiveEndpoint("digital-twin-telemetry-queue-db", e =>
+            {
+                e.Bind("digital-twin-telemetry.exchange");
+                e.ConfigureConsumer<DigitalTwinTelemetryConsumer>(ctx);
+            });
         });
     });
-});
 
-builder.Services.AddHostedService<DbMigrationWorker>();
+    builder.Services.AddHostedService<DbMigrationWorker>();
 
-var app = builder.Build();
+    var app = builder.Build();
 
-app.MapHealthChecks("/health");
+    app.MapHealthChecks("/health");
 
-await app.RunAsync();
+    await app.RunAsync();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Telemetry Service terminated unexpectedly.");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

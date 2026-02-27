@@ -8,8 +8,6 @@ public class SimulationStatusConsumer(IHubContext<TelemetryHub> hubContext) : IC
 {
     public async Task Consume(ConsumeContext<SimulationStatus> context)
     {
-        var status = context.Message;
-
-        await hubContext.Clients.All.SendAsync("ReceiveSimulationStatus", status);
+        await hubContext.Clients.All.SendAsync("ReceiveSimulationStatus", context.Message);
     }
 }

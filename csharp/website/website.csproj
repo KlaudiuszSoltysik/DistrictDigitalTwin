@@ -12,7 +12,6 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.3"/>
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.3" PrivateAssets="all"/>
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.3"/>
-        <PackageReference Include="Microsoft.DotNet.HotReload.WebAssembly.Browser" Version="10.0.103"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -69,9 +68,6 @@
 
     <ItemGroup>
         <Content Update="wwwroot\appsettings.Development.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Update="wwwroot\appsettings.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

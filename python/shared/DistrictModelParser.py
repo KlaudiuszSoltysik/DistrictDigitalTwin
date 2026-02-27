@@ -33,10 +33,7 @@ class DistrictModelParser:
                     room_id = f"{building["id"]}:{apartment["id"]}:{room["id"]}"
 
                     self.nodes[room_id] = idx
-                    self.room_data.append({
-                        "room": room,
-                        "standards": building["standards"]
-                    })
+                    self.room_data.append({"room": room, "standards": building["standards"]})
 
                     idx += 1
 
@@ -62,16 +59,8 @@ class DistrictModelParser:
                 for connection in building["external_connections"]:
                     self._apply_external_connection(connection, building_standards, building["id"])
 
-        return (
-            self.G,
-            self.G_ext_air,
-            self.G_ext_ground,
-            self.C,
-            self.N,
-            self.external_connections,
-            self.standards,
-            self.nodes
-        )
+        return (self.G, self.G_ext_air, self.G_ext_ground, self.C, self.N, self.external_connections, self.standards,
+                self.nodes)
 
     def _apply_internal_connection(self, connection, standards, building_id):
         idx_a = self.nodes[f"{building_id}:{connection["from"]}"]
@@ -101,23 +90,14 @@ class DistrictModelParser:
 
             windows_area_sum += window["area"]
 
-            windows_to_solve.append({
-                "area": window["area"],
-                "shgc": window_standard["shgc"]
-            })
+            windows_to_solve.append({"area": window["area"], "shgc": window_standard["shgc"]})
 
         if target != "ground":
-            self.external_connections.append({
-                "room_idx": idx_a,
-                "azimuth": connection["azimuth"],
-                "tilt": connection["tilt"],
-                "area_gross": connection["area"],
-                "windows": windows_to_solve,
-                "volume": self.room_data[idx_a]["room"]["volume"],
-                "ach_wind_coef": standards["ach_wind_coef"],
-                "u_value": thermal_code["u_value"],
-                "absorptance": thermal_code["absorptance"]
-            })
+            self.external_connections.append(
+                {"room_idx": idx_a, "azimuth": connection["azimuth"], "tilt": connection["tilt"],
+                    "area_gross": connection["area"], "windows": windows_to_solve,
+                    "volume": self.room_data[idx_a]["room"]["volume"], "ach_wind_coef": standards["ach_wind_coef"],
+                    "u_value": thermal_code["u_value"], "absorptance": thermal_code["absorptance"]})
 
         wall_net_area = connection["area"] - windows_area_sum
         ua_wall = wall_net_area * thermal_code["u_value"]

@@ -3,98 +3,119 @@ using api.Consumers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 using shared;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Fatal)
+    .MinimumLevel.Override("System", LogEventLevel.Fatal)
+    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Fatal)
+    .MinimumLevel.Debug()
+    .Enrich.WithProperty("service", "api")
+    .WriteTo.Console(new RenderedCompactJsonFormatter())
+    .CreateLogger();
 
-builder.Services.AddHealthChecks();
-
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
-builder.Services.AddSignalR();
-
-builder.Services.AddDbContext<TelemetryDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("TelemetryDbConnection")));
-
-builder.Services.AddMassTransit(x =>
+try
 {
-    x.AddConsumer<SimulationTelemetryConsumer>();
-    x.AddConsumer<SimulationStatusConsumer>();
-    x.AddConsumer<DigitalTwinTelemetryConsumer>();
+    var builder = WebApplication.CreateBuilder(args);
 
-    x.UsingRabbitMq((ctx, cfg) =>
+    builder.Logging.ClearProviders();
+    builder.Host.UseSerilog();
+
+    builder.Services.AddHealthChecks();
+    builder.Services.AddControllers();
+    builder.Services.AddOpenApi();
+    builder.Services.AddSignalR();
+
+    builder.Services.AddDbContext<TelemetryDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("TelemetryDbConnection")));
+
+    builder.Services.AddMassTransit(x =>
     {
-        var connectionString = builder.Configuration.GetConnectionString("RabbitMqConnection");
+        x.AddConsumer<SimulationTelemetryConsumer>();
+        x.AddConsumer<SimulationStatusConsumer>();
+        x.AddConsumer<DigitalTwinTelemetryConsumer>();
 
-        var uri = new Uri(connectionString ?? throw new InvalidOperationException("Invalid connection string."));
-
-        cfg.Host(uri.Host, (ushort)uri.Port, uri.AbsolutePath, h =>
+        x.UsingRabbitMq((ctx, cfg) =>
         {
-            var parts = uri.UserInfo.Split(':');
-            h.Username(parts[0]);
-            h.Password(parts[1]);
-        });
+            var connectionString = builder.Configuration.GetConnectionString("RabbitMqConnection");
 
-        cfg.UseRawJsonSerializer();
+            var uri = new Uri(connectionString ?? throw new InvalidOperationException("Invalid connection string."));
 
-        cfg.ReceiveEndpoint("simulation-telemetry-queue", e =>
-        {
-            e.Bind("simulation-telemetry.exchange");
-            e.ConfigureConsumer<SimulationTelemetryConsumer>(ctx);
-        });
+            cfg.Host(uri.Host, (ushort)uri.Port, uri.AbsolutePath, h =>
+            {
+                var parts = uri.UserInfo.Split(':');
+                h.Username(parts[0]);
+                h.Password(parts[1]);
+            });
 
-        cfg.ReceiveEndpoint("digital-twin-telemetry-queue", e =>
-        {
-            e.Bind("digital-twin-telemetry.exchange");
-            e.ConfigureConsumer<DigitalTwinTelemetryConsumer>(ctx);
-        });
+            cfg.UseRawJsonSerializer();
 
-        cfg.ReceiveEndpoint("simulation-status", e =>
-        {
-            e.Durable = false;
-            e.SetQueueArgument("x-message-ttl", 1000);
-            e.ConfigureConsumer<SimulationStatusConsumer>(ctx);
+            cfg.ReceiveEndpoint("simulation-telemetry-queue", e =>
+            {
+                e.Bind("simulation-telemetry.exchange");
+                e.ConfigureConsumer<SimulationTelemetryConsumer>(ctx);
+            });
+
+            cfg.ReceiveEndpoint("digital-twin-telemetry-queue", e =>
+            {
+                e.Bind("digital-twin-telemetry.exchange");
+                e.ConfigureConsumer<DigitalTwinTelemetryConsumer>(ctx);
+            });
+
+            cfg.ReceiveEndpoint("simulation-status", e =>
+            {
+                e.Durable = false;
+                e.SetQueueArgument("x-message-ttl", 1000);
+                e.ConfigureConsumer<SimulationStatusConsumer>(ctx);
+            });
         });
     });
-});
 
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
+    builder.Services.AddCors(options =>
     {
-        policy
-            .SetIsOriginAllowed(_ => true)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        options.AddDefaultPolicy(policy =>
+        {
+            policy
+                .SetIsOriginAllowed(_ => true)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
     });
-});
 
-builder.Services.AddSingleton<CacheService>();
+    builder.Services.AddSingleton<CacheService>();
 
-var app = builder.Build();
+    var app = builder.Build();
 
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+    {
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+    }
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var cacheService = scope.ServiceProvider.GetRequiredService<CacheService>();
+        await cacheService.InitializeCacheAsync();
+    }
+
+    app.UseCors();
+    app.UseAuthorization();
+    app.MapControllers();
+
+    app.MapHub<TelemetryHub>("/api/hubs/simulation");
+    app.MapHealthChecks("/api/health");
+
+    app.Run();
 }
-
-using (var scope = app.Services.CreateScope())
+catch (Exception ex)
 {
-    var cacheService = scope.ServiceProvider.GetRequiredService<CacheService>();
-    await cacheService.InitializeCacheAsync();
+    Log.Fatal(ex, "API terminated unexpectedly.");
 }
-
-app.UseCors();
-app.UseAuthorization();
-app.MapControllers();
-
-app.MapHub<TelemetryHub>("/api/hubs/simulation");
-app.MapHealthChecks("/api/health");
-
-app.Run();
-
-public partial class Program
+finally
 {
+    Log.CloseAndFlush();
 }

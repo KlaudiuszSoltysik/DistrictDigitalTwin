@@ -13,11 +13,6 @@ services:
       - ./docker/postgres/data:/var/lib/postgresql
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   postgres-backup:
     image: prodrigestivill/postgres-backup-local
@@ -30,13 +25,12 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - SCHEDULE=@every 12h00m
-      - BACKUP_KEEP_DAYS=7
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - SCHEDULE=@every 4h00m
+      - BACKUP_KEEP_DAYS=2
     networks:
       - ddt_net
+    depends_on:
+      - postgres
 
   rabbitmq:
     container_name: ddt_rabbitmq
@@ -51,11 +45,6 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   simulation:
     container_name: ddt_simulation
@@ -64,11 +53,10 @@ services:
     command: python simulation.py
     environment:
       - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
     networks:
       - ddt_net
+    depends_on:
+      - rabbitmq
 
   digital-twin:
     container_name: ddt_digital_twin
@@ -77,11 +65,10 @@ services:
     command: python digital_twin.py
     environment:
       - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
     networks:
       - ddt_net
+    depends_on:
+      - rabbitmq
 
   api:
     container_name: ddt_api
@@ -95,16 +82,11 @@ services:
     # TODO: remove later and use cloudflare tunnel instead
     ports:
       - "6101:8080"
-    depends_on:
-      telemetry_service:
-        condition: service_healthy
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    depends_on:
+      - rabbitmq
+      - postgres
 
   telemetry_service:
     container_name: ddt_telemetry_service
@@ -115,18 +97,11 @@ services:
       - ConnectionStrings__TelemetryDbConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       - ASPNETCORE_ENVIRONMENT=Production
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    depends_on:
+      - rabbitmq
+      - postgres
 
   website:
     container_name: ddt_website
@@ -138,16 +113,10 @@ services:
     # TODO: remove later and use cloudflare tunnel instead
     ports:
       - "6102:80"
-    depends_on:
-      api:
-        condition: service_healthy
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    depends_on:
+      - api
 
   watchtower:
     image: containrrr/watchtower
@@ -171,40 +140,20 @@ services:
       - /dev/disk/:/dev/disk:ro
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   prometheus:
     image: prom/prometheus:latest
     container_name: ddt_prometheus
     volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/config.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.time=48h"
+    networks:
+      - ddt_net
     depends_on:
-      cadvisor:
-        condition: service_healthy
-    networks:
-      - ddt_net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  loki:
-    image: grafana/loki:latest
-    container_name: ddt_loki
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - ddt_net
+      - cadvisor
 
   promtail:
     image: grafana/promtail:latest
@@ -214,16 +163,20 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker/promtail/config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      loki:
-        condition: service_started
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9080/ready"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+
+  loki:
+    image: grafana/loki:latest
+    container_name: ddt_loki
+    volumes:
+      - ./docker/loki/config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - ddt_net
+    depends_on:
+      - promtail
 
   grafana:
     image: grafana/grafana:latest
@@ -235,18 +188,11 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
-    depends_on:
-      prometheus:
-        condition: service_healthy
-      loki:
-        condition: service_started
     networks:
       - ddt_net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    depends_on:
+      - prometheus
+      - loki
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -255,10 +201,8 @@ services:
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
-      website:
-        condition: service_healthy
-      grafana:
-        condition: service_healthy
+      - website
+      - grafana
     networks:
       - ddt_net
 
@@ -272,3 +216,4 @@ volumes:
   prometheus_data:
   grafana_data:
   rabbitmq_data:
+  loki_data:
