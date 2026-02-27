@@ -27,8 +27,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SCHEDULE=@every 4h00m
       - BACKUP_KEEP_DAYS=2
-      - SCHEDULE=@every 4h00m
-      - BACKUP_KEEP_DAYS=2
     networks:
       - ddt_net
     depends_on:
@@ -148,11 +146,9 @@ services:
     container_name: ddt_prometheus
     volumes:
       - ./docker/prometheus/config.yml:/etc/prometheus/prometheus.yml
-      - ./docker/prometheus/config.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=48h"
       - "--storage.tsdb.retention.time=48h"
     networks:
       - ddt_net
@@ -220,5 +216,4 @@ volumes:
   prometheus_data:
   grafana_data:
   rabbitmq_data:
-  loki_data:
   loki_data:
