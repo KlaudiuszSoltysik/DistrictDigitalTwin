@@ -40,7 +40,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-    # TODO: remove management port later
+      # TODO: remove management port later
       - "15672:15672"
       - "5672:5672"
       - "15692:15692"
@@ -56,6 +56,8 @@ services:
     command: python simulation.py
     environment:
       - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    volumes:
+      - ./docker/python/district.yml:/app/config/district.yml
     networks:
       - ddt_net
     depends_on:
@@ -63,11 +65,11 @@ services:
     deploy:
       resources:
         reservations:
-          cpus: '0.1'      # Gwarantowane 10% jednego rdzenia
-          memory: 128M     # Gwarantowane 128 MB RAM
+          cpus: "0.1"
+          memory: 128M
         limits:
-          cpus: '0.5'      # Max 50% jednego rdzenia
-          memory: 256M     # Twardy limit RAM (powyżej tego OOMKilled)
+          cpus: "0.5"
+          memory: 256M
 
   digital-twin:
     container_name: ddt_digital_twin
@@ -76,6 +78,8 @@ services:
     command: python digital_twin.py
     environment:
       - RABBITMQ_CONNECTION_STRING=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    volumes:
+      - ./docker/python/district.yml:/app/config/district.yml
     networks:
       - ddt_net
     depends_on:
@@ -83,11 +87,11 @@ services:
     deploy:
       resources:
         reservations:
-          cpus: '0.1'      # Gwarantowane 10% jednego rdzenia
-          memory: 128M     # Gwarantowane 128 MB RAM
+          cpus: "0.1"
+          memory: 128M
         limits:
-          cpus: '0.5'      # Max 50% jednego rdzenia
-          memory: 256M     # Twardy limit RAM (powyżej tego OOMKilled)
+          cpus: "0.5"
+          memory: 256M
 
   api:
     container_name: ddt_api
