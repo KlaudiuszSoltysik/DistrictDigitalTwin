@@ -1,3 +1,4 @@
+
 services:
   postgres:
     image: timescale/timescaledb:latest-pg16
@@ -39,8 +40,10 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
+    # TODO: remove management port later
       - "15672:15672"
       - "5672:5672"
+      - "15692:15692"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -57,6 +60,14 @@ services:
       - ddt_net
     depends_on:
       - rabbitmq
+    deploy:
+      resources:
+        reservations:
+          cpus: '0.1'      # Gwarantowane 10% jednego rdzenia
+          memory: 128M     # Gwarantowane 128 MB RAM
+        limits:
+          cpus: '0.5'      # Max 50% jednego rdzenia
+          memory: 256M     # Twardy limit RAM (powyżej tego OOMKilled)
 
   digital-twin:
     container_name: ddt_digital_twin
@@ -69,6 +80,14 @@ services:
       - ddt_net
     depends_on:
       - rabbitmq
+    deploy:
+      resources:
+        reservations:
+          cpus: '0.1'      # Gwarantowane 10% jednego rdzenia
+          memory: 128M     # Gwarantowane 128 MB RAM
+        limits:
+          cpus: '0.5'      # Max 50% jednego rdzenia
+          memory: 256M     # Twardy limit RAM (powyżej tego OOMKilled)
 
   api:
     container_name: ddt_api
@@ -150,6 +169,9 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=48h"
+    # TODO: remove management port later
+    ports:
+      - "9090:9090"
     networks:
       - ddt_net
     depends_on:

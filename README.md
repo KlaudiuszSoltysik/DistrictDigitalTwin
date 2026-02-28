@@ -51,10 +51,10 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - Building thermodynamics simulation down to the individual room level. Includes heat transfer through floors, ceilings, roofs, external walls, windows, internal walls, wind impact (angle and speed), and solar radiation (angle and radiation).
 - District definition via a `.yml` file.
 
-**RabbitMQ**
+**Message Broker (RabbitMQ)**
 
 - Bidirectional communication layer between the simulation and the API.
-- Utilizes exchanges and queues.
+- Utilizes exchanges and routing queues for decoupling services.
 
 **API (.NET)**
 
@@ -63,21 +63,40 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 
 **Telemetry Service (.NET)**
 
-- Saving telemetry data to TimescaleDB.
+- Saving telemetry data to TimescaleDB for efficient time-series querying.
 
 **Website (.NET)**
 
-- Control panel for the simulation.
+- Control panel and user interface for the simulation.
 
-## 📊 Monitoring
+---
 
-- Custom logging across all services.
-- Custom Grafana dashboards made with SRE paradighms.
-- Data retention and db backups
+## 🏗️ Infrastructure & Deployment
+
+- **Containerization:** All services (Python, .NET, Databases, Infrastructure) are fully containerized using Docker.
+- **Orchestration:** Managed via Docker Compose with strict resource management (hard RAM/CPU limits and reservations) applied to containers to prevent starvation and ensure cluster stability.
+- **Infrastructure as Code (IaC):** Core infrastructure components, including secure tunnels, are provisioned and managed using Terraform.
+
+---
+
+## 🔒 Networking & Security
+
+- **Internal Networks:** Service-to-service communication is isolated within internal Docker networks (`ddt_net`), preventing unauthorized access and minimizing exposed ports.
+- **Zero Trust Access:** External access to the cluster is secured via Cloudflare Tunnels (managed via Terraform), completely hiding public IP addresses and blocking direct inbound traffic.
+
+---
+
+## 📊 Observability & Monitoring Stack
+
+- **Metrics Aggregation:** Prometheus scraping container metrics and internal service states.
+- **Hardware Telemetry:** cAdvisor integration for real-time container resource monitoring (CPU, RAM, Network I/O, Disk I/O).
+- **Log Aggregation:** Grafana Loki paired with Promtail for centralized, structured log management across the entire Docker cluster.
+- **Broker Deep Monitoring:** Native RabbitMQ Prometheus plugin tracking real-time queue depths, message rates, and broker health.
+- **Visualization:** Custom Grafana dashboards built with SRE paradigms (golden signals, error rate filtering, resource thresholds, dynamic unit scaling).
+- **Data Retention:** Enforced automated data retention policies for both time-series metrics (Prometheus TSDB) and aggregated logs (Loki Compactor).
 
 ## 📝 To-Do (Next Tasks)
 
-- grafana
 - notifications
 - container limits and reservations
 - k8s with 2 clusters
