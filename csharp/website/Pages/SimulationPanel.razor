@@ -134,6 +134,8 @@
         _simulationTelemetry.Clear();
         _digitalTwinTelemetry.Clear();
 
+        _digitalTwinTimestamp = new DateTimeOffset();
+
         if (_telemetryChartsComponent != null)
         {
             await _telemetryChartsComponent.ClearChartsAsync();

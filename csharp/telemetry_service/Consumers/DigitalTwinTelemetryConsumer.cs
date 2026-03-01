@@ -26,7 +26,7 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<Digital
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error during cleanup. Method: {Method}", "Consume");
+                logger.LogError(ex, "Unexpected error during cleanup. Method: {method}", "Consume");
             }
             finally
             {
@@ -56,7 +56,8 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<Digital
                 SunRadiation = m.Weather.SunRadiation,
                 SunAltitude = m.Weather.SunAltitude,
                 SunAzimuth = m.Weather.SunAzimuth,
-                RoomTemperatures = JsonSerializer.Serialize(m.RoomTemperatures)
+                RoomTemperatures = JsonSerializer.Serialize(m.RoomTemperatures),
+                RoomHeatings = JsonSerializer.Serialize(m.RoomHeatings)
             }).ToList();
 
             await db.DigitalTwinTelemetry.AddRangeAsync(entities);

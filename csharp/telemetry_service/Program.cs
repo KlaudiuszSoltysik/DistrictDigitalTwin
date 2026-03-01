@@ -1,18 +1,14 @@
 ﻿using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using Serilog.Events;
 using Serilog.Formatting.Compact;
 using shared;
 using telemetry_service;
 using telemetry_service.Consumers;
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Fatal)
-    .MinimumLevel.Override("System", LogEventLevel.Fatal)
-    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Fatal)
-    .MinimumLevel.Debug()
-    .Enrich.WithProperty("service", "telemetry_service")
+    .MinimumLevel.Fatal()
+    .Enrich.WithProperty("service", "telemetry service")
     .WriteTo.Console(new RenderedCompactJsonFormatter())
     .CreateLogger();
 

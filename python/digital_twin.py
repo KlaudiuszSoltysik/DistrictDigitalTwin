@@ -18,7 +18,7 @@ class DigitalTwinService:
         amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
         self.rabbit_params = URLParameters(amqp_url)
 
-        self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv", True)
+        self.simulation = DistrictSimulation("config/district.yml", "config/weather_history.csv", True)
 
         self.run_id = 0
         self.simulation_step = 300

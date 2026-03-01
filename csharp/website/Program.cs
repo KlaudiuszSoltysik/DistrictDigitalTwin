@@ -9,23 +9,18 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-var baseApiUrl = builder.Configuration["BaseApiUrl"] ?? throw new InvalidOperationException();
+var baseApiUrl = builder.Configuration["BaseApiUrl"] ?? "/";
 
-builder.Services.AddScoped(_ => new HttpClient
+builder.Services.AddScoped<SimulationStatusService>(_ =>
 {
-    BaseAddress = new Uri(baseApiUrl)
-});
-
-builder.Services.AddScoped<SimulationStatusService>(sp =>
-{
-    var httpClient = sp.GetRequiredService<HttpClient>();
-
     var hubConnection = new HubConnectionBuilder()
         .WithUrl($"{baseApiUrl}hubs/simulation")
         .WithAutomaticReconnect()
         .Build();
 
-    return new SimulationStatusService(hubConnection, httpClient);
+    var apiHttpClient = new HttpClient { BaseAddress = new Uri(baseApiUrl) };
+
+    return new SimulationStatusService(hubConnection, apiHttpClient);
 });
 
 await builder.Build().RunAsync();

@@ -4,15 +4,11 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Events;
 using Serilog.Formatting.Compact;
 using shared;
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Fatal)
-    .MinimumLevel.Override("System", LogEventLevel.Fatal)
-    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Fatal)
-    .MinimumLevel.Debug()
+    .MinimumLevel.Fatal()
     .Enrich.WithProperty("service", "api")
     .WriteTo.Console(new RenderedCompactJsonFormatter())
     .CreateLogger();

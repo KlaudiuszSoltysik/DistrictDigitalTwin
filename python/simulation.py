@@ -17,7 +17,7 @@ class SimulationService:
         amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
         self.rabbit_params = URLParameters(amqp_url)
 
-        self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv")
+        self.simulation = DistrictSimulation("config/district.yml", "config/weather_history.csv")
 
         self.lock = Lock()
         self.wake_event = Event()
@@ -85,7 +85,7 @@ class SimulationService:
                                   method="process_command")
 
     def reset_simulation_logic(self):
-        self.simulation = DistrictSimulation("config/district_config.yaml", "config/weather_history.csv")
+        self.simulation = DistrictSimulation("config/district.yml", "config/weather_history.csv")
 
         self.run_id = int(time())
         self.is_paused = True
