@@ -7,10 +7,13 @@ public class Telemetry
     [JsonPropertyName("run_id")] public long RunId { get; set; }
     [JsonPropertyName("timestamp")] public DateTimeOffset Timestamp { get; set; }
 
+    [JsonPropertyName("weather")] public WeatherData Weather { get; set; }
+
     [JsonPropertyName("room_temperatures")]
     public Dictionary<string, double> RoomTemperatures { get; set; } = new();
 
-    [JsonPropertyName("weather")] public WeatherData Weather { get; set; }
+    [JsonPropertyName("room_heatings")]
+    public Dictionary<string, double> RoomHeatings { get; set; } = new();
 }
 
 public class WeatherData

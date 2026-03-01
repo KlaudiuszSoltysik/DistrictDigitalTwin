@@ -5,7 +5,6 @@ using shared;
 
 namespace telemetry_service.Consumers;
 
-// POPRAWKA: Prawidłowy logger dla TEJ klasy
 public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<SimulationTelemetryConsumer> logger) : IConsumer<Telemetry>
 {
     private static long _currentRunId = -1;
@@ -36,7 +35,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to delete old telemetry. Method: {Method}", "Consume");
+                    logger.LogError(ex, "Failed to delete old telemetry. Method: {method}", "Consume");
                 }
                 finally
                 {
@@ -54,7 +53,8 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 SunRadiation = msg.Weather.SunRadiation,
                 SunAltitude = msg.Weather.SunAltitude,
                 SunAzimuth = msg.Weather.SunAzimuth,
-                RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures)
+                RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures),
+                RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings)
             };
 
             db.SimulationTelemetry.Add(entity);
@@ -76,7 +76,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to parse and process message. Method: {Method}", "Consume");
+            logger.LogError(ex, "Failed to parse and process message. Method: {method}", "Consume");
         }
     }
 }

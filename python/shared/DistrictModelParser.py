@@ -22,7 +22,11 @@ class DistrictModelParser:
         self.G_ext_ground = np.zeros(self.N)
         self.C = np.zeros(self.N)
 
+        self.max_heating_powers = np.zeros(self.N)
+
         self.standards = {building["id"]: building["standards"] for building in self.raw_data["buildings"]}
+
+        self.metadata = self.raw_data.get("metadata", {})
 
     def build_node_index(self):
         idx = 0
@@ -48,6 +52,8 @@ class DistrictModelParser:
 
             self.C[i] = c_air + (room["area"] * capacity_value)
 
+            self.max_heating_powers[i] = room["area"] * standards["heating_power_per_m2"]
+
         for building in self.raw_data["buildings"]:
             building_standards = building["standards"]
 
@@ -58,9 +64,6 @@ class DistrictModelParser:
             if "external_connections" in building:
                 for connection in building["external_connections"]:
                     self.apply_external_connection(connection, building_standards, building["id"])
-
-        return (self.G, self.G_ext_air, self.G_ext_ground, self.C, self.N, self.external_connections, self.standards,
-                self.nodes)
 
     def apply_internal_connection(self, connection, standards, building_id):
         idx_a = self.nodes[f"{building_id}:{connection["from"]}"]

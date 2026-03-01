@@ -123,6 +123,26 @@
     }
 </ApexChart>
 
+<ApexChart TItem="Telemetry" Title="Room heatings [%]" Options="_roomHeatingsOptions"
+           @ref="_chart6">
+    @foreach (var roomName in _activeRoomNames)
+    {
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="@roomName"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => GetRoomHeating(t, roomName))"/>
+
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="@($"{roomName} digital twin")"
+                         Items="_digitalTwinTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => GetRoomHeating(t, roomName))"/>
+    }
+</ApexChart>
+
 @code {
     private int _updateCounter;
     private List<Telemetry> _simulationTelemetry = [];
@@ -134,12 +154,14 @@
     private ApexChart<Telemetry> _chart3 = new();
     private ApexChart<Telemetry> _chart4 = new();
     private ApexChart<Telemetry> _chart5 = new();
+    private ApexChart<Telemetry> _chart6 = new();
 
     private ApexChartOptions<Telemetry> _temperatureChartOptions = new();
     private ApexChartOptions<Telemetry> _windSpeedChartOptions = new();
     private ApexChartOptions<Telemetry> _sunRadiationChartOptions = new();
     private ApexChartOptions<Telemetry> _sunAltitudeChartOptions = new();
     private ApexChartOptions<Telemetry> _roomTemperaturesOptions = new();
+    private ApexChartOptions<Telemetry> _roomHeatingsOptions = new();
 
     private readonly string[] _basePalette =
     [
@@ -160,6 +182,7 @@
         _sunRadiationChartOptions = GenerateOptions(" W/m²");
         _sunAltitudeChartOptions = GenerateOptions("°");
         _roomTemperaturesOptions = GenerateOptions("°C", 600);
+        _roomHeatingsOptions = GenerateOptions("%", 600);
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)
@@ -185,6 +208,7 @@
             {
                 ConfigureChartOptions();
                 await _chart5.UpdateOptionsAsync(true, true, false);
+                await _chart6.UpdateOptionsAsync(true, true, false);
             }
 
             await Task.WhenAll(
@@ -193,7 +217,8 @@
                 _chart2.UpdateSeriesAsync(),
                 _chart3.UpdateSeriesAsync(),
                 _chart4.UpdateSeriesAsync(),
-                _chart5.UpdateSeriesAsync()
+                _chart5.UpdateSeriesAsync(),
+                _chart6.UpdateSeriesAsync()
             );
         }
     }
@@ -221,6 +246,7 @@
         ConfigureChartOptions();
 
         await _chart5.UpdateOptionsAsync(true, true, false);
+        await _chart6.UpdateOptionsAsync(true, true, false);
 
         await Task.WhenAll(
             InvokeAsync(StateHasChanged),
@@ -228,7 +254,8 @@
             _chart2.UpdateSeriesAsync(),
             _chart3.UpdateSeriesAsync(),
             _chart4.UpdateSeriesAsync(),
-            _chart5.UpdateSeriesAsync()
+            _chart5.UpdateSeriesAsync(),
+            _chart6.UpdateSeriesAsync()
         );
     }
 
@@ -242,7 +269,8 @@
             _chart2.UpdateSeriesAsync(),
             _chart3.UpdateSeriesAsync(),
             _chart4.UpdateSeriesAsync(),
-            _chart5.UpdateSeriesAsync()
+            _chart5.UpdateSeriesAsync(),
+            _chart6.UpdateSeriesAsync()
         );
 
         await InvokeAsync(StateHasChanged);
@@ -294,6 +322,16 @@
         return null;
     }
 
+    private static decimal? GetRoomHeating(Telemetry item, string roomName)
+    {
+        if (item.RoomHeatings.TryGetValue(roomName, out var heating))
+        {
+            return (decimal)heating;
+        }
+
+        return null;
+    }
+
     private void ConfigureChartOptions()
     {
         if (_activeRoomNames.Count == 0) return;
@@ -313,8 +351,10 @@
         }
 
         _roomTemperaturesOptions.Colors = colors;
+        _roomHeatingsOptions.Colors = colors;
 
         _roomTemperaturesOptions.Stroke?.DashArray = dashArray;
+        _roomHeatingsOptions.Stroke?.DashArray = dashArray;
     }
 
     private IEnumerable<string> GetBuildingOptions()
@@ -374,6 +414,9 @@
 
         await _chart5.UpdateOptionsAsync(true, true, false);
         await _chart5.UpdateSeriesAsync();
+
+        await _chart6.UpdateOptionsAsync(true, true, false);
+        await _chart6.UpdateSeriesAsync();
     }
 
 }

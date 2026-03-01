@@ -94,6 +94,8 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         SunRadiation = e.SunRadiation
                     },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
+                                       new Dictionary<string, double>(),
+                    RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
                                        new Dictionary<string, double>()
                 });
 
@@ -149,7 +151,9 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         SunRadiation = e.SunRadiation
                     },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
-                                       new Dictionary<string, double>()
+                                       new Dictionary<string, double>(),
+                    RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
+                                   new Dictionary<string, double>()
                 });
 
             foreach (var item in mappedData) _digitalTwinTelemetry.Enqueue(item);
