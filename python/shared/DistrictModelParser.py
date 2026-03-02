@@ -97,10 +97,17 @@ class DistrictModelParser:
 
         if target != "ground":
             self.external_connections.append(
-                {"room_idx": idx_a, "azimuth": connection["azimuth"], "tilt": connection["tilt"],
-                    "area_gross": connection["area"], "windows": windows_to_solve,
-                    "volume": self.room_data[idx_a]["room"]["volume"], "ach_wind_coef": standards["ach_wind_coef"],
-                    "u_value": thermal_code["u_value"], "absorptance": thermal_code["absorptance"]})
+                {
+                    "room_idx": idx_a,
+                    "azimuth": connection["azimuth"],
+                    "tilt": connection["tilt"],
+                    "area_gross": connection["area"],
+                    "windows": windows_to_solve,
+                    "volume": self.room_data[idx_a]["room"]["volume"],
+                    "ach_wind_coef": standards["ach_wind_coef"],
+                    "u_value": thermal_code["u_value"],
+                    "absorptance": thermal_code["absorptance"]
+                })
 
         wall_net_area = connection["area"] - windows_area_sum
         ua_wall = wall_net_area * thermal_code["u_value"]

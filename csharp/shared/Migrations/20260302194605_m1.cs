@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace shared.Migrations
 {
     /// <inheritdoc />
-    public partial class migration1 : Migration
+    public partial class m1 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,20 +15,21 @@ namespace shared.Migrations
                 name: "DigitalTwinTelemetry",
                 columns: table => new
                 {
-                    RunId = table.Column<long>(type: "bigint", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Id = table.Column<int>(type: "integer", nullable: false),
+                    RunId = table.Column<long>(type: "bigint", nullable: false),
+                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     Temperature = table.Column<double>(type: "double precision", nullable: false),
                     WindSpeed = table.Column<double>(type: "double precision", nullable: false),
                     WindDirection = table.Column<double>(type: "double precision", nullable: false),
                     SunRadiation = table.Column<double>(type: "double precision", nullable: false),
                     SunAltitude = table.Column<double>(type: "double precision", nullable: false),
                     SunAzimuth = table.Column<double>(type: "double precision", nullable: false),
-                    RoomTemperatures = table.Column<string>(type: "jsonb", nullable: false)
+                    RoomTemperatures = table.Column<string>(type: "jsonb", nullable: false),
+                    RoomHeatings = table.Column<string>(type: "jsonb", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DigitalTwinTelemetry", x => new { x.RunId, x.Timestamp });
+                    table.PrimaryKey("PK_DigitalTwinTelemetry", x => new { x.Id, x.RunId, x.Timestamp });
                 });
 
             migrationBuilder.CreateTable(
@@ -37,14 +38,15 @@ namespace shared.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false),
                     RunId = table.Column<long>(type: "bigint", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     Temperature = table.Column<double>(type: "double precision", nullable: false),
                     WindSpeed = table.Column<double>(type: "double precision", nullable: false),
                     WindDirection = table.Column<double>(type: "double precision", nullable: false),
                     SunRadiation = table.Column<double>(type: "double precision", nullable: false),
                     SunAltitude = table.Column<double>(type: "double precision", nullable: false),
                     SunAzimuth = table.Column<double>(type: "double precision", nullable: false),
-                    RoomTemperatures = table.Column<string>(type: "jsonb", nullable: false)
+                    RoomTemperatures = table.Column<string>(type: "jsonb", nullable: false),
+                    RoomHeatings = table.Column<string>(type: "jsonb", nullable: false)
                 },
                 constraints: table =>
                 {

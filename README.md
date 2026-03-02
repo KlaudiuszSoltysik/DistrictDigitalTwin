@@ -102,3 +102,4 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - k8s with 2 clusters
 - controller
 - tenant panels
+- mongobd for config

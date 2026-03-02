@@ -26,7 +26,7 @@ class SimulationService:
         self.is_paused = True
         self.simulation_speed = 30
         self.simulation_step = 300
-        self.room_temperature_noise_sigma = 0.5
+        self.room_temperature_noise_sigma = 0.1
 
     def start(self):
         listener_thread = Thread(target=self.listen_for_commands, daemon=True)
@@ -112,12 +112,18 @@ class SimulationService:
                     pub_conn = self.connect_with_retry()
 
                     telemetry_channel = pub_conn.channel()
-                    telemetry_channel.exchange_declare(exchange="simulation-telemetry.exchange", exchange_type="fanout",
-                                                       durable=True)
+                    telemetry_channel.exchange_declare(
+                        exchange="simulation-telemetry.exchange",
+                        exchange_type="fanout",
+                        durable=True
+                    )
 
                     config_channel = pub_conn.channel()
-                    config_channel.queue_declare(queue="simulation-status", durable=False,
-                        arguments={"x-message-ttl": 1000})
+                    config_channel.queue_declare(
+                        queue="simulation-status",
+                        durable=False,
+                        arguments={"x-message-ttl": 1000}
+                    )
 
                 pub_conn.process_data_events(time_limit=0)
 
@@ -132,9 +138,15 @@ class SimulationService:
                 simulation_result = self.simulation.run_step(step, room_temperature_noise_sigma)
                 simulation_result = {"run_id": self.run_id, **simulation_result}
 
-                telemetry_channel.basic_publish(exchange="simulation-telemetry.exchange", routing_key="",
+                telemetry_channel.basic_publish(
+                    exchange="simulation-telemetry.exchange",
+                    routing_key="",
                     body=dumps(simulation_result),
-                    properties=BasicProperties(content_type="application/json", delivery_mode=DeliveryMode.Persistent))
+                    properties=BasicProperties(
+                        content_type="application/json",
+                        delivery_mode=DeliveryMode.Persistent
+                    )
+                )
 
                 target_sleep = step / speed
                 compute_time = time() - start_time
@@ -143,6 +155,7 @@ class SimulationService:
                 self.wake_event.wait(real_sleep)
             except Exception as e:
                 self.logger.error("Failed to publish telemetry to RabbitMQ", exc_info=True, method="run_physics_loop")
+
                 if pub_conn and pub_conn.is_open:
                     pub_conn.close()
 
@@ -151,10 +164,20 @@ class SimulationService:
                 self.wake_event.wait(1.0)
 
     def broadcast_config(self, channel):
-        config_payload = {"config": {"is_paused": self.is_paused, "simulation_speed": self.simulation_speed,
-            "simulation_step": self.simulation_step, "room_temperature_noise_sigma": self.room_temperature_noise_sigma}}
-        channel.basic_publish(exchange="", routing_key="simulation-status", body=dumps(config_payload),
-            properties=BasicProperties(content_type="application/json"))
+        config_payload = {
+            "config": {
+                "is_paused": self.is_paused,
+                "simulation_speed": self.simulation_speed,
+                "simulation_step": self.simulation_step,
+                "room_temperature_noise_sigma": self.room_temperature_noise_sigma}
+        }
+
+        channel.basic_publish(
+            exchange="",
+            routing_key="simulation-status",
+            body=dumps(config_payload),
+            properties=BasicProperties(content_type="application/json")
+        )
 
 
 if __name__ == "__main__":

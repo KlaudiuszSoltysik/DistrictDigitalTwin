@@ -61,7 +61,7 @@
                     <td class="py-4 px-2 font-medium uppercase text-xs">Simulation speed</td>
                     <td class="py-4 px-2">
                         <div class="flex flex-wrap gap-2">
-                            @foreach (var speedValue in new[] { 1, 5, 10, 30, 60, 600 })
+                            @foreach (var speedValue in new[] { 5, 10, 30, 60, 300, 600 })
                             {
                                 var isActive = Config.SimulationSpeed == speedValue;
 
@@ -78,7 +78,7 @@
                     <td class="py-5 px-2 font-medium uppercase text-xs">Simulation step</td>
                     <td class="py-5 px-2">
                         <div class="flex flex-wrap gap-2">
-                            @foreach (var stepValue in new[] { 60, 300, 600, 1800, 3600 })
+                            @foreach (var stepValue in new[] { 300, 600, 900, 1800, 3600 })
                             {
                                 var isActive = Config.SimulationStep == stepValue;
                                 var label = stepValue >= 60 ? $"{stepValue / 60}m" : $"{stepValue}s";
@@ -96,7 +96,7 @@
                     <td class="py-5 px-2 font-medium uppercase text-xs">Room temperature noise factor</td>
                     <td class="py-5 px-2">
                         <div class="flex flex-wrap gap-2">
-                            @foreach (var sigmaValue in new[] { 0.0, 0.1, 0.2, 0.5, 1.0, 1.5 })
+                            @foreach (var sigmaValue in new[] { 0.0, 0.1, 0.2, 0.5 })
                             {
                                 var isActive = Math.Abs(Config.RoomTemperatureNoiseSigma - sigmaValue) < 0.001;
 

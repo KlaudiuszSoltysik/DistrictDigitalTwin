@@ -12,8 +12,8 @@ using shared;
 namespace shared.Migrations
 {
     [DbContext(typeof(TelemetryDbContext))]
-    [Migration("20260215085229_migration1")]
-    partial class migration1
+    [Migration("20260302194605_m1")]
+    partial class m1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,14 +27,18 @@ namespace shared.Migrations
 
             modelBuilder.Entity("shared.DigitalTwinTelemetryEntity", b =>
                 {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
                     b.Property<long>("RunId")
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("Timestamp")
+                    b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
+                    b.Property<string>("RoomHeatings")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("RoomTemperatures")
                         .IsRequired()
@@ -58,7 +62,7 @@ namespace shared.Migrations
                     b.Property<double>("WindSpeed")
                         .HasColumnType("double precision");
 
-                    b.HasKey("RunId", "Timestamp");
+                    b.HasKey("Id", "RunId", "Timestamp");
 
                     b.HasIndex("RunId");
 
@@ -73,8 +77,12 @@ namespace shared.Migrations
                     b.Property<long>("RunId")
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("Timestamp")
+                    b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RoomHeatings")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("RoomTemperatures")
                         .IsRequired()
