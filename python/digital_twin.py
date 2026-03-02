@@ -51,7 +51,12 @@ class DigitalTwinService:
                     cmd = loads(body)
                     self.process_command(cmd)
 
-                channel.basic_consume(queue="digital-twin-commands", on_message_callback=callback, auto_ack=True)
+                channel.basic_consume(
+                    queue="digital-twin-commands",
+                    on_message_callback=callback,
+                    auto_ack=True
+                )
+
                 channel.start_consuming()
             except Exception:
                 self.logger.error("Consumer loop crashed", exc_info=True, method="listen_for_commands")
@@ -64,6 +69,7 @@ class DigitalTwinService:
 
             self.simulation.current_time = start_ts
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
+            # self.simulation.hvac.current_q = np.array(list(cmd_json["hvac_q"].values()))
 
             self.run_physics_loop(end_ts)
         except Exception:
@@ -82,12 +88,21 @@ class DigitalTwinService:
 
             telemetry_channel = pub_conn.channel()
 
-            telemetry_channel.exchange_declare(exchange="digital-twin-telemetry.exchange", exchange_type="fanout",
-                durable=True)
+            telemetry_channel.exchange_declare(
+                exchange="digital-twin-telemetry.exchange",
+                exchange_type="fanout",
+                durable=True
+            )
 
-            telemetry_channel.basic_publish(exchange="digital-twin-telemetry.exchange", routing_key="",
+            telemetry_channel.basic_publish(
+                exchange="digital-twin-telemetry.exchange",
+                routing_key="",
                 body=dumps(telemetry),
-                properties=BasicProperties(content_type="application/json", delivery_mode=DeliveryMode.Persistent))
+                properties=BasicProperties(
+                    content_type="application/json",
+                    delivery_mode=DeliveryMode.Persistent
+                )
+            )
 
             pub_conn.close()
         except Exception:

@@ -1,5 +1,18 @@
-
 services:
+  mongodb:
+    image: mongo:latest
+    container_name: ddt_mongodb
+    env_file: .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - ddt_net
+
   postgres:
     image: timescale/timescaledb:latest-pg16
     container_name: ddt_postgres
@@ -11,7 +24,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./docker/postgres/data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql
     networks:
       - ddt_net
 
@@ -20,7 +33,7 @@ services:
     container_name: ddt_database_backup
     user: postgres:postgres
     volumes:
-      - ./backups:/backups
+      - ./docker/backups:/backups
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=${POSTGRES_DB}
@@ -62,6 +75,7 @@ services:
       - ddt_net
     depends_on:
       - rabbitmq
+      - mongodb
     deploy:
       resources:
         reservations:
@@ -84,6 +98,7 @@ services:
       - ddt_net
     depends_on:
       - rabbitmq
+      - mongodb
     deploy:
       resources:
         reservations:
@@ -100,6 +115,7 @@ services:
       dockerfile: api/Dockerfile
     environment:
       - ConnectionStrings__TelemetryDbConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__MongoDbConnection=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017
       - ConnectionStrings__RabbitMqConnection=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       - ASPNETCORE_ENVIRONMENT=Production
     # TODO: remove later and use cloudflare tunnel instead
@@ -110,6 +126,7 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+      - mongodb
 
   telemetry_service:
     container_name: ddt_telemetry_service
@@ -237,6 +254,7 @@ networks:
     driver: bridge
 
 volumes:
+  mongodb_data:
   postgres_data:
   portainer_data:
   prometheus_data:

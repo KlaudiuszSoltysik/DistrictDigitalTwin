@@ -16,18 +16,18 @@ class DistrictSimulation:
 
         self.metadata = parser.metadata
 
-        self.thermal_solver = ThermalSolver(G=parser.G, C=parser.C, G_ext_air=parser.G_ext_air, G_ext_ground=parser.G_ext_ground,
-            T_ground=self.metadata["ground_temperature"])
+        self.thermal_solver = ThermalSolver(parser.G, parser.C, parser.G_ext_air, parser.G_ext_ground,
+                                            self.metadata["ground_temperature"])
 
         self.weather_solver = WeatherSolver(parser.external_connections, parser.standards, parser.N)
 
+        # TODO: change that ?
         self.current_time = pd.Timestamp("2024-12-31 23:00+00:00")
         self.end_timestamp = pd.Timestamp("2025-12-31 23:00+00:00")
 
         self.weather_service = WeatherService(weather_path, self.metadata["latitude"], self.metadata["longitude"],
                                               is_digital_twin)
 
-        # TODO: change that
         self.hvac = HVAC(parser.N, parser.max_heating_powers)
 
         self.index_to_id = {v: k for k, v in parser.nodes.items()}
@@ -35,9 +35,15 @@ class DistrictSimulation:
     def run_step(self, dt, drift_sigma=0.0):
         weather = self.weather_service.get_weather(self.current_time)
 
-        q_env = self.weather_solver.calculate_environmental_gains(weather["sun_radiation"], weather["sun_altitude"],
-            weather["sun_azimuth"], weather["wind_speed"], weather["wind_direction"], weather["temperature"],
-            self.thermal_solver.T)
+        q_env = self.weather_solver.calculate_environmental_gains(
+            weather["sun_radiation"],
+            weather["sun_altitude"],
+            weather["sun_azimuth"],
+            weather["wind_speed"],
+            weather["wind_direction"],
+            weather["temperature"],
+            self.thermal_solver.T
+        )
 
         q_hvac = self.hvac.step(dt, self.thermal_solver.T)
         q_total = q_env + q_hvac
@@ -60,5 +66,9 @@ class DistrictSimulation:
         if self.current_time >= self.end_timestamp:
             self.current_time = pd.Timestamp("2024-12-31 23:00+00:00")
 
-        return {"timestamp": output_timestamp, "weather": weather_clean, "room_temperatures": room_temps,
-                "room_heatings": room_heatings}
+        return {
+            "timestamp": output_timestamp,
+            "weather": weather_clean,
+            "room_temperatures": room_temps,
+            "room_heatings": room_heatings
+        }

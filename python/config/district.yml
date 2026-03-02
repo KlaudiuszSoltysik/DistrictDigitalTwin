@@ -12,7 +12,7 @@ buildings:
   - id: "b1"
 
     standards:
-      heating_power_per_m2: 1000.0
+      heating_power_per_m2: 100.0
       ach_wind_coef: 0.1
       wall_ext:
         u_value: 0.15
