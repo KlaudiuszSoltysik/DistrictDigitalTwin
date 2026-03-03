@@ -7,12 +7,14 @@ from dotenv import load_dotenv
 from pika import BlockingConnection, URLParameters, DeliveryMode, BasicProperties
 
 from shared.DistrictSimulation import DistrictSimulation
+from shared.MongoDbController import MongoDbController
 from shared.logger_config import setup_logger
 
 
 class SimulationService:
     def __init__(self):
         self.logger = setup_logger("simulation")
+        self.mongodb = MongoDbController()
 
         amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
         self.rabbit_params = URLParameters(amqp_url)
@@ -68,13 +70,22 @@ class SimulationService:
             try:
                 action = cmd_json.get("action")
 
-                if action == "UPDATE_CONFIG":
+                if action == "UPDATE_SIMULATION_CONFIG":
                     target_config = cmd_json["target_config"]
 
                     self.is_paused = target_config["is_paused"]
                     self.simulation_speed = target_config["simulation_speed"]
                     self.simulation_step = target_config["simulation_step"]
                     self.room_temperature_noise_sigma = target_config["room_temperature_noise_sigma"]
+
+                elif action == "UPDATE_DEVICE_CONFIG":
+                    device_name = cmd_json["device_name"]
+                    target_config = cmd_json["target_config"]
+
+                    self.mongodb.update_device(device_name, target_config)
+
+                    if hasattr(self.simulation, device_name):
+                        getattr(self.simulation, device_name).set_config(target_config)
 
                 elif action == "RESET":
                     self.reset_simulation_logic()

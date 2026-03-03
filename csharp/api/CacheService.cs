@@ -9,12 +9,12 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
 {
     private readonly SemaphoreSlim _digitalTwinLock = new(1, 1);
     private readonly SemaphoreSlim _simulationLock = new(1, 1);
-
-    private long _currentSimulationRunId = -1;
     private long _currentDigitalTwinRunId = -1;
 
-    private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
+    private long _currentSimulationRunId = -1;
     private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
+
+    private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
 
     public async Task InitializeCacheAsync()
     {
@@ -95,8 +95,10 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
+                    RoomHvacQ = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacQ) ??
+                                new Dictionary<string, double>(),
                     RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
-                                       new Dictionary<string, double>()
+                                   new Dictionary<string, double>()
                 });
 
             foreach (var item in mappedData) _simulationTelemetry.Enqueue(item);
@@ -152,6 +154,8 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
+                    RoomHvacQ = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacQ) ??
+                                new Dictionary<string, double>(),
                     RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
                                    new Dictionary<string, double>()
                 });

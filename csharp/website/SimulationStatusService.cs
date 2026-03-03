@@ -14,7 +14,7 @@ public class SimulationStatusService
         _hubConnection = hubConnection;
         _httpClient = httpClient;
 
-        _hubConnection.On<SimulationStatus>("ReceiveSimulationStatus", status =>
+        _hubConnection.On<SimulationConfig>("ReceiveSimulationStatus", status =>
         {
             CurrentStatus = status;
             OnStatusChanged?.Invoke();
@@ -23,15 +23,16 @@ public class SimulationStatusService
         _ = EnsureConnectionStarted();
     }
 
-    public SimulationStatus? CurrentStatus { get; private set; }
+    public SimulationConfig? CurrentStatus { get; private set; }
 
     public event Action? OnStatusChanged;
 
-    public async Task SendCommandAsync(string action, SimulationConfig? targetConfig = null)
+    public async Task SendCommandAsync(string action, string? device_name = null, Config? targetConfig = null)
     {
         var command = new ControlMessage
         {
             Action = action,
+            DeviceName = device_name,
             TargetConfig = targetConfig
         };
 

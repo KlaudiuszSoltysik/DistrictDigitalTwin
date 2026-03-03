@@ -18,6 +18,10 @@
 }
 
 @layer base {
+    .admin-link.active {
+        @apply bg-indigo-700 border-indigo-600 text-white;
+    }
+
     html {
         scrollbar-width: thin;
         scrollbar-color: theme("colors.gray.700") theme("colors.gray.900");

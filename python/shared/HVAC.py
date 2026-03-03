@@ -1,7 +1,14 @@
 ﻿import numpy as np
 
+from shared.MongoDbController import MongoDbController
+
+
 class HVAC:
     def __init__(self, num_nodes, max_heating_powers):
+        self.mongodb = MongoDbController()
+
+        hvac_config = self.mongodb.get_device("hvac")
+
         self.num_nodes = num_nodes
         self.max_powers = max_heating_powers
 
@@ -11,14 +18,19 @@ class HVAC:
         self.integral_error = np.zeros(num_nodes)
         self.current_q = np.zeros(num_nodes)
 
+        self.k_p = None
+        self.k_i = None
+        self.set_config({"p_band": hvac_config["p_band"], "t_i": hvac_config["t_i"]})
+
         # TODO: change that
-        p_band_celsius = 2.0 # 1-4
-        self.k_p = self.max_powers / p_band_celsius
+        self.tau = 4.0 * 3600.0  # 1-8
 
-        t_i_seconds = 4.0 * 3600.0 # 1-8
-        self.k_i = self.k_p / t_i_seconds
+    def set_config(self, config):
+        p_band = config["p_band"]  # 1-4
+        self.k_p = self.max_powers / p_band
 
-        self.tau = 4.0 * 3600.0 # 1-8
+        t_i = config["t_i"]  # 1-8
+        self.k_i = self.k_p / t_i
 
     def step(self, dt, T):
         error = self.setpoints - T

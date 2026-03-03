@@ -1,4 +1,4 @@
-﻿@page "/admin-panel"
+﻿@page "/admin-panel/simulation"
 
 @inject IConfiguration Config
 @inject SimulationStatusService SimulationStatusService
@@ -121,12 +121,12 @@
 
     private async Task Pause()
     {
-        await SendUpdate(true);
+        await SendSimulationUpdate(true);
     }
 
     private async Task Resume()
     {
-        await SendUpdate(false);
+        await SendSimulationUpdate(false);
     }
 
     private async Task Reset()
@@ -148,24 +148,24 @@
 
     private async Task UpdateSpeed(int speed)
     {
-        await SendUpdate(speed: speed);
+        await SendSimulationUpdate(speed: speed);
     }
 
     private async Task UpdateStep(int step)
     {
-        await SendUpdate(step: step);
+        await SendSimulationUpdate(step: step);
     }
 
     private async Task UpdateSigma(double sigma)
     {
-        await SendUpdate(sigma: sigma);
+        await SendSimulationUpdate(sigma: sigma);
     }
 
-    private async Task SendUpdate(bool? isPaused = null, int? speed = null, int? step = null, double? sigma = null)
+    private async Task SendSimulationUpdate(bool? isPaused = null, int? speed = null, int? step = null, double? sigma = null)
     {
-        var current = SimulationStatusService.CurrentStatus?.Config ?? new SimulationConfig();
+        var current = SimulationStatusService.CurrentStatus?.Config ?? new Config();
 
-        var newConfig = new SimulationConfig
+        var newConfig = new Config
         {
             IsPaused = isPaused ?? current.IsPaused,
             SimulationSpeed = speed ?? current.SimulationSpeed,
@@ -173,7 +173,7 @@
             RoomTemperatureNoiseSigma = sigma ?? current.RoomTemperatureNoiseSigma
         };
 
-        await SimulationStatusService.SendCommandAsync("UPDATE_CONFIG", newConfig);
+        await SimulationStatusService.SendCommandAsync("UPDATE_SIMULATION_CONFIG", targetConfig: newConfig);
     }
 
     public async ValueTask DisposeAsync()

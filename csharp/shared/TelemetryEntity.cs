@@ -15,6 +15,7 @@ public class TelemetryEntity
     public double SunAltitude { get; set; }
     public double SunAzimuth { get; set; }
     [Column(TypeName = "jsonb")] public string RoomTemperatures { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string RoomHvacQ { get; set; } = "{}";
     [Column(TypeName = "jsonb")] public string RoomHeatings { get; set; } = "{}";
 }
 

@@ -1,0 +1,20 @@
+﻿@inherits LayoutComponentBase
+
+<nav class="sticky top-0 z-50 w-full bg-gray-800 border-b border-gray-700 px-6 py-4 select-none">
+
+    <div class="w-4/5 mx-auto flex gap-2">
+        <NavLink href="admin-panel/simulation" Match="NavLinkMatch.Prefix"
+                 class="admin-link px-6 py-2 rounded-md font-bold transition-all border border-transparent text-gray-400 hover:text-white hover:bg-gray-700 hover:border-gray-600">
+            SIMULATION
+        </NavLink>
+
+        <NavLink href="admin-panel/hvac" Match="NavLinkMatch.Prefix"
+                 class="admin-link px-6 py-2 rounded-md font-bold transition-all border border-transparent text-gray-400 hover:text-white hover:bg-gray-700 hover:border-gray-600">
+            HVAC
+        </NavLink>
+    </div>
+</nav>
+
+<div class="w-4/5 mx-auto mt-10 mb-10 text-white">
+    @Body
+</div>

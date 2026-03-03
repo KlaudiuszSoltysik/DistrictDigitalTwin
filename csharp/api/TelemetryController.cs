@@ -6,7 +6,10 @@ namespace api;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TelemetryController(ISendEndpointProvider sendEndpointProvider, CacheService cacheService, ILogger<TelemetryController> logger) : ControllerBase
+public class TelemetryController(
+    ISendEndpointProvider sendEndpointProvider,
+    CacheService cacheService,
+    ILogger<TelemetryController> logger) : ControllerBase
 {
     [HttpPost("simulation-commands")]
     public async Task<IActionResult> SendControlMessage([FromBody] ControlMessage command)

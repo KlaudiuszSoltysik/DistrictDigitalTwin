@@ -5,7 +5,8 @@ using shared;
 
 namespace telemetry_service.Consumers;
 
-public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<DigitalTwinTelemetryConsumer> logger) : IConsumer<Telemetry[]>
+public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<DigitalTwinTelemetryConsumer> logger)
+    : IConsumer<Telemetry[]>
 {
     private static long _currentRunId = -1;
     private static readonly SemaphoreSlim Lock = new(1, 1);
@@ -57,6 +58,7 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<Digital
                 SunAltitude = m.Weather.SunAltitude,
                 SunAzimuth = m.Weather.SunAzimuth,
                 RoomTemperatures = JsonSerializer.Serialize(m.RoomTemperatures),
+                RoomHvacQ = JsonSerializer.Serialize(m.RoomHvacQ),
                 RoomHeatings = JsonSerializer.Serialize(m.RoomHeatings)
             }).ToList();
 

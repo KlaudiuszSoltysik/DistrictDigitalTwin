@@ -5,7 +5,8 @@ using shared;
 
 namespace telemetry_service.Consumers;
 
-public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<SimulationTelemetryConsumer> logger) : IConsumer<Telemetry>
+public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<SimulationTelemetryConsumer> logger)
+    : IConsumer<Telemetry>
 {
     private static long _currentRunId = -1;
     private static int _lastProcessedHour = -1;
@@ -54,6 +55,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 SunAltitude = msg.Weather.SunAltitude,
                 SunAzimuth = msg.Weather.SunAzimuth,
                 RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures),
+                RoomHvacQ = JsonSerializer.Serialize(msg.RoomHvacQ),
                 RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings)
             };
 
@@ -67,7 +69,8 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 var twinRequest = new DigitalTwinRequest
                 {
                     StartTimestamp = currentTimestamp,
-                    T = msg.RoomTemperatures
+                    T = msg.RoomTemperatures,
+                    HvacQ = msg.RoomHvacQ
                 };
 
                 var sendEndpoint = await context.GetSendEndpoint(new Uri("queue:digital-twin-commands"));
