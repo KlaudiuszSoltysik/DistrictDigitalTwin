@@ -57,6 +57,8 @@ class DistrictSimulation:
 
         room_temps = {self.index_to_id[i]: float(temperatures_array[i]) for i in range(len(temperatures_array))}
 
+        room_hvac_q = {self.index_to_id[i]: float(q_hvac[i]) for i in range(len(q_hvac))}
+
         q_percentage = (q_hvac / self.hvac.max_powers) * 100.0
         room_heatings = {self.index_to_id[i]: round(float(q_percentage[i]), 2) for i in range(len(q_percentage))}
 
@@ -70,5 +72,6 @@ class DistrictSimulation:
             "timestamp": output_timestamp,
             "weather": weather_clean,
             "room_temperatures": room_temps,
+            "room_hvac_q": room_hvac_q,
             "room_heatings": room_heatings
         }

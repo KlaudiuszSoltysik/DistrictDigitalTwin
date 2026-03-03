@@ -91,15 +91,16 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - **Metrics Aggregation:** Prometheus scraping container metrics and internal service states.
 - **Hardware Telemetry:** cAdvisor integration for real-time container resource monitoring (CPU, RAM, Network I/O, Disk I/O).
 - **Log Aggregation:** Grafana Loki paired with Promtail for centralized, structured log management across the entire Docker cluster.
+- **Instant Notifications:** Upon detecting anomalies or system failures, automated alerts are instantly dispatched to communication channel, enabling rapid incident response.
 - **Broker Deep Monitoring:** Native RabbitMQ Prometheus plugin tracking real-time queue depths, message rates, and broker health.
 - **Visualization:** Custom Grafana dashboards built with SRE paradigms (golden signals, error rate filtering, resource thresholds, dynamic unit scaling).
 - **Data Retention:** Enforced automated data retention policies for both time-series metrics (Prometheus TSDB) and aggregated logs (Loki Compactor).
 
 ## 📝 To-Do (Next Tasks)
 
-- notifications
 - container limits and reservations
 - k8s with 2 clusters
 - controller
 - tenant panels
-- mongobd for config
+- test hvac
+- test notifications

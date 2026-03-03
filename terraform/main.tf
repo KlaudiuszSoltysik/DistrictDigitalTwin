@@ -68,7 +68,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "ddt_config" {
 resource "cloudflare_record" "ddt_dns" {
   zone_id = var.zone_id
   name    = "district-digital-twin"
-  value   = "${cloudflare_zero_trust_tunnel_cloudflared.ddt_tunnel.id}.cfargotunnel.com"
+  content= "${cloudflare_zero_trust_tunnel_cloudflared.ddt_tunnel.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }
@@ -76,7 +76,7 @@ resource "cloudflare_record" "ddt_dns" {
 resource "cloudflare_record" "grafana_dns" {
   zone_id = var.zone_id
   name    = "district-digital-twin-grafana"
-  value   = "${cloudflare_zero_trust_tunnel_cloudflared.ddt_tunnel.id}.cfargotunnel.com"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.ddt_tunnel.id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }
@@ -86,7 +86,7 @@ resource "cloudflare_zero_trust_access_application" "grafana_access" {
   name             = "District Digital Twin Grafana"
   domain           = "district-digital-twin-grafana.260824.xyz"
   type             = "self_hosted"
-  session_duration = "24h"
+  session_duration = "1000h"
 }
 
 resource "cloudflare_zero_trust_access_policy" "grafana_policy" {
