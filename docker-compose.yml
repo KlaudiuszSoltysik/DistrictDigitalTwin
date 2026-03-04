@@ -233,6 +233,12 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=${GRAFANA_EMAIL}
+      - GF_SMTP_PASSWORD=${GRAFANA_EMAIL_PASSWORD}
+      - GF_SMTP_FROM_NAME=Digital Twin Alerts
+      - GF_SMTP_FROM_ADDRESS=${GRAFANA_EMAIL}
     networks:
       - ddt_net
     depends_on:

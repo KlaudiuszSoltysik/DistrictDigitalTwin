@@ -20,19 +20,68 @@ public class SimulationStatusService
             OnStatusChanged?.Invoke();
         });
 
+        _hubConnection.On<Telemetry>("ReceiveSimulationTelemetry", msg =>
+        {
+            SimulationTelemetry.Add(msg);
+
+            var cutoffTime = msg.Timestamp.AddHours(-24);
+            while (SimulationTelemetry.Count > 0 && SimulationTelemetry[0].Timestamp < cutoffTime)
+                SimulationTelemetry.RemoveAt(0);
+
+            OnSimulationTelemetryReceived?.Invoke(msg);
+        });
+
+        _hubConnection.On<List<Telemetry>>("ReceiveSimulationTelemetryDb", msgs =>
+        {
+            SimulationTelemetry = msgs;
+            OnSimulationTelemetryDbReceived?.Invoke(msgs);
+        });
+
+        _hubConnection.On<List<Telemetry>>("ReceiveDigitalTwinTelemetry", msg =>
+        {
+            DigitalTwinTimestamp = msg[0].Timestamp;
+
+            foreach (var incomingItem in msg)
+            {
+                var existingIndex = DigitalTwinTelemetry.FindIndex(t => t.Timestamp == incomingItem.Timestamp);
+
+                if (existingIndex >= 0)
+                    DigitalTwinTelemetry[existingIndex] = incomingItem;
+                else
+                    DigitalTwinTelemetry.Add(incomingItem);
+            }
+
+            DigitalTwinTelemetry = DigitalTwinTelemetry.OrderBy(t => t.Timestamp).ToList();
+            OnDigitalTwinTelemetryReceived?.Invoke(DigitalTwinTelemetry);
+        });
+
         _ = EnsureConnectionStarted();
     }
 
+    public List<Telemetry> SimulationTelemetry { get; private set; } = [];
+    public List<Telemetry> DigitalTwinTelemetry { get; private set; } = [];
+
+    public DateTimeOffset DigitalTwinTimestamp { get; private set; }
     public SimulationConfig? CurrentStatus { get; private set; }
 
     public event Action? OnStatusChanged;
+    public event Action<Telemetry>? OnSimulationTelemetryReceived;
+    public event Action<List<Telemetry>>? OnSimulationTelemetryDbReceived;
+    public event Action<List<Telemetry>>? OnDigitalTwinTelemetryReceived;
 
-    public async Task SendCommandAsync(string action, string? device_name = null, Config? targetConfig = null)
+    public void ClearTelemetry()
+    {
+        SimulationTelemetry.Clear();
+        DigitalTwinTelemetry.Clear();
+        DigitalTwinTimestamp = new DateTimeOffset();
+    }
+
+    public async Task SendCommandAsync(string action, string? deviceName = null, Config? targetConfig = null)
     {
         var command = new ControlMessage
         {
             Action = action,
-            DeviceName = device_name,
+            DeviceName = deviceName,
             TargetConfig = targetConfig
         };
 

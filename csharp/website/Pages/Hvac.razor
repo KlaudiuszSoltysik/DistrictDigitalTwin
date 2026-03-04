@@ -1,7 +1,72 @@
 ﻿@page "/admin-panel/hvac"
 
-<h3>Hvac</h3>
+@inject SimulationStatusService SimulationStatusService
+@using shared
+@using website.Components
+@implements IAsyncDisposable
+
+<HvacCharts @ref="_hvacChartsComponent"/>
 
 @code {
+    private HvacCharts? _hvacChartsComponent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SimulationStatusService.OnSimulationTelemetryReceived += HandleNewSimulationTelemetry;
+        SimulationStatusService.OnSimulationTelemetryDbReceived += HandleSimulationTelemetryDb;
+        SimulationStatusService.OnDigitalTwinTelemetryReceived += HandleDigitalTwinTelemetry;
+
+        SimulationStatusService.OnStatusChanged += StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _hvacChartsComponent != null)
+        {
+            if (SimulationStatusService.SimulationTelemetry.Any())
+                await _hvacChartsComponent.LoadSimulationTelemetryAsync(SimulationStatusService.SimulationTelemetry);
+
+            if (SimulationStatusService.DigitalTwinTelemetry.Any())
+                await _hvacChartsComponent.LoadDigitalTwinTelemetryAsync(SimulationStatusService.DigitalTwinTelemetry);
+        }
+    }
+
+    private async void HandleNewSimulationTelemetry(Telemetry msg)
+    {
+        if (_hvacChartsComponent != null)
+        {
+            await _hvacChartsComponent.AddSimulationTelemetryAsync(msg);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleSimulationTelemetryDb(List<Telemetry> msgs)
+    {
+        if (_hvacChartsComponent != null)
+        {
+            await _hvacChartsComponent.LoadSimulationTelemetryAsync(msgs);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleDigitalTwinTelemetry(List<Telemetry> msgs)
+    {
+        if (_hvacChartsComponent != null)
+        {
+            await _hvacChartsComponent.LoadDigitalTwinTelemetryAsync(msgs);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SimulationStatusService.OnSimulationTelemetryReceived -= HandleNewSimulationTelemetry;
+        SimulationStatusService.OnSimulationTelemetryDbReceived -= HandleSimulationTelemetryDb;
+        SimulationStatusService.OnDigitalTwinTelemetryReceived -= HandleDigitalTwinTelemetry;
+        SimulationStatusService.OnStatusChanged -= StateHasChanged;
+    }
 
 }

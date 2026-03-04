@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Formatting.Compact;
 using shared;
-using telemetry_service;
 using telemetry_service.Consumers;
 
 Log.Logger = new LoggerConfiguration()
@@ -56,8 +55,6 @@ try
             });
         });
     });
-
-    builder.Services.AddHostedService<DbMigrationWorker>();
 
     var app = builder.Build();
 

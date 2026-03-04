@@ -49,6 +49,7 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 
 - Simulation microservice and Digital Twin that share the core engine code. The difference is that the simulation adds noise to simulated physical phenomena (to add realism), while the Digital Twin adds noise to the weather (simulating an imperfect weather forecast).
 - Building thermodynamics simulation down to the individual room level. Includes heat transfer through floors, ceilings, roofs, external walls, windows, internal walls, wind impact (angle and speed), and solar radiation (angle and radiation).
+- Simulation of HVAC for entire district with custom profiles per every room (setted by tenant)
 - District definition via a `.yml` file.
 
 **Message Broker (RabbitMQ)**
@@ -67,7 +68,7 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 
 **Website (.NET)**
 
-- Control panel and user interface for the simulation.
+- Control panel and user interface for the simulation and HVAC
 
 ---
 
@@ -99,8 +100,7 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 ## 📝 To-Do (Next Tasks)
 
 - container limits and reservations
-- k8s with 2 clusters
+- k8s with 2 clusters and dev/prod
+- powerful cicd (terraform, fix postgres: makemigrations, migrate and create hypertables)
 - controller
 - tenant panels
-- test hvac
-- test notifications
