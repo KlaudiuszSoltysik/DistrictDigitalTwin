@@ -1,14 +1,15 @@
 ﻿import numpy as np
 
-from yaml import safe_load
+from shared.MongoDbController import MongoDbController
 
 
 class DistrictModelParser:
     RHO_CP_AIR = 1200
 
-    def __init__(self, yaml_path):
-        with open(yaml_path, "r") as f:
-            self.raw_data = safe_load(f)
+    def __init__(self):
+        mongodb = MongoDbController()
+        collection = mongodb.db["district-config"]
+        self.raw_data = collection.find_one({}, {"_id": 0})
 
         self.nodes = {}
         self.room_data = []

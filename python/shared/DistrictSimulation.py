@@ -10,8 +10,8 @@ from shared.WeatherSolver import WeatherSolver
 
 
 class DistrictSimulation:
-    def __init__(self, config_path, weather_path, is_digital_twin=False):
-        parser = DistrictModelParser(config_path)
+    def __init__(self, weather_path, is_digital_twin=False):
+        parser = DistrictModelParser()
         parser.parse()
 
         self.metadata = parser.metadata

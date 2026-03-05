@@ -11,14 +11,16 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.H
 
 var baseApiUrl = builder.Configuration["BaseApiUrl"] ?? "/";
 
-builder.Services.AddScoped<SimulationStatusService>(_ =>
+builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(baseApiUrl) });
+
+builder.Services.AddScoped<SimulationStatusService>(sp =>
 {
     var hubConnection = new HubConnectionBuilder()
         .WithUrl($"{baseApiUrl}hubs/simulation")
         .WithAutomaticReconnect()
         .Build();
 
-    var apiHttpClient = new HttpClient { BaseAddress = new Uri(baseApiUrl) };
+    var apiHttpClient = sp.GetRequiredService<HttpClient>();
 
     return new SimulationStatusService(hubConnection, apiHttpClient);
 });

@@ -85,7 +85,7 @@ public class SimulationStatusService
             TargetConfig = targetConfig
         };
 
-        await _httpClient.PostAsJsonAsync("telemetry/simulation-commands", command);
+        await _httpClient.PostAsJsonAsync("simulation/control", command);
     }
 
     private async Task EnsureConnectionStarted()

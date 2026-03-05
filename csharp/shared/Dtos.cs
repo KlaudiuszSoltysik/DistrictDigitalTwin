@@ -58,3 +58,21 @@ public class DigitalTwinRequest
     [JsonPropertyName("t")] public Dictionary<string, double> T { get; set; } = new();
     [JsonPropertyName("hvac_q")] public Dictionary<string, double> HvacQ { get; set; } = new();
 }
+
+public class HvacControl
+{
+    public required string ApartmentId { get; set; }
+    public List<HvacRoomControl> HvacRoomControls { get; set; } = [];
+}
+
+public class HvacRoomControl
+{
+    public required string RoomId { get; set; }
+    public List<double> Temperatures { get; set; } = [];
+}
+
+public class RoomInformation
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+}

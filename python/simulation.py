@@ -19,7 +19,7 @@ class SimulationService:
         amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
         self.rabbit_params = URLParameters(amqp_url)
 
-        self.simulation = DistrictSimulation("config/district.yml", "config/weather_history.csv")
+        self.simulation = DistrictSimulation("config/weather_history.csv")
 
         self.lock = Lock()
         self.wake_event = Event()

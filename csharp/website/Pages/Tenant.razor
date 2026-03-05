@@ -1,0 +1,142 @@
+﻿@page "/tenant-panel"
+@layout TenantLayout
+@using shared
+@using website.Components
+@implements IAsyncDisposable
+@inject HttpClient httpClient
+
+<div class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none text-white">
+    <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <p class="text-xl font-bold">Thermostat Schedule</p>
+        <button @onclick="ApplySchedule" disabled="@_isApplying"
+                class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
+            @if (_isApplying)
+            {
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>Apply Schedule</span>
+            }
+        </button>
+    </div>
+
+    <div class="p-4 bg-gray-800">
+        @if (_isLoading)
+        {
+            <p class="text-gray-400">Loading rooms...</p>
+        }
+        else if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <p class="text-red-500">@_errorMessage</p>
+        }
+        else if (!string.IsNullOrEmpty(_saveMessage))
+        {
+            <p class="text-green-400 mb-4 font-semibold">@_saveMessage</p>
+        }
+
+        @foreach (var room in _rooms)
+        {
+            <div class="mb-6 last:mb-0">
+                <h3 class="text-lg font-medium mb-2 text-gray-200">@room.Name</h3>
+
+                <TemperatureScheduler Temperatures="_temperatures[room.Id]"/>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    [SupplyParameterFromQuery(Name = "building")]
+    public required string Building { get; set; }
+
+    [SupplyParameterFromQuery(Name = "apartment")]
+    public required string Apartment { get; set; }
+
+    private readonly Dictionary<string, double[]> _temperatures = new();
+    private List<RoomInformation> _rooms = new();
+
+    private bool _isLoading = true;
+    private bool _isApplying;
+    private string? _errorMessage;
+    private string? _saveMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var url = $"apartment/get-room-list?building={Building}&apartment={Apartment}";
+            var result = await httpClient.GetFromJsonAsync<List<RoomInformation>>(url);
+
+            if (result != null)
+            {
+                _rooms = result;
+                foreach (var room in _rooms)
+                {
+                    _temperatures[room.Id] = Enumerable.Repeat(21.0, 24).ToArray();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ApplySchedule()
+    {
+        _isApplying = true;
+        _errorMessage = null;
+        _saveMessage = null;
+
+        try
+        {
+            var command = new HvacControl
+            {
+                ApartmentId = Apartment,
+                HvacRoomControls = _temperatures.Select(kvp => new HvacRoomControl
+                {
+                    RoomId = kvp.Key,
+                    Temperatures = kvp.Value.ToList()
+                }).ToList()
+            };
+
+            var response = await httpClient.PostAsJsonAsync("apartment/hvac-control", command);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _saveMessage = "Schedule applied successfully!";
+
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    _saveMessage = null;
+                    await InvokeAsync(StateHasChanged);
+                });
+            }
+            else
+            {
+                _errorMessage = $"Failed to apply schedule. Server returned {response.StatusCode}.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Network error while saving: {ex.Message}";
+        }
+        finally
+        {
+            _isApplying = false;
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+    }
+
+}
