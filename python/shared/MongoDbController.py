@@ -20,6 +20,9 @@ class MongoDbController:
     def get_device(self, device):
         return self.db["devices-config"].find_one({"device": device})
 
+    def get_district(self):
+        return self.client.db["district-config"].find_one({}, {"_id": 0})
+
     def update_device(self, device, config):
         self.db["devices-config"].update_one(
             {"device": device},

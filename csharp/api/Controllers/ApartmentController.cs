@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using MassTransit;
+using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using shared;
@@ -7,37 +8,119 @@ namespace api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ApartmentController(ILogger<ApartmentController> logger, IMongoDatabase mongodb) : ControllerBase
+public class ApartmentController(
+    ISendEndpointProvider sendEndpointProvider,
+    ILogger<ApartmentController> logger,
+    IMongoDatabase mongodb) : ControllerBase
 {
-    [HttpPost("hvac-control")]
-    public async Task<IActionResult> HvacControl([FromBody] HvacControl command)
+    [HttpPost("update-apartment-config")]
+    public async Task<IActionResult> UpdateApartmentConfig([FromBody] ApartmentConfig incomingConfig)
     {
-        var collection = mongodb.GetCollection<BsonDocument>("apartments-config");
+        var apartmentCollection = mongodb.GetCollection<ApartmentConfig>("apartments-config");
 
-        var filter = Builders<BsonDocument>.Filter.Eq("apartment_id", command.ApartmentId);
+        var existingConfig = await apartmentCollection
+            .Find(a => a.BuildingId == incomingConfig.BuildingId && a.ApartmentId == incomingConfig.ApartmentId)
+            .SingleOrDefaultAsync();
 
-        var updateDefinitions = command.HvacRoomControls.Select(roomControl =>
-            Builders<BsonDocument>.Update.Set($"{roomControl.RoomId}.hvac.temperatures",
-                roomControl.Temperatures.Select(t => double.Clamp(t, 16.0, 26.0)))
-        ).ToList();
+        if (existingConfig != null)
+        {
+            foreach (var existingRoom in existingConfig.Rooms)
+            {
+                var incomingRoom = incomingConfig.Rooms.FirstOrDefault(r => r.Id == existingRoom.Id);
+                if (incomingRoom == null) continue;
 
-        var combinedUpdate = Builders<BsonDocument>.Update.Combine(updateDefinitions);
+                existingRoom.HvacControl.Temperatures = incomingRoom.HvacControl.Temperatures
+                    .Select(t => double.Clamp(t, 16.0, 26.0))
+                    .ToList();
 
-        var options = new UpdateOptions { IsUpsert = true };
+                existingRoom.HvacControl.Tolerance = double.Clamp(incomingRoom.HvacControl.Tolerance, 0.1, 10.0);
 
-        await collection.UpdateOneAsync(filter, combinedUpdate, options);
+                existingRoom.HvacControl.IsEnabled = incomingRoom.HvacControl.IsEnabled;
+            }
+
+            var filter = Builders<ApartmentConfig>.Filter.Eq(d => d.BuildingId, existingConfig.BuildingId)
+                         & Builders<ApartmentConfig>.Filter.Eq(d => d.ApartmentId, existingConfig.ApartmentId);
+
+            await apartmentCollection.ReplaceOneAsync(filter, existingConfig);
+        }
+        else
+        {
+            var districtCollection = mongodb.GetCollection<BsonDocument>("district-config");
+            var districtDocument = await districtCollection.Find(new BsonDocument()).FirstOrDefaultAsync();
+
+            var targetApartment = districtDocument?["buildings"].AsBsonArray
+                .FirstOrDefault(b => b["id"].AsString == incomingConfig.BuildingId)?["apartments"].AsBsonArray
+                .FirstOrDefault(a => a["id"].AsString == incomingConfig.ApartmentId);
+
+            if (targetApartment == null) return BadRequest("Wrong building or apartment.");
+
+            var newConfig = new ApartmentConfig
+            {
+                BuildingId = incomingConfig.BuildingId,
+                ApartmentId = incomingConfig.ApartmentId,
+                Rooms = targetApartment["rooms"].AsBsonArray.Select(r =>
+                {
+                    var roomId = r["id"].AsString;
+                    var userRoom = incomingConfig.Rooms.FirstOrDefault(ur => ur.Id == roomId);
+                    var userTemperatures = userRoom?.HvacControl.Temperatures;
+                    var userTolerance = userRoom?.HvacControl.Tolerance;
+                    var userIsEnabled = userRoom?.HvacControl.IsEnabled;
+
+                    return new RoomConfig
+                    {
+                        Id = roomId,
+                        Name = r["name"].AsString,
+                        HvacControl = new HvacControl
+                        {
+                            Temperatures = userTemperatures is { Count: 24 }
+                                ? userTemperatures.Select(t => double.Clamp(t, 16.0, 26.0)).ToList()
+                                : Enumerable.Repeat(21.0, 24).ToList(),
+
+                            Tolerance = userTolerance.HasValue
+                                ? double.Clamp(userTolerance.Value, 0.1, 10.0)
+                                : 0.5,
+                            IsEnabled = userIsEnabled ?? false
+                        }
+                    };
+                }).ToList()
+            };
+
+            await apartmentCollection.InsertOneAsync(newConfig);
+        }
+
+
+        var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:simulation-commands"));
+
+        await endpoint.Send(new ControlMessage
+        {
+            Action = "UPDATE_APARTMENT_CONFIG",
+            TargetConfig = new Config
+            {
+                BuildingId = incomingConfig.BuildingId,
+                ApartmentId = incomingConfig.ApartmentId
+            }
+        });
 
         return Ok();
     }
 
-    [HttpGet("get-room-list")]
-    public async Task<IActionResult> GetRoomList([FromQuery] string building, string apartment)
+    [HttpGet("get-apartment-config")]
+    public async Task<IActionResult> GetApartmentConfig([FromQuery] string building, [FromQuery] string apartment)
     {
-        var collection = mongodb.GetCollection<BsonDocument>("district-config");
+        var apartmentCollection = mongodb.GetCollection<ApartmentConfig>("apartments-config");
 
-        var document = await collection.Find(new BsonDocument()).FirstOrDefaultAsync();
+        var response = await apartmentCollection
+            .Find(a => a.BuildingId == building && a.ApartmentId == apartment)
+            .SingleOrDefaultAsync();
 
-        var targetBuilding = document["buildings"].AsBsonArray
+        if (response != null) return Ok(response);
+
+        var districtCollection = mongodb.GetCollection<BsonDocument>("district-config");
+        var districtDocument = await districtCollection.Find(new BsonDocument()).FirstOrDefaultAsync();
+
+        if (districtDocument == null) return NotFound("District config not found in DB.");
+
+        var targetBuilding = districtDocument["buildings"].AsBsonArray
             .FirstOrDefault(b => b["id"].AsString == building);
 
         if (targetBuilding == null) return NotFound($"Building not found: {building}");
@@ -47,13 +130,24 @@ public class ApartmentController(ILogger<ApartmentController> logger, IMongoData
 
         if (targetApartment == null) return NotFound($"Apartment not found: {apartment}");
 
-        var roomList = targetApartment["rooms"].AsBsonArray
-            .Select(r => new RoomInformation
-            {
-                Id = r["id"].AsString,
-                Name = r["name"].AsString
-            }).ToList();
+        response = new ApartmentConfig
+        {
+            BuildingId = building,
+            ApartmentId = apartment,
+            Rooms = targetApartment["rooms"].AsBsonArray
+                .Select(r => new RoomConfig
+                {
+                    Id = r["id"].AsString,
+                    Name = r["name"].AsString,
+                    HvacControl = new HvacControl
+                    {
+                        Temperatures = Enumerable.Repeat(21.0, 24).ToList(),
+                        Tolerance = 0.1,
+                        IsEnabled = false
+                    }
+                }).ToList()
+        };
 
-        return Ok(roomList);
+        return Ok(response);
     }
 }

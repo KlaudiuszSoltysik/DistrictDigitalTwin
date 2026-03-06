@@ -79,13 +79,17 @@ class SimulationService:
                     self.room_temperature_noise_sigma = target_config["room_temperature_noise_sigma"]
 
                 elif action == "UPDATE_DEVICE_CONFIG":
-                    device_name = cmd_json["device_name"]
+                    device_name = cmd_json["target_name"]
                     target_config = cmd_json["target_config"]
 
                     self.mongodb.update_device(device_name, target_config)
 
                     if hasattr(self.simulation, device_name):
                         getattr(self.simulation, device_name).set_config(target_config)
+
+                elif action == "UPDATE_APARTMENT_CONFIG":
+                    target_config = cmd_json["target_config"]
+                    pass
 
                 elif action == "RESET":
                     self.reset_simulation_logic()

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace shared;
 
@@ -38,6 +39,9 @@ public class Config
 
     [JsonPropertyName("p_band")] public double? P_Band { get; set; }
     [JsonPropertyName("t_i")] public double? T_I { get; set; }
+
+    [JsonPropertyName("building_id")] public string? BuildingId { get; set; }
+    [JsonPropertyName("apartment_id")] public string? ApartmentId { get; set; }
 }
 
 public class SimulationConfig
@@ -48,7 +52,7 @@ public class SimulationConfig
 public class ControlMessage
 {
     [JsonPropertyName("action")] public string Action { get; set; }
-    [JsonPropertyName("device_name")] public string? DeviceName { get; set; }
+    [JsonPropertyName("target_name")] public string? TargetName { get; set; }
     [JsonPropertyName("target_config")] public Config? TargetConfig { get; set; }
 }
 
@@ -59,20 +63,24 @@ public class DigitalTwinRequest
     [JsonPropertyName("hvac_q")] public Dictionary<string, double> HvacQ { get; set; } = new();
 }
 
-public class HvacControl
+[BsonIgnoreExtraElements]
+public class ApartmentConfig
 {
+    public required string BuildingId { get; set; }
     public required string ApartmentId { get; set; }
-    public List<HvacRoomControl> HvacRoomControls { get; set; } = [];
+    public List<RoomConfig> Rooms { get; set; } = [];
 }
 
-public class HvacRoomControl
-{
-    public required string RoomId { get; set; }
-    public List<double> Temperatures { get; set; } = [];
-}
-
-public class RoomInformation
+public class RoomConfig
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
+    public required HvacControl HvacControl { get; set; }
+}
+
+public class HvacControl
+{
+    public List<double> Temperatures { get; set; } = [];
+    public double Tolerance { get; set; } = 0.1;
+    public bool IsEnabled { get; set; }
 }

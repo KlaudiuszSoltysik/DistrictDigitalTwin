@@ -70,7 +70,6 @@ class DigitalTwinService:
             self.simulation.current_time = start_ts
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
 
-            # TODO: set sth more here related to hvac
             self.simulation.hvac.current_q = np.array(list(cmd_json["hvac_q"].values()))
 
             self.run_physics_loop(end_ts)

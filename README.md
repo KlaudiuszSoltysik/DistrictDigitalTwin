@@ -102,5 +102,4 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - container limits and reservations
 - k8s with 2 clusters and dev/prod
 - powerful cicd (terraform, fix postgres: makemigrations, migrate and create hypertables)
-- controller
-- tenant panels
+- continue HVAC (python)

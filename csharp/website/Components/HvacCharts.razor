@@ -125,7 +125,7 @@
     {
         _roomTemperaturesOptions = GenerateOptions("°C");
         _roomHeatingsOptions = GenerateOptions("%");
-        _heatingPowerOptions = GenerateOptions("W", 300);
+        _heatingPowerOptions = GenerateOptions("kW", 300);
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)

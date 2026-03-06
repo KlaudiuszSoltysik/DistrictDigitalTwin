@@ -81,7 +81,7 @@ public class SimulationStatusService
         var command = new ControlMessage
         {
             Action = action,
-            DeviceName = deviceName,
+            TargetName = deviceName,
             TargetConfig = targetConfig
         };
 

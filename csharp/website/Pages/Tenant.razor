@@ -3,7 +3,7 @@
 @using shared
 @using website.Components
 @implements IAsyncDisposable
-@inject HttpClient httpClient
+@inject HttpClient HttpClient
 
 <div class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none text-white">
     <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
@@ -38,9 +38,11 @@
         @foreach (var room in _rooms)
         {
             <div class="mb-6 last:mb-0">
-                <h3 class="text-lg font-medium mb-2 text-gray-200">@room.Name</h3>
-
-                <TemperatureScheduler Temperatures="_temperatures[room.Id]"/>
+                <TemperatureScheduler
+                    Name="@room.Name"
+                    Temperatures="_temperatures[room.Id]"
+                    @bind-Tolerance="room.HvacControl.Tolerance"
+                    @bind-IsEnabled="room.HvacControl.IsEnabled"/>
             </div>
         }
     </div>
@@ -54,8 +56,10 @@
     [SupplyParameterFromQuery(Name = "apartment")]
     public required string Apartment { get; set; }
 
+    private ApartmentConfig? _apartmentConfig;
+
     private readonly Dictionary<string, double[]> _temperatures = new();
-    private List<RoomInformation> _rooms = new();
+    private List<RoomConfig> _rooms = [];
 
     private bool _isLoading = true;
     private bool _isApplying;
@@ -66,15 +70,21 @@
     {
         try
         {
-            var url = $"apartment/get-room-list?building={Building}&apartment={Apartment}";
-            var result = await httpClient.GetFromJsonAsync<List<RoomInformation>>(url);
+            var url = $"apartment/get-apartment-config?building={Building}&apartment={Apartment}";
+            _apartmentConfig = await HttpClient.GetFromJsonAsync<ApartmentConfig>(url);
 
-            if (result != null)
+            if (_apartmentConfig != null)
             {
-                _rooms = result;
+                _rooms = _apartmentConfig.Rooms;
                 foreach (var room in _rooms)
                 {
-                    _temperatures[room.Id] = Enumerable.Repeat(21.0, 24).ToArray();
+                    var temps = room.HvacControl?.Temperatures?.ToArray();
+                    if (temps is not { Length: 24 })
+                    {
+                        temps = Enumerable.Repeat(21.0, 24).ToArray();
+                    }
+
+                    _temperatures[room.Id] = temps;
                 }
             }
         }
@@ -90,23 +100,24 @@
 
     private async Task ApplySchedule()
     {
+        if (_apartmentConfig == null) return;
+
         _isApplying = true;
         _errorMessage = null;
         _saveMessage = null;
 
         try
         {
-            var command = new HvacControl
+            foreach (var room in _apartmentConfig.Rooms)
             {
-                ApartmentId = Apartment,
-                HvacRoomControls = _temperatures.Select(kvp => new HvacRoomControl
-                {
-                    RoomId = kvp.Key,
-                    Temperatures = kvp.Value.ToList()
-                }).ToList()
-            };
+                if (!_temperatures.TryGetValue(room.Id, out var modifiedTemps)) continue;
 
-            var response = await httpClient.PostAsJsonAsync("apartment/hvac-control", command);
+                room.HvacControl.Temperatures = modifiedTemps.ToList();
+            }
+
+            var command = _apartmentConfig;
+
+            var response = await HttpClient.PostAsJsonAsync("apartment/update-apartment-config", command);
 
             if (response.IsSuccessStatusCode)
             {
@@ -121,12 +132,12 @@
             }
             else
             {
-                _errorMessage = $"Failed to apply schedule. Server returned {response.StatusCode}.";
+                _errorMessage = "Failed to apply schedule.";
             }
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Network error while saving: {ex.Message}";
+            _errorMessage = "Network error while saving.";
         }
         finally
         {

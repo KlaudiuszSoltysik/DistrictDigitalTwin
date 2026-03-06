@@ -8,8 +8,7 @@ class DistrictModelParser:
 
     def __init__(self):
         mongodb = MongoDbController()
-        collection = mongodb.db["district-config"]
-        self.raw_data = collection.find_one({}, {"_id": 0})
+        self.raw_data = mongodb.get_district()
 
         self.nodes = {}
         self.room_data = []

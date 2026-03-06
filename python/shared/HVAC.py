@@ -22,9 +22,10 @@ class HVAC:
         self.k_i = None
         self.set_config({"p_band": hvac_config["p_band"], "t_i": hvac_config["t_i"]})
 
-        # TODO: change that
+        # TODO: tweak
         self.tau = 4.0 * 3600.0  # 1-8
 
+    # TODO: tweak
     def set_config(self, config):
         p_band = config["p_band"]  # 1-4
         self.k_p = self.max_powers / p_band
