@@ -78,18 +78,18 @@ class SimulationService:
                     self.simulation_step = target_config["simulation_step"]
                     self.room_temperature_noise_sigma = target_config["room_temperature_noise_sigma"]
 
-                elif action == "UPDATE_DEVICE_CONFIG":
-                    device_name = cmd_json["target_name"]
-                    target_config = cmd_json["target_config"]
-
-                    self.mongodb.update_device(device_name, target_config)
-
-                    if hasattr(self.simulation, device_name):
-                        getattr(self.simulation, device_name).set_config(target_config)
+                # elif action == "UPDATE_DEVICE_CONFIG":
+                #     self.simulation.hvac.set_unit_config()
+                #     device_name = cmd_json["target_name"]
+                #     target_config = cmd_json["target_config"]
+                #
+                #     self.mongodb.update_device(device_name, target_config)
+                #
+                #     if hasattr(self.simulation, device_name):
+                #         getattr(self.simulation, device_name).set_unit_config(target_config)
 
                 elif action == "UPDATE_APARTMENT_CONFIG":
-                    target_config = cmd_json["target_config"]
-                    pass
+                    self.simulation.hvac.set_temperatures_config()
 
                 elif action == "RESET":
                     self.reset_simulation_logic()
@@ -100,7 +100,7 @@ class SimulationService:
                                   method="process_command")
 
     def reset_simulation_logic(self):
-        self.simulation = DistrictSimulation("config/district.yml", "config/weather_history.csv")
+        self.simulation = DistrictSimulation("config/weather_history.csv")
 
         self.run_id = int(time())
         self.is_paused = True

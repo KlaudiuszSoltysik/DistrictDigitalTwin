@@ -93,12 +93,7 @@ public class ApartmentController(
 
         await endpoint.Send(new ControlMessage
         {
-            Action = "UPDATE_APARTMENT_CONFIG",
-            TargetConfig = new Config
-            {
-                BuildingId = incomingConfig.BuildingId,
-                ApartmentId = incomingConfig.ApartmentId
-            }
+            Action = "UPDATE_APARTMENT_CONFIG"
         });
 
         return Ok();

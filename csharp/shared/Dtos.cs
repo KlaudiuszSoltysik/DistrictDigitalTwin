@@ -36,12 +36,6 @@ public class Config
 
     [JsonPropertyName("room_temperature_noise_sigma")]
     public double? RoomTemperatureNoiseSigma { get; set; }
-
-    [JsonPropertyName("p_band")] public double? P_Band { get; set; }
-    [JsonPropertyName("t_i")] public double? T_I { get; set; }
-
-    [JsonPropertyName("building_id")] public string? BuildingId { get; set; }
-    [JsonPropertyName("apartment_id")] public string? ApartmentId { get; set; }
 }
 
 public class SimulationConfig

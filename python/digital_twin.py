@@ -71,6 +71,8 @@ class DigitalTwinService:
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
 
             self.simulation.hvac.current_q = np.array(list(cmd_json["hvac_q"].values()))
+            self.simulation.hvac.set_unit_config()
+            self.simulation.hvac.set_temperatures_config()
 
             self.run_physics_loop(end_ts)
         except Exception:

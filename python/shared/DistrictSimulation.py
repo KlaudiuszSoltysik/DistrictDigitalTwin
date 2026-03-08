@@ -16,6 +16,8 @@ class DistrictSimulation:
 
         self.metadata = parser.metadata
 
+        self.index_to_id = {v: k for k, v in parser.nodes.items()}
+
         self.thermal_solver = ThermalSolver(parser.G, parser.C, parser.G_ext_air, parser.G_ext_ground,
                                             self.metadata["ground_temperature"])
 
@@ -28,9 +30,7 @@ class DistrictSimulation:
         self.weather_service = WeatherService(weather_path, self.metadata["latitude"], self.metadata["longitude"],
                                               is_digital_twin)
 
-        self.hvac = HVAC(parser.N, parser.max_heating_powers)
-
-        self.index_to_id = {v: k for k, v in parser.nodes.items()}
+        self.hvac = HVAC(parser.N, parser.max_heating_powers, self.index_to_id)
 
     def run_step(self, dt, drift_sigma=0.0):
         weather = self.weather_service.get_weather(self.current_time)
@@ -45,7 +45,7 @@ class DistrictSimulation:
             self.thermal_solver.T
         )
 
-        q_hvac = self.hvac.step(dt, self.thermal_solver.T)
+        q_hvac = self.hvac.step(self.current_time, dt, self.thermal_solver.T)
         q_total = q_env + q_hvac
 
         temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, drift_sigma)

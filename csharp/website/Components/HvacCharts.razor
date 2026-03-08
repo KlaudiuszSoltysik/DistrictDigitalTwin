@@ -89,7 +89,7 @@
 
     <ApexPointSeries TItem="Telemetry"
                      SeriesType="SeriesType.Line"
-                     Name="Heating power"
+                     Name="Heating power digital twin"
                      Items="_digitalTwinTelemetry"
                      XValue="@(t => t.Timestamp)"
                      YValue="@(t => (decimal)t.RoomHvacQ.Values.Sum() / 1000)"/>
