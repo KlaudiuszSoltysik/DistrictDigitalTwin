@@ -2,17 +2,17 @@
 using Microsoft.AspNetCore.Mvc;
 using shared;
 
-namespace api;
+namespace api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TelemetryController(
+public class SimulationController(
     ISendEndpointProvider sendEndpointProvider,
     CacheService cacheService,
-    ILogger<TelemetryController> logger) : ControllerBase
+    ILogger<SimulationController> logger) : ControllerBase
 {
-    [HttpPost("simulation-commands")]
-    public async Task<IActionResult> SendControlMessage([FromBody] ControlMessage command)
+    [HttpPost("control")]
+    public async Task<IActionResult> Control([FromBody] ControlMessage command)
     {
         if (string.IsNullOrEmpty(command.Action))
         {

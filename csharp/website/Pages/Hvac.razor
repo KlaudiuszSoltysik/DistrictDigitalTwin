@@ -1,7 +1,151 @@
 ﻿@page "/admin-panel/hvac"
 
-<h3>Hvac</h3>
+@inject SimulationStatusService SimulationStatusService
+@using shared
+@using website.Components
+@using HvacUnitConfig = shared.HvacUnitConfig
+@implements IAsyncDisposable
+@inject HttpClient HttpClient
+
+<HvacUnitConfig
+    PBand="_pBand"
+    Ti="_ti"
+    IsLoading="_isLoading"
+    ErrorMessage="@_errorMessage"
+    SaveMessage="@_saveMessage"
+    OnApplySettings="SaveHvacUnitConfig"/>
+
+<HvacCharts @ref="_hvacChartsComponent"/>
 
 @code {
+    private double _pBand = 2.0;
+    private double _ti = 4.0;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private string? _saveMessage;
+
+    private HvacCharts? _hvacChartsComponent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SimulationStatusService.OnSimulationTelemetryReceived += HandleNewSimulationTelemetry;
+        SimulationStatusService.OnSimulationTelemetryDbReceived += HandleSimulationTelemetryDb;
+        SimulationStatusService.OnDigitalTwinTelemetryReceived += HandleDigitalTwinTelemetry;
+
+        SimulationStatusService.OnStatusChanged += StateHasChanged;
+
+        try
+        {
+            var config = await HttpClient.GetFromJsonAsync<HvacUnitConfig>("device/get-hvac-unit-config");
+            if (config != null)
+            {
+                _pBand = config.PBand;
+                _ti = config.Ti;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Error loading data.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _hvacChartsComponent != null)
+        {
+            if (SimulationStatusService.SimulationTelemetry.Any())
+                await _hvacChartsComponent.LoadSimulationTelemetryAsync(SimulationStatusService.SimulationTelemetry);
+
+            if (SimulationStatusService.DigitalTwinTelemetry.Any())
+                await _hvacChartsComponent.LoadDigitalTwinTelemetryAsync(SimulationStatusService.DigitalTwinTelemetry);
+        }
+    }
+
+    private async Task SaveHvacUnitConfig((double pBand, double tI) args)
+    {
+        _errorMessage = null;
+        _saveMessage = null;
+
+        _pBand = args.pBand;
+        _ti = args.tI;
+
+        var command = new HvacUnitConfig
+        {
+            Name = "hvac",
+            PBand = _pBand,
+            Ti = _ti
+        };
+
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("device/update-hvac-unit-config", command);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _saveMessage = "Settings applied successfully!";
+
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    _saveMessage = null;
+                    await InvokeAsync(StateHasChanged);
+                });
+            }
+            else
+            {
+                _errorMessage = "Failed to apply settings.";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Network error while saving.";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async void HandleNewSimulationTelemetry(Telemetry msg)
+    {
+        if (_hvacChartsComponent != null)
+        {
+            await _hvacChartsComponent.AddSimulationTelemetryAsync(msg);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleSimulationTelemetryDb(List<Telemetry> msgs)
+    {
+        if (_hvacChartsComponent != null)
+        {
+            await _hvacChartsComponent.LoadSimulationTelemetryAsync(msgs);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleDigitalTwinTelemetry(List<Telemetry> msgs)
+    {
+        if (_hvacChartsComponent != null)
+        {
+            await _hvacChartsComponent.LoadDigitalTwinTelemetryAsync(msgs);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SimulationStatusService.OnSimulationTelemetryReceived -= HandleNewSimulationTelemetry;
+        SimulationStatusService.OnSimulationTelemetryDbReceived -= HandleSimulationTelemetryDb;
+        SimulationStatusService.OnDigitalTwinTelemetryReceived -= HandleDigitalTwinTelemetry;
+        SimulationStatusService.OnStatusChanged -= StateHasChanged;
+    }
 
 }

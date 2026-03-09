@@ -2,6 +2,7 @@ using api;
 using api.Consumers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -27,6 +28,18 @@ try
 
     builder.Services.AddDbContext<TelemetryDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("TelemetryDbConnection")));
+
+    builder.Services.AddSingleton<IMongoClient>(_ =>
+    {
+        var mongoConnectionString = builder.Configuration.GetConnectionString("MongoDbConnection");
+        return new MongoClient(mongoConnectionString);
+    });
+
+    builder.Services.AddSingleton(sp =>
+    {
+        var client = sp.GetRequiredService<IMongoClient>();
+        return client.GetDatabase("mongodb");
+    });
 
     builder.Services.AddMassTransit(x =>
     {

@@ -1,0 +1,100 @@
+﻿<div
+    class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none text-white shadow-2xl transition-all duration-300 @(IsEnabled ? "border-gray-700" : "border-gray-800 opacity-80")">
+
+    <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <p class="text-xl font-bold italic tracking-tight @(IsEnabled ? "text-white" : "text-gray-500")">@(Name)</p>
+
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="sr-only peer" checked="@IsEnabled" @onchange="OnIsEnabledChanged"/>
+            <div
+                class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-200 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 transition-colors"></div>
+            <span class="ml-3 text-sm font-bold w-8 @(IsEnabled ? "text-indigo-400" : "text-gray-500")">
+                @(IsEnabled ? "ON" : "OFF")
+            </span>
+        </label>
+    </div>
+
+    <div
+        class="flex items-end justify-between h-96 gap-1 sm:gap-2 bg-gray-900 p-6 shadow-inner transition-opacity duration-300 @(IsEnabled ? "opacity-100" : "opacity-30 pointer-events-none")">
+
+        @for (var i = 0; i < 24; i++)
+        {
+            var hour = i;
+            <div class="flex flex-col items-center w-full h-full">
+                <span class="text-[10px] sm:text-xs font-bold text-indigo-400 mb-4 h-4 transition-all">
+                    @Temperatures[hour].ToString("F1")°
+                </span>
+
+                <div class="relative h-64 w-6 flex items-center justify-center">
+                    <input type="range"
+                           min="16.0"
+                           max="26.0"
+                           step="0.1"
+                           class="absolute w-64 h-1 bg-gray-800 rounded-lg appearance-none outline-none thermostat-range cursor-pointer"
+                           style="transform: rotate(-90deg);"
+                           @bind="Temperatures[hour]"
+                           @bind:event="oninput"/>
+                </div>
+
+                <span class="text-[10px] sm:text-xs text-gray-500 mt-4 font-medium uppercase tracking-tighter">
+                    @(hour.ToString("00"))
+                </span>
+            </div>
+        }
+
+        <div class="w-px h-full bg-gray-700 mx-2 self-stretch"></div>
+
+        <div
+            class="flex flex-col items-center w-24 h-full bg-gray-800/30 rounded-lg p-1 border border-gray-800 shadow-lg">
+            <span class="text-[10px] sm:text-xs font-bold text-fuchsia-400 mb-4 h-4 transition-all">
+                ±@Tolerance.ToString("F1")°
+            </span>
+
+            <div class="relative h-64 w-8 flex items-center justify-center">
+                <input type="range"
+                       min="0.1"
+                       max="10.0"
+                       step="0.1"
+                       class="absolute w-64 h-2 bg-gray-700 rounded-lg appearance-none outline-none thermostat-range cursor-ns-resize"
+                       style="transform: rotate(-90deg);"
+                       @bind="Tolerance"
+                       @oninput="OnToleranceInput"/>
+            </div>
+
+            <span class="text-[10px] sm:text-xs text-fuchsia-500/70 mt-4 font-bold uppercase tracking-widest">
+                Tolerance
+            </span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Name { get; set; }
+
+    [Parameter] public double[] Temperatures { get; set; } = [];
+
+    [Parameter] public double Tolerance { get; set; }
+    [Parameter] public EventCallback<double> ToleranceChanged { get; set; }
+
+    [Parameter] public bool IsEnabled { get; set; } = true;
+    [Parameter] public EventCallback<bool> IsEnabledChanged { get; set; }
+
+    private async Task OnToleranceInput(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var newVal))
+        {
+            Tolerance = newVal;
+            await ToleranceChanged.InvokeAsync(newVal);
+        }
+    }
+
+    private async Task OnIsEnabledChanged(ChangeEventArgs e)
+    {
+        if (e.Value is bool newVal)
+        {
+            IsEnabled = newVal;
+            await IsEnabledChanged.InvokeAsync(newVal);
+        }
+    }
+
+}

@@ -18,7 +18,7 @@ class DigitalTwinService:
         amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
         self.rabbit_params = URLParameters(amqp_url)
 
-        self.simulation = DistrictSimulation("config/district.yml", "config/weather_history.csv", True)
+        self.simulation = DistrictSimulation("config/weather_history.csv", True)
 
         self.run_id = 0
         self.simulation_step = 300
@@ -70,8 +70,9 @@ class DigitalTwinService:
             self.simulation.current_time = start_ts
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
 
-            # TODO: set sth more here related to hvac
             self.simulation.hvac.current_q = np.array(list(cmd_json["hvac_q"].values()))
+            self.simulation.hvac.set_unit_config()
+            self.simulation.hvac.set_temperatures_config()
 
             self.run_physics_loop(end_ts)
         except Exception:

@@ -1,0 +1,106 @@
+﻿<div class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none text-white shadow-2xl">
+
+    <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <p class="text-xl font-bold">HVAC Controller Tuning</p>
+
+        <button @onclick="ApplySettings" disabled="@(_isApplying || IsLoading)"
+                class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors duration-200">
+            @if (_isApplying)
+            {
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>Apply</span>
+            }
+        </button>
+    </div>
+
+    <div class="p-6 bg-gray-900 shadow-inner flex flex-col gap-8">
+
+        @if (IsLoading)
+        {
+            <p class="text-gray-400 font-semibold mb-[-1rem]">Loading settings...</p>
+        }
+        else if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <p class="text-red-500 font-semibold mb-[-1rem]">@ErrorMessage</p>
+        }
+        else if (!string.IsNullOrEmpty(SaveMessage))
+        {
+            <p class="text-green-400 font-semibold mb-[-1rem]">@SaveMessage</p>
+        }
+
+        <div
+            class="flex flex-col gap-8 transition-opacity duration-300 @(IsLoading ? "opacity-30 pointer-events-none" : "opacity-100")">
+
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <span class="text-sm text-gray-400 font-medium uppercase tracking-widest">Proportional Band (p_band)</span>
+                        <p class="text-xs text-gray-500">Determines the reaction to the current error</p>
+                    </div>
+                    <span class="text-xl font-bold text-indigo-400">@PBand.ToString("F1")</span>
+                </div>
+
+                <div class="relative w-full h-6 flex items-center">
+                    <input type="range"
+                           min="1.0"
+                           max="10.0"
+                           step="0.1"
+                           class="w-full h-2 bg-gray-700 rounded-lg appearance-none outline-none thermostat-range cursor-ew-resize"
+                           @bind="PBand"
+                           @bind:event="oninput"/>
+                </div>
+            </div>
+
+            <div class="w-full h-px bg-gray-700"></div>
+
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <span
+                            class="text-sm text-gray-400 font-medium uppercase tracking-widest">Integral Time (t_i)</span>
+                        <p class="text-xs text-gray-500">Determines the reaction to the accumulated error over time</p>
+                    </div>
+                    <span class="text-xl font-bold text-indigo-400">@Ti.ToString("F1")</span>
+                </div>
+
+                <div class="relative w-full h-6 flex items-center">
+                    <input type="range"
+                           min="1.0"
+                           max="10.0"
+                           step="0.5"
+                           class="w-full h-2 bg-gray-700 rounded-lg appearance-none outline-none thermostat-range cursor-ew-resize"
+                           @bind="Ti"
+                           @bind:event="oninput"/>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [Parameter] public double PBand { get; set; } = 4.0;
+    [Parameter] public double Ti { get; set; } = 8.0;
+
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public string? SaveMessage { get; set; }
+
+    [Parameter] public EventCallback<(double pBand, double tI)> OnApplySettings { get; set; }
+
+    private bool _isApplying;
+
+    private async Task ApplySettings()
+    {
+        _isApplying = true;
+
+        await OnApplySettings.InvokeAsync((PBand, Ti));
+
+        _isApplying = false;
+    }
+
+}

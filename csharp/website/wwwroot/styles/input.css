@@ -15,6 +15,18 @@
     .apexcharts-legend-text {
         @apply !fill-gray-300 !text-gray-300;
     }
+
+    .thermostat-range::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        @apply bg-indigo-500 border-2 border-gray-800 rounded-full shadow cursor-grab transition-transform duration-100 ease-in-out;
+    }
+
+    .thermostat-range::-webkit-slider-thumb:active {
+        @apply cursor-grabbing scale-125 bg-indigo-400;
+    }
 }
 
 @layer base {
