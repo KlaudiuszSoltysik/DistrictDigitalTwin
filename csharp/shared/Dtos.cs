@@ -78,3 +78,11 @@ public class HvacControl
     public double Tolerance { get; set; } = 0.1;
     public bool IsEnabled { get; set; }
 }
+
+[BsonIgnoreExtraElements]
+public class HvacUnitConfig
+{
+    public required string Name { get; set; }
+    public double PBand { get; set; }
+    public double Ti { get; set; }
+}

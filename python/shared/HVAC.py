@@ -28,10 +28,10 @@ class HVAC:
     def set_unit_config(self):
         hvac_config = self.mongodb.get_device("hvac")
 
-        p_band = hvac_config["p_band"]  # 1-4
+        p_band = hvac_config["PBand"]  # 1-4
         self.k_p = self.max_powers / p_band
 
-        t_i = hvac_config["t_i"]  # 1-8
+        t_i = hvac_config["Ti"]  # 1-8
         self.k_i = self.k_p / t_i
 
     def set_temperatures_config(self):

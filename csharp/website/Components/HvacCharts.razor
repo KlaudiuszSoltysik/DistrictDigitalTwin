@@ -51,6 +51,13 @@
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
+                         Name="@roomName"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => GetRoomTemperature(t, roomName))"/>
+
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
                          Name="@($"{roomName} digital twin")"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
@@ -78,22 +85,25 @@
     }
 </ApexChart>
 
-<ApexChart TItem="Telemetry" Title="Heating power [kW]" Options="_heatingPowerOptions"
-           @ref="_chart3">
-    <ApexPointSeries TItem="Telemetry"
-                     SeriesType="SeriesType.Line"
-                     Name="Heating power"
-                     Items="_simulationTelemetry"
-                     XValue="@(t => t.Timestamp)"
-                     YValue="@(t => (decimal)t.RoomHvacQ.Values.Sum() / 1000)"/>
+@if (_simulationTelemetry.Count != 0)
+{
+    <ApexChart TItem="Telemetry" Title="Heating power [kW]" Options="_heatingPowerOptions"
+               @ref="_chart3">
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Heating power"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal)t.RoomHvacQ.Values.Sum() / 1000)"/>
 
-    <ApexPointSeries TItem="Telemetry"
-                     SeriesType="SeriesType.Line"
-                     Name="Heating power digital twin"
-                     Items="_digitalTwinTelemetry"
-                     XValue="@(t => t.Timestamp)"
-                     YValue="@(t => (decimal)t.RoomHvacQ.Values.Sum() / 1000)"/>
-</ApexChart>
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="Heating power digital twin"
+                         Items="_digitalTwinTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal)t.RoomHvacQ.Values.Sum() / 1000)"/>
+    </ApexChart>
+}
 
 @code {
     private int _updateCounter;
