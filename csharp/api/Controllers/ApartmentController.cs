@@ -145,4 +145,56 @@ public class ApartmentController(
 
         return Ok(response);
     }
+
+    [HttpGet("get-all-apartments-config")]
+    public async Task<IActionResult> GetAllApartmentsConfig()
+    {
+        var apartmentCollection = mongodb.GetCollection<ApartmentConfig>("apartments-config");
+
+        var apartments = await apartmentCollection.Find(_ => true).ToListAsync();
+
+        var response = apartments.Select(a => new AllApartmentsConfig
+        {
+            BuildingId = a.BuildingId,
+            ApartmentId = a.ApartmentId,
+            Rooms = a.Rooms.Select(r => new AllApartmentsConfigRoom
+            {
+                Id = r.Id,
+                Hvac = GenerateInterpolatedHvacTunnel(r.HvacControl)
+            }).ToList()
+        }).ToList();
+
+        return Ok(response);
+    }
+
+    private static AllApartmentsConfigHvac GenerateInterpolatedHvacTunnel(HvacControl? control)
+    {
+        var result = new AllApartmentsConfigHvac();
+
+        var temps = control?.Temperatures is { Count: 24 }
+            ? control.Temperatures
+            : Enumerable.Repeat(21.0, 24).ToList();
+
+        var tolerance = control?.Tolerance ?? 0.5;
+
+        for (var m = 0; m < 1440; m += 5)
+        {
+            var timeFloat = m / 60.0;
+
+            var h0 = (int)Math.Floor(timeFloat) % 24;
+            var h1 = (h0 + 1) % 24;
+            var w = timeFloat - Math.Floor(timeFloat);
+
+            var mu = (1.0 - Math.Cos(w * Math.PI)) / 2.0;
+            var targetTemp = temps[h0] * (1.0 - mu) + temps[h1] * mu;
+
+            targetTemp = Math.Round(targetTemp, 2);
+
+            result.Temperatures.Add(targetTemp);
+            result.TemperaturesMin.Add(Math.Round(targetTemp - tolerance, 2));
+            result.TemperaturesMax.Add(Math.Round(targetTemp + tolerance, 2));
+        }
+
+        return result;
+    }
 }

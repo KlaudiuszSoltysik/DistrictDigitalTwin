@@ -23,7 +23,6 @@ class DistrictSimulation:
 
         self.weather_solver = WeatherSolver(parser.external_connections, parser.standards, parser.N)
 
-        # TODO: change that ?
         self.current_time = pd.Timestamp("2024-12-31 23:00+00:00")
         self.end_timestamp = pd.Timestamp("2025-12-31 23:00+00:00")
 
@@ -48,25 +47,23 @@ class DistrictSimulation:
         q_hvac = self.hvac.step(self.current_time, dt, self.thermal_solver.T)
         q_total = q_env + q_hvac
 
-        temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, drift_sigma)
+        self.current_time += timedelta(seconds=dt)
+        if self.current_time >= self.end_timestamp:
+            self.current_time = pd.Timestamp("2024-12-31 23:00+00:00")
 
-        temperatures_array = [round(x, 2) for x in temperatures_array]
+        output_timestamp = self.current_time.isoformat()
 
         keys_to_remove = {"wind_u", "wind_v"}
         weather_clean = {k: round(v, 2) for k, v in weather.items() if k not in keys_to_remove}
 
-        room_temps = {self.index_to_id[i]: float(temperatures_array[i]) for i in range(len(temperatures_array))}
+        temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, drift_sigma)
+        room_temps = {self.index_to_id[i]: round(float(temperatures_array[i]), 2) for i in
+                      range(len(temperatures_array))}
 
-        room_hvac_q = {self.index_to_id[i]: float(q_hvac[i]) for i in range(len(q_hvac))}
+        room_hvac_q = {self.index_to_id[i]: round(float(q_hvac[i]), 2) for i in range(len(q_hvac))}
 
         q_percentage = (q_hvac / self.hvac.max_powers) * 100.0
         room_heatings = {self.index_to_id[i]: round(float(q_percentage[i]), 2) for i in range(len(q_percentage))}
-
-        output_timestamp = self.current_time.isoformat()
-        self.current_time += timedelta(seconds=dt)
-
-        if self.current_time >= self.end_timestamp:
-            self.current_time = pd.Timestamp("2024-12-31 23:00+00:00")
 
         return {
             "timestamp": output_timestamp,

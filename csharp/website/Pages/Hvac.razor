@@ -15,7 +15,7 @@
     SaveMessage="@_saveMessage"
     OnApplySettings="SaveHvacUnitConfig"/>
 
-<HvacCharts @ref="_hvacChartsComponent"/>
+<HvacCharts @ref="_hvacChartsComponent" ApartmentsConfig="@_apartamentsConfig"/>
 
 @code {
     private double _pBand = 2.0;
@@ -25,6 +25,7 @@
     private string? _saveMessage;
 
     private HvacCharts? _hvacChartsComponent;
+    private List<AllApartmentsConfig>? _apartamentsConfig;
 
     protected override async Task OnInitializedAsync()
     {
@@ -36,12 +37,14 @@
 
         try
         {
-            var config = await HttpClient.GetFromJsonAsync<HvacUnitConfig>("device/get-hvac-unit-config");
-            if (config != null)
+            var hvacConfig = await HttpClient.GetFromJsonAsync<HvacUnitConfig>("device/get-hvac-unit-config");
+            if (hvacConfig != null)
             {
-                _pBand = config.PBand;
-                _ti = config.Ti;
+                _pBand = hvacConfig.PBand;
+                _ti = hvacConfig.Ti;
             }
+
+            _apartamentsConfig = await HttpClient.GetFromJsonAsync<List<AllApartmentsConfig>>("apartment/get-all-apartments-config");
         }
         catch (Exception ex)
         {

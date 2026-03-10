@@ -22,16 +22,15 @@ class HVAC:
         self.k_i = None
         self.set_unit_config()
 
-        # TODO: tweak
-        self.tau = 4.0 * 3600.0  # 1-8
+        self.tau = 4.0 * 3600.0
 
     def set_unit_config(self):
         hvac_config = self.mongodb.get_device("hvac")
 
-        p_band = hvac_config["PBand"]  # 1-4
+        p_band = hvac_config["PBand"]
         self.k_p = self.max_powers / p_band
 
-        t_i = hvac_config["Ti"]  # 1-8
+        t_i = hvac_config["Ti"]
         self.k_i = self.k_p / t_i
 
     def set_temperatures_config(self):

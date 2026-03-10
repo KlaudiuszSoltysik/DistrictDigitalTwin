@@ -9,7 +9,6 @@ class ThermalSolver:
         self.G_ext_ground = G_ext_ground
         self.T_ground = T_ground
 
-        # TODO: change that ?
         self.T = np.full(len(C), 21.0)
 
     def step(self, dt, T_outside, Q_extra, drift_sigma_per_hour=0.0):
