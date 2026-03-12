@@ -11,6 +11,7 @@
 <SimulationControls
     IsConnected="@IsConnected"
     ConnectionStatus="@_connectionStatus"
+    SimulationTimestamp="@SimulationStatusService.SimulationTimestamp"
     DigitalTwinTimestamp="@SimulationStatusService.DigitalTwinTimestamp"
     Config="@SimulationStatusService.CurrentStatus?.Config"
     OnResume="Resume"

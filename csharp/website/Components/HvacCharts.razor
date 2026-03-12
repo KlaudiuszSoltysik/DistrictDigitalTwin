@@ -64,8 +64,8 @@
         {
             <ApexPointSeries TItem="ChartPoint"
                              SeriesType="SeriesType.Line"
-                             Name="@($"{roomName} maximal")"
-                             Items="GetConfigPoints(roomName, ConfigLineType.Max)"
+                             Name="@($"{roomName} min")"
+                             Items="GetConfigPoints(roomName, ConfigLineType.Min)"
                              XValue="@(p => p.Timestamp)"
                              YValue="@(p => (decimal)p.Temperature)"/>
 
@@ -78,8 +78,8 @@
 
             <ApexPointSeries TItem="ChartPoint"
                              SeriesType="SeriesType.Line"
-                             Name="@($"{roomName} minimal")"
-                             Items="GetConfigPoints(roomName, ConfigLineType.Min)"
+                             Name="@($"{roomName} max")"
+                             Items="GetConfigPoints(roomName, ConfigLineType.Max)"
                              XValue="@(p => p.Timestamp)"
                              YValue="@(p => (decimal)p.Temperature)"/>
         }
@@ -281,25 +281,32 @@
 
         if (roomConfig == null || roomConfig.Hvac.Temperatures.Count == 0) return points;
 
-        var minDate = _simulationTelemetry.Min(t => t.Timestamp).Date;
-        var maxDate = _simulationTelemetry.Max(t => t.Timestamp).Date;
+        var minTimestamp = _digitalTwinTelemetry.Min(t => t.Timestamp);
+        var maxTimestamp = _digitalTwinTelemetry.Max(t => t.Timestamp);
 
-        for (var date = minDate; date <= maxDate.AddDays(1); date = date.AddDays(1))
+        var startMinute = minTimestamp.Minute - minTimestamp.Minute % 5;
+        var currentTs = new DateTimeOffset(
+            minTimestamp.Year, minTimestamp.Month, minTimestamp.Day,
+            minTimestamp.Hour, startMinute, 0, minTimestamp.Offset);
+
+        while (currentTs <= maxTimestamp)
         {
-            for (var i = 0; i < 288; i++)
-            {
-                var ts = new DateTimeOffset(date).AddMinutes(i * 5);
+            var index = (currentTs.Hour * 60 + currentTs.Minute) / 5;
 
+            if (index is >= 0 and < 288)
+            {
                 var val = type switch
                 {
-                    ConfigLineType.Min => roomConfig.Hvac.TemperaturesMin[i],
-                    ConfigLineType.Target => roomConfig.Hvac.Temperatures[i],
-                    ConfigLineType.Max => roomConfig.Hvac.TemperaturesMax[i],
+                    ConfigLineType.Min => roomConfig.Hvac.TemperaturesMin[index],
+                    ConfigLineType.Target => roomConfig.Hvac.Temperatures[index],
+                    ConfigLineType.Max => roomConfig.Hvac.TemperaturesMax[index],
                     _ => 21.0
                 };
 
-                points.Add(new ChartPoint { Timestamp = ts, Temperature = val });
+                points.Add(new ChartPoint { Timestamp = currentTs, Temperature = val });
             }
+
+            currentTs = currentTs.AddMinutes(5);
         }
 
         return points;

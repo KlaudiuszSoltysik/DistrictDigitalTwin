@@ -22,6 +22,8 @@ public class SimulationStatusService
 
         _hubConnection.On<Telemetry>("ReceiveSimulationTelemetry", msg =>
         {
+            SimulationTimestamp = msg.Timestamp;
+
             SimulationTelemetry.Add(msg);
 
             var cutoffTime = msg.Timestamp.AddHours(-24);
@@ -33,6 +35,8 @@ public class SimulationStatusService
 
         _hubConnection.On<List<Telemetry>>("ReceiveSimulationTelemetryDb", msgs =>
         {
+            SimulationTimestamp = msgs[0].Timestamp;
+
             SimulationTelemetry = msgs;
             OnSimulationTelemetryDbReceived?.Invoke(msgs);
         });
@@ -61,7 +65,9 @@ public class SimulationStatusService
     public List<Telemetry> SimulationTelemetry { get; private set; } = [];
     public List<Telemetry> DigitalTwinTelemetry { get; private set; } = [];
 
+    public DateTimeOffset SimulationTimestamp { get; private set; }
     public DateTimeOffset DigitalTwinTimestamp { get; private set; }
+
     public SimulationConfig? CurrentStatus { get; private set; }
 
     public event Action? OnStatusChanged;
@@ -73,6 +79,7 @@ public class SimulationStatusService
     {
         SimulationTelemetry.Clear();
         DigitalTwinTelemetry.Clear();
+        SimulationTimestamp = new DateTimeOffset();
         DigitalTwinTimestamp = new DateTimeOffset();
     }
 
