@@ -119,6 +119,7 @@ class HVAC:
         return total_penalty
 
     def step(self, current_time, dt, thermal_solver, weather_service, weather_solver):
+        # return np.zeros(self.num_nodes)
         horizon_steps = int((self.horizon_hours * 3600) / dt)
 
         t_out_forecast = np.zeros(horizon_steps)

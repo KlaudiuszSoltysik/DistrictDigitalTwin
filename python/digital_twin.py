@@ -70,8 +70,6 @@ class DigitalTwinService:
             self.simulation.current_time = start_ts
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
 
-            self.simulation.hvac.current_q = np.array(list(cmd_json["hvac_q"].values()))
-            self.simulation.hvac.set_unit_config()
             self.simulation.hvac.set_temperatures_config()
 
             self.run_physics_loop(end_ts)
@@ -80,13 +78,13 @@ class DigitalTwinService:
                               method="process_command")
 
     def run_physics_loop(self, end_timestamp):
-        telemetry = []
-
-        while self.simulation.current_time < end_timestamp:
-            step_data = self.simulation.run_step(self.simulation_step)
-            telemetry.append({"run_id": self.run_id, **step_data})
-
         try:
+            telemetry = []
+
+            while self.simulation.current_time < end_timestamp:
+                step_data = self.simulation.run_step(self.simulation_step)
+                telemetry.append({"run_id": self.run_id, **step_data})
+
             pub_conn = self.connect_with_retry()
 
             telemetry_channel = pub_conn.channel()

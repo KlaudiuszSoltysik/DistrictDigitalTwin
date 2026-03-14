@@ -1,6 +1,5 @@
 ﻿@page "/admin-panel/simulation"
 
-@inject IConfiguration Config
 @inject SimulationStatusService SimulationStatusService
 @using shared
 @using website.Components
@@ -9,8 +8,6 @@
 <PageTitle>District Digital Twin - Admin Panel</PageTitle>
 
 <SimulationControls
-    IsConnected="@IsConnected"
-    ConnectionStatus="@_connectionStatus"
     SimulationTimestamp="@SimulationStatusService.SimulationTimestamp"
     DigitalTwinTimestamp="@SimulationStatusService.DigitalTwinTimestamp"
     Config="@SimulationStatusService.CurrentStatus?.Config"
@@ -29,12 +26,7 @@
 
 @code {
 
-    private HubConnection? _hubConnection;
-    private string _connectionStatus = "Disconnected";
-
     private TelemetryCharts? _telemetryChartsComponent;
-
-    private bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     protected override async Task OnInitializedAsync()
     {
@@ -43,22 +35,6 @@
         SimulationStatusService.OnDigitalTwinTelemetryReceived += HandleDigitalTwinTelemetry;
 
         SimulationStatusService.OnStatusChanged += StateHasChanged;
-
-        var baseApiUrl = Config["BaseApiUrl"];
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{baseApiUrl}hubs/simulation")
-            .WithAutomaticReconnect()
-            .Build();
-
-        try
-        {
-            await _hubConnection.StartAsync();
-            _connectionStatus = "Connected";
-        }
-        catch (Exception ex)
-        {
-            _connectionStatus = ex.Message;
-        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
