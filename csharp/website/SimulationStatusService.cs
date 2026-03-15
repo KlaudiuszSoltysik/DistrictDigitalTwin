@@ -9,18 +9,7 @@ public class SimulationStatusService
     private readonly HttpClient _httpClient;
     private readonly HubConnection _hubConnection;
 
-    public List<Telemetry> SimulationTelemetry { get; private set; } = [];
-    public List<Telemetry> DigitalTwinTelemetry { get; private set; } = [];
-
-    public DateTimeOffset SimulationTimestamp { get; private set; }
-    public DateTimeOffset DigitalTwinTimestamp { get; private set; }
-
-    public SimulationConfig? CurrentStatus { get; private set; }
-
-    public event Action? OnStatusChanged;
-    public event Action<Telemetry>? OnSimulationTelemetryReceived;
-    public event Action<List<Telemetry>>? OnSimulationTelemetryDbReceived;
-    public event Action<List<Telemetry>>? OnDigitalTwinTelemetryReceived;
+    private readonly Lock _telemetryLock = new();
 
     public SimulationStatusService(HubConnection hubConnection, HttpClient httpClient)
     {
@@ -35,30 +24,27 @@ public class SimulationStatusService
 
         _hubConnection.On<Telemetry>("ReceiveSimulationTelemetry", msg =>
         {
-            SimulationTimestamp = msg.Timestamp;
-
-            var existingIndex = SimulationTelemetry.FindIndex(t => t.Timestamp == msg.Timestamp);
-            if (existingIndex >= 0)
+            lock (_telemetryLock)
             {
-                SimulationTelemetry[existingIndex] = msg;
-            }
-            else
-            {
-                SimulationTelemetry.Add(msg);
-            }
+                SimulationTimestamp = msg.Timestamp;
 
-            var cutoffTime = msg.Timestamp.AddHours(-24);
-            SimulationTelemetry.RemoveAll(t => t.Timestamp < cutoffTime);
+                var existingIndex = SimulationTelemetry.FindIndex(t =>
+                    t.Timestamp.ToUnixTimeSeconds() == msg.Timestamp.ToUnixTimeSeconds());
+                if (existingIndex >= 0)
+                    SimulationTelemetry[existingIndex] = msg;
+                else
+                    SimulationTelemetry.Add(msg);
+
+                var cutoffTime = msg.Timestamp.AddHours(-24);
+                SimulationTelemetry.RemoveAll(t => t.Timestamp < cutoffTime);
+            }
 
             OnSimulationTelemetryReceived?.Invoke(msg);
         });
 
         _hubConnection.On<List<Telemetry>>("ReceiveSimulationTelemetryDb", msgs =>
         {
-            if (msgs.Count > 0)
-            {
-                SimulationTimestamp = msgs[0].Timestamp;
-            }
+            if (msgs.Count > 0) SimulationTimestamp = msgs[0].Timestamp;
 
             var deduplicatedMsgs = msgs
                 .GroupBy(m => m.Timestamp)
@@ -90,6 +76,19 @@ public class SimulationStatusService
 
         _ = EnsureConnectionStarted();
     }
+
+    public List<Telemetry> SimulationTelemetry { get; private set; } = [];
+    public List<Telemetry> DigitalTwinTelemetry { get; private set; } = [];
+
+    public DateTimeOffset SimulationTimestamp { get; private set; }
+    public DateTimeOffset DigitalTwinTimestamp { get; private set; }
+
+    public SimulationConfig? CurrentStatus { get; private set; }
+
+    public event Action? OnStatusChanged;
+    public event Action<Telemetry>? OnSimulationTelemetryReceived;
+    public event Action<List<Telemetry>>? OnSimulationTelemetryDbReceived;
+    public event Action<List<Telemetry>>? OnDigitalTwinTelemetryReceived;
 
     public void ClearTelemetry()
     {

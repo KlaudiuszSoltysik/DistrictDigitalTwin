@@ -103,5 +103,4 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - k8s with 2 clusters and dev/prod
 - powerful cicd (terraform, fix postgres: makemigrations, migrate and create hypertables)
 - continue HVAC (python)
-- add connection status
-- skurwione mpc
+- add connection status (?)
