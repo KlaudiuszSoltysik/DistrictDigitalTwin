@@ -4,16 +4,17 @@
         <p class="text-xl font-bold">Simulation Control Panel</p>
 
         <div class="flex items-center gap-6">
+
             <div class="text-xs flex items-center gap-2">
-                <span>Connection:</span>
-                <span class="font-bold @(IsConnected ? "text-green-500" : "text-red-500")">
-                    @ConnectionStatus.ToUpper()
+                <span>Simulation timestamp:</span>
+                <span class="font-bold text-green-500">
+                    @(SimulationTimestamp.ToString("dd-MM-yyyy HH:mm zzz"))
                 </span>
             </div>
 
             <div class="text-xs flex items-center gap-2">
                 <span>Digital Twin timestamp:</span>
-                <span class="font-bold @(IsConnected ? "text-green-500" : "text-red-500")">
+                <span class="font-bold text-green-500">
                     @(DigitalTwinTimestamp.ToString("dd-MM-yyyy HH:mm zzz"))
                 </span>
             </div>
@@ -116,8 +117,7 @@
 </div>
 
 @code {
-    [Parameter] public bool IsConnected { get; set; }
-    [Parameter] public string ConnectionStatus { get; set; } = "Disconnected";
+    [Parameter] public DateTimeOffset SimulationTimestamp { get; set; }
     [Parameter] public DateTimeOffset DigitalTwinTimestamp { get; set; }
     [Parameter] public Config? Config { get; set; }
 

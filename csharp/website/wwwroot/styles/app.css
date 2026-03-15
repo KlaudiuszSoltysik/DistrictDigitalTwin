@@ -47,7 +47,6 @@
         --font-weight-semibold: 600;
         --font-weight-bold: 700;
         --tracking-tighter: -0.05em;
-        --tracking-tight: -0.025em;
         --tracking-wider: 0.05em;
         --tracking-widest: 0.1em;
         --radius-sm: 0.25rem;
@@ -815,11 +814,6 @@
         letter-spacing: 0.15em;
     }
 
-    .tracking-tight {
-        --tw-tracking: var(--tracking-tight);
-        letter-spacing: var(--tracking-tight);
-    }
-
     .tracking-tighter {
         --tw-tracking: var(--tracking-tighter);
         letter-spacing: var(--tracking-tighter);
@@ -884,10 +878,6 @@
 
     .uppercase {
         text-transform: uppercase;
-    }
-
-    .italic {
-        font-style: italic;
     }
 
     .opacity-30 {

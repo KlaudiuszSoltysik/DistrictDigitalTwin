@@ -38,50 +38,71 @@
     </div>
 </div>
 
-<ApexChart TItem="Telemetry" Title="Room temperatures [°C]" Options="_roomTemperaturesOptions"
+<ApexChart TItem="ChartPoint" Title="Room temperatures [°C]" Options="_roomTemperaturesOptions"
            @ref="_chart1">
     @foreach (var roomName in _activeRoomNames)
     {
-        <ApexPointSeries TItem="Telemetry"
+        <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
                          Name="@roomName"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => GetRoomTemperature(t, roomName))"/>
+                         Items="GetSimulationPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal)p.Temperature)"/>
 
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="@roomName"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => GetRoomTemperature(t, roomName))"/>
-
-        <ApexPointSeries TItem="Telemetry"
+        <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
                          Name="@($"{roomName} digital twin")"
-                         Items="_digitalTwinTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => GetRoomTemperature(t, roomName))"/>
+                         Items="GetDigitalTwinPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal)p.Temperature)"/>
+
+        @if (_selectedRoom == "All")
+        {
+            continue;
+        }
+
+        {
+            <ApexPointSeries TItem="ChartPoint"
+                             SeriesType="SeriesType.Line"
+                             Name="@($"{roomName} min")"
+                             Items="GetConfigPoints(roomName, ConfigLineType.Min)"
+                             XValue="@(p => p.Timestamp)"
+                             YValue="@(p => (decimal)p.Temperature)"/>
+
+            <ApexPointSeries TItem="ChartPoint"
+                             SeriesType="SeriesType.Line"
+                             Name="@($"{roomName} desired")"
+                             Items="GetConfigPoints(roomName, ConfigLineType.Target)"
+                             XValue="@(p => p.Timestamp)"
+                             YValue="@(p => (decimal)p.Temperature)"/>
+
+            <ApexPointSeries TItem="ChartPoint"
+                             SeriesType="SeriesType.Line"
+                             Name="@($"{roomName} max")"
+                             Items="GetConfigPoints(roomName, ConfigLineType.Max)"
+                             XValue="@(p => p.Timestamp)"
+                             YValue="@(p => (decimal)p.Temperature)"/>
+        }
     }
 </ApexChart>
 
-<ApexChart TItem="Telemetry" Title="Room heatings [%]" Options="_roomHeatingsOptions"
+<ApexChart TItem="ChartPoint" Title="Room heatings [%]" Options="_roomHeatingsOptions"
            @ref="_chart2">
     @foreach (var roomName in _activeRoomNames)
     {
-        <ApexPointSeries TItem="Telemetry"
+        <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
                          Name="@roomName"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => GetRoomHeating(t, roomName))"/>
+                         Items="GetSimulationPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal)p.Heating)"/>
 
-        <ApexPointSeries TItem="Telemetry"
+        <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
                          Name="@($"{roomName} digital twin")"
-                         Items="_digitalTwinTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => GetRoomHeating(t, roomName))"/>
+                         Items="GetDigitalTwinPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal)p.Heating)"/>
     }
 </ApexChart>
 
@@ -106,17 +127,33 @@
 }
 
 @code {
+    [Parameter] public List<AllApartmentsConfig>? ApartmentsConfig { get; set; }
+
+    public class ChartPoint
+    {
+        public DateTimeOffset Timestamp { get; set; }
+        public double Temperature { get; set; }
+        public double Heating { get; set; }
+    }
+
+    public enum ConfigLineType
+    {
+        Min,
+        Target,
+        Max
+    }
+
     private int _updateCounter;
     private List<Telemetry> _simulationTelemetry = [];
     private List<Telemetry> _digitalTwinTelemetry = [];
     private readonly List<string> _roomNames = [];
 
-    private ApexChart<Telemetry> _chart1 = new();
-    private ApexChart<Telemetry> _chart2 = new();
+    private ApexChart<ChartPoint> _chart1 = new();
+    private ApexChart<ChartPoint> _chart2 = new();
     private ApexChart<Telemetry> _chart3 = new();
 
-    private ApexChartOptions<Telemetry> _roomTemperaturesOptions = new();
-    private ApexChartOptions<Telemetry> _roomHeatingsOptions = new();
+    private ApexChartOptions<ChartPoint> _roomTemperaturesOptions = new();
+    private ApexChartOptions<ChartPoint> _roomHeatingsOptions = new();
     private ApexChartOptions<Telemetry> _heatingPowerOptions = new();
 
     private readonly string[] _basePalette =
@@ -133,9 +170,9 @@
 
     protected override void OnInitialized()
     {
-        _roomTemperaturesOptions = GenerateOptions("°C");
-        _roomHeatingsOptions = GenerateOptions("%");
-        _heatingPowerOptions = GenerateOptions("kW", 300);
+        _roomTemperaturesOptions = GenerateOptions<ChartPoint>("°C");
+        _roomHeatingsOptions = GenerateOptions<ChartPoint>("%");
+        _heatingPowerOptions = GenerateOptions<Telemetry>("kW", 300);
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)
@@ -206,9 +243,78 @@
         );
     }
 
-    private static ApexChartOptions<Telemetry> GenerateOptions(string unitSuffix, int height = 600)
+    private List<ChartPoint> GetSimulationPoints(string roomName)
     {
-        return new ApexChartOptions<Telemetry>
+        return _simulationTelemetry.Select(t => new ChartPoint
+        {
+            Timestamp = t.Timestamp,
+            Temperature = t.RoomTemperatures[roomName],
+            Heating = t.RoomHeatings[roomName]
+        }).ToList();
+    }
+
+    private List<ChartPoint> GetDigitalTwinPoints(string roomName)
+    {
+        return _digitalTwinTelemetry.Select(t => new ChartPoint
+        {
+            Timestamp = t.Timestamp,
+            Temperature = t.RoomTemperatures[roomName],
+            Heating = t.RoomHeatings[roomName]
+        }).ToList();
+    }
+
+    private List<ChartPoint> GetConfigPoints(string roomName, ConfigLineType type)
+    {
+        var points = new List<ChartPoint>();
+
+        if (ApartmentsConfig == null || !_simulationTelemetry.Any()) return points;
+
+        var parts = roomName.Split(':');
+        if (parts.Length < 3) return points;
+
+        var bId = parts[0];
+        var aId = parts[1];
+        var rId = parts[2];
+
+        var aptConfig = ApartmentsConfig.FirstOrDefault(a => a.BuildingId == bId && a.ApartmentId == aId);
+        var roomConfig = aptConfig?.Rooms.FirstOrDefault(r => r.Id == rId);
+
+        if (roomConfig == null || roomConfig.Hvac.Temperatures.Count == 0) return points;
+
+        var minTimestamp = _digitalTwinTelemetry.Min(t => t.Timestamp);
+        var maxTimestamp = _digitalTwinTelemetry.Max(t => t.Timestamp);
+
+        var startMinute = minTimestamp.Minute - minTimestamp.Minute % 5;
+        var currentTs = new DateTimeOffset(
+            minTimestamp.Year, minTimestamp.Month, minTimestamp.Day,
+            minTimestamp.Hour, startMinute, 0, minTimestamp.Offset);
+
+        while (currentTs <= maxTimestamp)
+        {
+            var index = (currentTs.Hour * 60 + currentTs.Minute) / 5;
+
+            if (index is >= 0 and < 288)
+            {
+                var val = type switch
+                {
+                    ConfigLineType.Min => roomConfig.Hvac.TemperaturesMin[index],
+                    ConfigLineType.Target => roomConfig.Hvac.Temperatures[index],
+                    ConfigLineType.Max => roomConfig.Hvac.TemperaturesMax[index],
+                    _ => 21.0
+                };
+
+                points.Add(new ChartPoint { Timestamp = currentTs, Temperature = val });
+            }
+
+            currentTs = currentTs.AddMinutes(5);
+        }
+
+        return points;
+    }
+
+    private static ApexChartOptions<T> GenerateOptions<T>(string unitSuffix, int height = 600) where T : class
+    {
+        return new ApexChartOptions<T>
         {
             Chart = new Chart
             {
@@ -242,26 +348,6 @@
         };
     }
 
-    private static decimal? GetRoomTemperature(Telemetry item, string roomName)
-    {
-        if (item.RoomTemperatures.TryGetValue(roomName, out var temp))
-        {
-            return (decimal)temp;
-        }
-
-        return null;
-    }
-
-    private static decimal? GetRoomHeating(Telemetry item, string roomName)
-    {
-        if (item.RoomHeatings.TryGetValue(roomName, out var heating))
-        {
-            return (decimal)heating;
-        }
-
-        return null;
-    }
-
     private void ConfigureChartOptions()
     {
         if (_activeRoomNames.Count == 0) return;
@@ -274,17 +360,31 @@
             var roomColor = _basePalette[i % _basePalette.Length];
 
             colors.Add(roomColor);
-            colors.Add(roomColor);
-
             dashArray.Add(0);
+
+            colors.Add(roomColor);
             dashArray.Add(5);
+
+            if (_selectedRoom == "All") continue;
+
+            colors.Add("#FF4560");
+            dashArray.Add(8);
+
+            colors.Add("#00E396");
+            dashArray.Add(0);
+
+            colors.Add("#FF4560");
+            dashArray.Add(8);
         }
 
         _roomTemperaturesOptions.Colors = colors;
         _roomHeatingsOptions.Colors = colors;
 
-        _roomTemperaturesOptions.Stroke?.DashArray = dashArray;
-        _roomHeatingsOptions.Stroke?.DashArray = dashArray;
+        _roomTemperaturesOptions.Stroke ??= new Stroke();
+        _roomHeatingsOptions.Stroke ??= new Stroke();
+
+        _roomTemperaturesOptions.Stroke.DashArray = dashArray;
+        _roomHeatingsOptions.Stroke.DashArray = dashArray;
     }
 
     private IEnumerable<string> GetBuildingOptions()

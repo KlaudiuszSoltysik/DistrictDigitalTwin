@@ -86,3 +86,23 @@ public class HvacUnitConfig
     public double PBand { get; set; }
     public double Ti { get; set; }
 }
+
+public class AllApartmentsConfig
+{
+    public required string BuildingId { get; set; }
+    public required string ApartmentId { get; set; }
+    public List<AllApartmentsConfigRoom> Rooms { get; set; } = [];
+}
+
+public class AllApartmentsConfigRoom
+{
+    public required string Id { get; set; }
+    public required AllApartmentsConfigHvac Hvac { get; set; }
+}
+
+public class AllApartmentsConfigHvac
+{
+    public List<double> TemperaturesMin { get; set; } = [];
+    public List<double> Temperatures { get; set; } = [];
+    public List<double> TemperaturesMax { get; set; } = [];
+}

@@ -2,7 +2,7 @@
     class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none text-white shadow-2xl transition-all duration-300 @(IsEnabled ? "border-gray-700" : "border-gray-800 opacity-80")">
 
     <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
-        <p class="text-xl font-bold italic tracking-tight @(IsEnabled ? "text-white" : "text-gray-500")">@(Name)</p>
+        <p class="text-xl font-bold @(IsEnabled ? "text-white" : "text-gray-500")">@(Name)</p>
 
         <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" class="sr-only peer" checked="@IsEnabled" @onchange="OnIsEnabledChanged"/>
