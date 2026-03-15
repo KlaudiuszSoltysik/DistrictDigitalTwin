@@ -13,6 +13,9 @@ public class SimulationStatusService
 
     public SimulationStatusService(HubConnection hubConnection, HttpClient httpClient)
     {
+        SimulationTimestamp = DateTimeOffset.UtcNow;
+        DigitalTwinTimestamp = DateTimeOffset.UtcNow;
+
         _hubConnection = hubConnection;
         _httpClient = httpClient;
 
@@ -94,8 +97,8 @@ public class SimulationStatusService
     {
         SimulationTelemetry.Clear();
         DigitalTwinTelemetry.Clear();
-        SimulationTimestamp = new DateTimeOffset();
-        DigitalTwinTimestamp = new DateTimeOffset();
+        SimulationTimestamp = DateTimeOffset.UtcNow;
+        DigitalTwinTimestamp = DateTimeOffset.UtcNow;
     }
 
     public async Task SendCommandAsync(string action, string? deviceName = null, Config? targetConfig = null)

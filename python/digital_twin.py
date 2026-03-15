@@ -13,7 +13,6 @@ from shared.logger_config import setup_logger
 
 class DigitalTwinService:
     def __init__(self):
-        print("zainicjalizowano")
         self.logger = setup_logger("digital_twin")
 
         amqp_url = getenv("RABBITMQ_CONNECTION_STRING")
@@ -27,7 +26,6 @@ class DigitalTwinService:
         self.telemetry_channel = None
 
     def start(self):
-        print("start")
         self.listen_for_commands()
 
     def connect_with_retry(self):
@@ -35,10 +33,8 @@ class DigitalTwinService:
             try:
                 connection = BlockingConnection(self.rabbit_params)
                 if connection.is_open:
-                    print("połączono")
                     return connection
-            except Exception as e:
-                print(f"error {e}")
+            except Exception:
                 self.logger.warning("RabbitMQ connection failed. Retrying in 5 seconds...", exc_info=True,
                                     method="connect_with_retry")
                 sleep(5)
@@ -46,7 +42,6 @@ class DigitalTwinService:
     def listen_for_commands(self):
         while True:
             try:
-                print("listening")
                 connection = self.connect_with_retry()
                 channel = connection.channel()
 
@@ -63,13 +58,11 @@ class DigitalTwinService:
                 )
 
                 channel.start_consuming()
-            except Exception as e:
-                print(f"error {e}")
+            except Exception:
                 self.logger.error("Consumer loop crashed", exc_info=True, method="listen_for_commands")
                 sleep(5)
 
     def process_command(self, cmd_json):
-        print(f"otrzymano {cmd_json}")
         try:
             start_ts = pd.Timestamp(cmd_json["start_timestamp"])
             end_ts = start_ts + pd.Timedelta(hours=24)
@@ -80,18 +73,15 @@ class DigitalTwinService:
             self.simulation.hvac.set_temperatures_config()
 
             self.run_physics_loop(end_ts)
-        except Exception as e:
-            print(f"error {e}")
+        except Exception:
             self.logger.error("Failed to parse and process command", exc_info=True, payload=cmd_json,
                               method="process_command")
 
     def run_physics_loop(self, end_timestamp):
-        print("symulacja")
         try:
             telemetry = []
 
             while self.simulation.current_time < end_timestamp:
-                print(f"Twin liczy krok: {self.simulation.current_time}...")
                 step_data = self.simulation.run_step(self.simulation_step)
                 telemetry.append({"run_id": self.run_id, **step_data})
 
@@ -115,11 +105,8 @@ class DigitalTwinService:
                 )
             )
 
-            print(f"obliczono {telemetry}")
-
             pub_conn.close()
-        except Exception as e:
-            print(f"error {e}")
+        except Exception:
             self.logger.error("Failed to publish telemetry to RabbitMQ", exc_info=True, method="run_physics_loop")
 
 
