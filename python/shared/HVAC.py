@@ -106,9 +106,25 @@ class HVAC:
             total_penalty += np.sum(below_min ** 2) * 50000.0
             total_penalty += np.sum(above_max ** 2) * 50000.0
 
-            # total_penalty += np.sum(Q_hvac / (self.max_powers + 1e-9)) * 50.0
+            delta_q = np.diff(Q_hvac_blocked, axis=0)
+
+            delta_percent = delta_q / self.max_powers
+
+            total_penalty += np.sum(delta_percent ** 2) * 5000.0
 
         return total_penalty
+
+    def slew_rate_constraint(self, q_hvac_flat, control_steps):
+        q_blocks = q_hvac_flat.reshape((control_steps, self.num_nodes))
+
+        diffs = np.diff(q_blocks, axis=0)
+
+        max_jump = 0.15 * self.max_powers
+
+        upper_limit = (max_jump - diffs).flatten()
+        lower_limit = (max_jump + diffs).flatten()
+
+        return np.concatenate((upper_limit, lower_limit))
 
     def step(self, current_time, dt, thermal_solver, weather_service, weather_solver):
         horizon_steps = int((self.horizon_hours * 3600) / dt)
@@ -143,10 +159,15 @@ class HVAC:
                 initial_guess,
                 args=(thermal_solver.T, T_min_hor, T_max_hor, t_out_forecast, q_env_forecast, thermal_solver, dt,
                       horizon_steps, block_size),
-                method='L-BFGS-B',
+                method='SLSQP',
                 bounds=bounds,
+                constraints={
+                    'type': 'ineq',
+                    'fun': self.slew_rate_constraint,
+                    'args': (control_steps,)
+                },
                 options={
-                    'maxiter': 20,
+                    'maxiter': 30,
                     'ftol': 1e-4,
                     'eps': 50.0,
                     'disp': False

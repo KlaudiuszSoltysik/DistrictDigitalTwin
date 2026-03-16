@@ -27,15 +27,21 @@ public class SimulationStatusService
 
         _hubConnection.On<Telemetry>("ReceiveSimulationTelemetry", msg =>
         {
+            Console.WriteLine(msg.Timestamp.ToString("HH:mm:ss"));
+            Console.WriteLine("-------------------------------");
+            foreach (var telemetry in SimulationTelemetry)
+            {
+                Console.WriteLine(telemetry.Timestamp.ToString("HH:mm:ss"));
+            }
+            Console.WriteLine("-------------------------------");
+
             lock (_telemetryLock)
             {
                 SimulationTimestamp = msg.Timestamp;
 
-                var existingIndex = SimulationTelemetry.FindIndex(t =>
-                    t.Timestamp.ToUnixTimeSeconds() == msg.Timestamp.ToUnixTimeSeconds());
-                if (existingIndex >= 0)
-                    SimulationTelemetry[existingIndex] = msg;
-                else
+                var targetMinute = msg.Timestamp.ToUnixTimeSeconds() / 60;
+
+                if (!SimulationTelemetry.Exists(t => t.Timestamp.ToUnixTimeSeconds() / 60 == targetMinute))
                     SimulationTelemetry.Add(msg);
 
                 var cutoffTime = msg.Timestamp.AddHours(-24);

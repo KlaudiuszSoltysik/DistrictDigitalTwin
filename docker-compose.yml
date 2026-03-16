@@ -75,14 +75,14 @@ services:
     depends_on:
       - rabbitmq
       - mongodb
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       cpus: "0.1"
-    #       memory: 128M
-    #     limits:
-    #       cpus: "2.0"
-    #       memory: 256M
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+        limits:
+          cpus: "2.0"
+          memory: 256M
 
   digital-twin:
     container_name: ddt_digital_twin
@@ -97,14 +97,14 @@ services:
     depends_on:
       - rabbitmq
       - mongodb
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       cpus: "0.1"
-    #       memory: 128M
-    #     limits:
-    #       cpus: "2.0"
-    #       memory: 256M
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+        limits:
+          cpus: "2.0"
+          memory: 256M
 
   api:
     container_name: ddt_api
