@@ -6,7 +6,7 @@ from shared.MongoDbController import MongoDbController
 
 
 class HVAC:
-    def __init__(self, num_nodes, max_heating_powers, district_id_dict):
+    def __init__(self, num_nodes, max_heating_powers, district_id_dict, is_digital_twin):
         self.horizon_hours = 24
         self.cached_plan = None
         self.plan_step_index = 0
@@ -16,6 +16,7 @@ class HVAC:
         self.num_nodes = num_nodes
         self.max_powers = max_heating_powers
         self.district_id_dict = district_id_dict
+        self.is_digital_twin = is_digital_twin
 
         self.target_24h = None
         self.min_24h = None
@@ -112,24 +113,24 @@ class HVAC:
 
             total_penalty += np.sum(delta_percent ** 2) * 5000.0
 
+            delta_q = np.abs(np.diff(Q_hvac_blocked, axis=0))
+            delta_percent = delta_q / (self.max_powers + 1e-9)
+
+            illegal_jumps = np.maximum(0, delta_percent - 0.15)
+
+            total_penalty += np.sum(illegal_jumps) * 10000000.0
+
         return total_penalty
 
-    def slew_rate_constraint(self, q_hvac_flat, control_steps):
-        q_blocks = q_hvac_flat.reshape((control_steps, self.num_nodes))
-
-        diffs = np.diff(q_blocks, axis=0)
-
-        max_jump = 0.15 * self.max_powers
-
-        upper_limit = (max_jump - diffs).flatten()
-        lower_limit = (max_jump + diffs).flatten()
-
-        return np.concatenate((upper_limit, lower_limit))
-
     def step(self, current_time, dt, thermal_solver, weather_service, weather_solver):
+        if dt == 0:
+            return np.zeros(self.num_nodes)
+
         horizon_steps = int((self.horizon_hours * 3600) / dt)
 
-        if self.cached_plan is None or self.plan_step_index >= horizon_steps:
+        recalc_interval = horizon_steps if self.is_digital_twin else 12
+
+        if self.cached_plan is None or self.plan_step_index >= recalc_interval:
             t_out_forecast = np.zeros(horizon_steps)
             q_env_forecast = np.zeros((horizon_steps, self.num_nodes))
             future_time = current_time
@@ -148,7 +149,7 @@ class HVAC:
 
             T_min_hor, T_max_hor = self.get_target_trajectories(current_time, dt, horizon_steps)
 
-            block_size = 6
+            block_size = 12
             control_steps = horizon_steps // block_size
 
             initial_guess = np.tile(self.max_powers / 2.0, control_steps)
@@ -159,17 +160,12 @@ class HVAC:
                 initial_guess,
                 args=(thermal_solver.T, T_min_hor, T_max_hor, t_out_forecast, q_env_forecast, thermal_solver, dt,
                       horizon_steps, block_size),
-                method='SLSQP',
+                method='L-BFGS-B',
                 bounds=bounds,
-                constraints={
-                    'type': 'ineq',
-                    'fun': self.slew_rate_constraint,
-                    'args': (control_steps,)
-                },
                 options={
-                    'maxiter': 30,
-                    'ftol': 1e-4,
-                    'eps': 50.0,
+                    'maxiter': 2,
+                    'ftol': 1e-3,
+                    'eps': 100.0,
                     'disp': False
                 }
             )

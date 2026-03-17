@@ -81,6 +81,9 @@ class DigitalTwinService:
         try:
             telemetry = []
 
+            step_data = self.simulation.run_step(0)
+            telemetry.append({"run_id": self.run_id, **step_data})
+
             while self.simulation.current_time < end_timestamp:
                 step_data = self.simulation.run_step(self.simulation_step)
                 telemetry.append({"run_id": self.run_id, **step_data})

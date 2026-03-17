@@ -62,7 +62,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
             db.SimulationTelemetry.Add(entity);
             await db.SaveChangesAsync();
 
-            if (currentTimestamp.Hour != _lastProcessedHour || _lastProcessedHour == -1)
+            if (currentTimestamp.Hour != _lastProcessedHour)
             {
                 _lastProcessedHour = currentTimestamp.Hour;
 
