@@ -99,7 +99,7 @@ class SimulationService:
         self.is_paused = True
         self.simulation_speed = 30
         self.simulation_step = 300
-        self.room_temperature_noise_sigma = 0.5
+        self.room_temperature_noise_sigma = 0.1
 
     def run_physics_loop(self):
         pub_conn = None

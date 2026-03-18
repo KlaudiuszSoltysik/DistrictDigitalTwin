@@ -71,6 +71,8 @@ class DigitalTwinService:
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
 
             self.simulation.hvac.set_temperatures_config()
+            self.simulation.hvac.cached_plan = None
+            self.simulation.hvac.plan_step_index = 0
 
             self.run_physics_loop(end_ts)
         except Exception:
@@ -80,9 +82,6 @@ class DigitalTwinService:
     def run_physics_loop(self, end_timestamp):
         try:
             telemetry = []
-
-            step_data = self.simulation.run_step(0)
-            telemetry.append({"run_id": self.run_id, **step_data})
 
             while self.simulation.current_time < end_timestamp:
                 step_data = self.simulation.run_step(self.simulation_step)

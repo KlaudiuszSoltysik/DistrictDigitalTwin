@@ -7,7 +7,9 @@ from shared.MongoDbController import MongoDbController
 
 class HVAC:
     def __init__(self, num_nodes, max_heating_powers, district_id_dict, is_digital_twin):
-        self.horizon_hours = 24
+        self.horizon_hours = 6
+        self.block_size = 12
+
         self.cached_plan = None
         self.plan_step_index = 0
 
@@ -75,9 +77,9 @@ class HVAC:
         return T_min_horizon, T_max_horizon
 
     def cost_function(self, q_hvac_flat, current_T, T_min_hor, T_max_hor, t_out_for, q_env_for, thermal_solver, dt,
-                      horizon_steps, block_size):
+                      horizon_steps):
         Q_hvac_blocked = q_hvac_flat.reshape((-1, self.num_nodes))
-        Q_hvac_matrix = np.repeat(Q_hvac_blocked, block_size, axis=0)
+        Q_hvac_matrix = np.repeat(Q_hvac_blocked, self.block_size, axis=0)
 
         T_sim = np.copy(current_T)
         total_penalty = 0.0
@@ -128,9 +130,14 @@ class HVAC:
 
         horizon_steps = int((self.horizon_hours * 3600) / dt)
 
-        recalc_interval = horizon_steps if self.is_digital_twin else 12
+        needs_recalc = False
 
-        if self.cached_plan is None or self.plan_step_index >= recalc_interval:
+        if self.cached_plan is None:
+            needs_recalc = True
+        elif not self.is_digital_twin and self.plan_step_index >= 12:
+            needs_recalc = True
+
+        if needs_recalc:
             t_out_forecast = np.zeros(horizon_steps)
             q_env_forecast = np.zeros((horizon_steps, self.num_nodes))
             future_time = current_time
@@ -149,8 +156,7 @@ class HVAC:
 
             T_min_hor, T_max_hor = self.get_target_trajectories(current_time, dt, horizon_steps)
 
-            block_size = 12
-            control_steps = horizon_steps // block_size
+            control_steps = horizon_steps // self.block_size
 
             initial_guess = np.tile(self.max_powers / 2.0, control_steps)
             bounds = [(0.0, self.max_powers[i]) for _ in range(control_steps) for i in range(self.num_nodes)]
@@ -159,11 +165,11 @@ class HVAC:
                 self.cost_function,
                 initial_guess,
                 args=(thermal_solver.T, T_min_hor, T_max_hor, t_out_forecast, q_env_forecast, thermal_solver, dt,
-                      horizon_steps, block_size),
+                      horizon_steps),
                 method='L-BFGS-B',
                 bounds=bounds,
                 options={
-                    'maxiter': 2,
+                    'maxiter': 20,
                     'ftol': 1e-3,
                     'eps': 100.0,
                     'disp': False
@@ -172,10 +178,14 @@ class HVAC:
 
             optimal_plan_blocked = res.x.reshape((control_steps, self.num_nodes))
 
-            self.cached_plan = np.repeat(optimal_plan_blocked, block_size, axis=0)
+            self.cached_plan = np.repeat(optimal_plan_blocked, self.block_size, axis=0)
             self.plan_step_index = 0
 
-        current_optimal_q = self.cached_plan[self.plan_step_index, :] * self.enabled_mask
+        if self.plan_step_index < len(self.cached_plan):
+            current_optimal_q = self.cached_plan[self.plan_step_index, :] * self.enabled_mask
+        else:
+            current_optimal_q = np.zeros(self.num_nodes)
+
         self.plan_step_index += 1
 
         return current_optimal_q
