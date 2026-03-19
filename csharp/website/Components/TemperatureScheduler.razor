@@ -1,27 +1,31 @@
 ﻿<div
-    class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none text-white shadow-2xl transition-all duration-300 @(IsEnabled ? "border-gray-700" : "border-gray-800 opacity-80")">
+    class="my-10 border rounded-xl overflow-hidden select-none shadow-2xl transition-all duration-300 @(IsActive ? "border-gray-700" : "border-gray-800")">
 
     <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
-        <p class="text-xl font-bold @(IsEnabled ? "text-white" : "text-gray-500")">@(Name)</p>
+        <p class="text-xl font-bold transition-colors @(IsActive ? "text-white" : "text-gray-500")">@(Name)</p>
 
         <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" class="sr-only peer" checked="@IsEnabled" @onchange="OnIsEnabledChanged"/>
+            <input type="checkbox" class="sr-only peer" checked="@IsActive" @onchange="OnMasterSwitchChanged"/>
             <div
                 class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-200 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 transition-colors"></div>
-            <span class="ml-3 text-sm font-bold w-8 @(IsEnabled ? "text-indigo-400" : "text-gray-500")">
-                @(IsEnabled ? "ON" : "OFF")
+            <span class="ml-3 text-sm font-bold w-8 @(IsActive ? "text-indigo-400" : "text-gray-500")">
+                @(IsActive ? "ON" : "OFF")
             </span>
         </label>
     </div>
 
     <div
-        class="flex items-end justify-between h-96 gap-1 sm:gap-2 bg-gray-900 p-6 shadow-inner transition-opacity duration-300 @(IsEnabled ? "opacity-100" : "opacity-30 pointer-events-none")">
+        class="flex items-end justify-between h-[26rem] gap-1 sm:gap-2 bg-gray-900 p-6 shadow-inner transition-opacity duration-300">
 
         @for (var i = 0; i < 24; i++)
         {
             var hour = i;
-            <div class="flex flex-col items-center w-full h-full">
-                <span class="text-[10px] sm:text-xs font-bold text-indigo-400 mb-4 h-4 transition-all">
+            var isHourEnabled = IsEnabled[hour];
+
+            <div
+                class="flex flex-col items-center w-full h-full transition-all duration-300 @(isHourEnabled ? "opacity-100" : "opacity-40 grayscale")">
+                <span
+                    class="text-[10px] sm:text-xs font-bold @(isHourEnabled ? "text-indigo-400" : "text-gray-500") mb-4 h-4 transition-colors">
                     @Temperatures[hour].ToString("F1")°
                 </span>
 
@@ -30,13 +34,21 @@
                            min="16.0"
                            max="26.0"
                            step="0.1"
-                           class="absolute w-64 h-1 bg-gray-800 rounded-lg appearance-none outline-none thermostat-range cursor-pointer"
+                           disabled="@(!isHourEnabled)"
+                           class="absolute w-64 h-1 bg-gray-800 rounded-lg appearance-none outline-none thermostat-range @(isHourEnabled ? "cursor-pointer" : "cursor-not-allowed")"
                            style="transform: rotate(-90deg);"
                            @bind="Temperatures[hour]"
                            @bind:event="oninput"/>
                 </div>
 
-                <span class="text-[10px] sm:text-xs text-gray-500 mt-4 font-medium uppercase tracking-tighter">
+                <label class="relative inline-flex items-center cursor-pointer mt-4 mb-1" title="Enable/Disable hour">
+                    <input type="checkbox" class="sr-only peer" @bind="IsEnabled[hour]"/>
+                    <div
+                        class="w-8 h-4 bg-gray-700 rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-500 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500 transition-colors hover:bg-gray-600"></div>
+                </label>
+
+                <span
+                    class="text-[10px] sm:text-xs @(isHourEnabled ? "text-gray-400" : "text-gray-600") mt-1 font-medium uppercase tracking-tighter">
                     @(hour.ToString("00"))
                 </span>
             </div>
@@ -61,7 +73,7 @@
                        @oninput="OnToleranceInput"/>
             </div>
 
-            <span class="text-[10px] sm:text-xs text-fuchsia-500/70 mt-4 font-bold uppercase tracking-widest">
+            <span class="text-[10px] sm:text-xs text-fuchsia-500/70 mt-auto mb-1 font-bold uppercase tracking-widest">
                 Tolerance
             </span>
         </div>
@@ -76,8 +88,10 @@
     [Parameter] public double Tolerance { get; set; }
     [Parameter] public EventCallback<double> ToleranceChanged { get; set; }
 
-    [Parameter] public bool IsEnabled { get; set; } = true;
+    [Parameter] public bool[] IsEnabled { get; set; } = Enumerable.Repeat(true, 24).ToArray();
     [Parameter] public EventCallback<bool> IsEnabledChanged { get; set; }
+
+    private bool IsActive => IsEnabled.Any(s => s);
 
     private async Task OnToleranceInput(ChangeEventArgs e)
     {
@@ -88,12 +102,13 @@
         }
     }
 
-    private async Task OnIsEnabledChanged(ChangeEventArgs e)
+    private void OnMasterSwitchChanged(ChangeEventArgs e)
     {
-        if (e.Value is bool newVal)
+        if (e.Value is not bool val) return;
+
+        for (var i = 0; i < 24; i++)
         {
-            IsEnabled = newVal;
-            await IsEnabledChanged.InvokeAsync(newVal);
+            IsEnabled[i] = val;
         }
     }
 

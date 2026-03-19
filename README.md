@@ -104,3 +104,4 @@ Creating a scalable backend system that manages a "virtual residential block" (a
 - powerful cicd (terraform, fix postgres: makemigrations, migrate and create hypertables)
 - continue HVAC (python)
 - add connection status (?)
+- bug: fix synchronization

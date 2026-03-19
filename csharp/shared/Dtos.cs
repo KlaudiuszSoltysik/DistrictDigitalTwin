@@ -76,7 +76,7 @@ public class HvacControl
 {
     public List<double> Temperatures { get; set; } = [];
     public double Tolerance { get; set; } = 0.1;
-    public bool IsEnabled { get; set; }
+    public List<bool> IsEnabled { get; set; } = [];
 }
 
 [BsonIgnoreExtraElements]

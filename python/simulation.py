@@ -42,7 +42,7 @@ class SimulationService:
                 connection = BlockingConnection(self.rabbit_params)
                 if connection.is_open:
                     return connection
-            except Exception as e:
+            except Exception:
                 self.logger.warning("RabbitMQ connection failed. Retrying in 5 seconds...", exc_info=True,
                                     method="connect_with_retry")
                 sleep(5)
@@ -61,7 +61,7 @@ class SimulationService:
 
                 channel.basic_consume(queue="simulation-commands", on_message_callback=callback, auto_ack=True)
                 channel.start_consuming()
-            except Exception as e:
+            except Exception:
                 self.logger.error("Consumer loop crashed", exc_info=True, method="listen_for_commands")
                 sleep(5)
 
@@ -88,7 +88,7 @@ class SimulationService:
                     self.reset_simulation_logic()
 
                 self.wake_event.set()
-            except Exception as e:
+            except Exception:
                 self.logger.error("Failed to parse and process command", exc_info=True, payload=cmd_json,
                                   method="process_command")
 
@@ -99,12 +99,14 @@ class SimulationService:
         self.is_paused = True
         self.simulation_speed = 30
         self.simulation_step = 300
-        self.room_temperature_noise_sigma = 0.5
+        self.room_temperature_noise_sigma = 0.1
 
     def run_physics_loop(self):
         pub_conn = None
         telemetry_channel = None
         config_channel = None
+
+        is_initial_run = True
 
         while True:
             self.wake_event.clear()
@@ -112,7 +114,7 @@ class SimulationService:
             with self.lock:
                 paused = self.is_paused
                 speed = self.simulation_speed
-                step = self.simulation_step
+                step = 0 if is_initial_run else self.simulation_step
                 room_temperature_noise_sigma = self.room_temperature_noise_sigma
 
             try:
@@ -160,8 +162,10 @@ class SimulationService:
                 compute_time = time() - start_time
                 real_sleep = max(0.0, target_sleep - compute_time)
 
+                is_initial_run = False
+
                 self.wake_event.wait(real_sleep)
-            except Exception as e:
+            except Exception:
                 self.logger.error("Failed to publish telemetry to RabbitMQ", exc_info=True, method="run_physics_loop")
 
                 if pub_conn and pub_conn.is_open:
