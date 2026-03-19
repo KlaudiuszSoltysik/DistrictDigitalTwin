@@ -68,7 +68,7 @@ class DigitalTwinService:
             end_ts = start_ts + pd.Timedelta(hours=24)
 
             self.simulation.current_time = start_ts
-            self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()))
+            self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()), dtype=float)
 
             self.simulation.hvac.set_temperatures_config()
             self.simulation.hvac.cached_plan = None
@@ -82,7 +82,6 @@ class DigitalTwinService:
     def run_physics_loop(self, end_timestamp):
         try:
             telemetry = []
-
             while self.simulation.current_time < end_timestamp:
                 step_data = self.simulation.run_step(self.simulation_step)
                 telemetry.append({"run_id": self.run_id, **step_data})

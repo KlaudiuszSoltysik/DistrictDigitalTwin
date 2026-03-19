@@ -23,13 +23,13 @@ class HVAC:
         self.target_24h = None
         self.min_24h = None
         self.max_24h = None
-        self.enabled_mask = None
+        self.is_enabled_24h = None
         self.set_temperatures_config()
 
     def set_temperatures_config(self):
         self.target_24h = np.full((self.num_nodes, 24), 21.0)
         tolerance_channel = np.full((self.num_nodes, 24), 0.5)
-        self.enabled_mask = np.zeros(self.num_nodes)
+        self.is_enabled_24h = np.zeros((self.num_nodes, 24))
 
         configs = list(self.mongodb.db["apartments-config"].find({}))
 
@@ -52,7 +52,10 @@ class HVAC:
                     self.target_24h[idx, :] = temps
 
                 tolerance_channel[idx] = ctrl.get("Tolerance", 0.5)
-                self.enabled_mask[idx] = 1.0 if ctrl.get("IsEnabled", True) else 0.0
+
+                is_enabled = ctrl.get("IsEnabled")
+                if is_enabled and len(is_enabled) == 24:
+                    self.is_enabled_24h[idx, :] = [1.0 if s else 0.0 for s in is_enabled]
 
         self.min_24h = self.target_24h - tolerance_channel
         self.max_24h = self.target_24h + tolerance_channel
@@ -91,7 +94,7 @@ class HVAC:
         T_ground = thermal_solver.T_ground
 
         for k in range(horizon_steps):
-            Q_hvac = Q_hvac_matrix[k] * self.enabled_mask
+            Q_hvac = Q_hvac_matrix[k]
 
             Q_inter = np.dot(G, T_sim) - (np.sum(G, axis=1) * T_sim)
             Q_air = G_ext_air * (t_out_for[k] - T_sim)
@@ -158,8 +161,24 @@ class HVAC:
 
             control_steps = horizon_steps // self.block_size
 
-            initial_guess = np.tile(self.max_powers / 2.0, control_steps)
-            bounds = [(0.0, self.max_powers[i]) for _ in range(control_steps) for i in range(self.num_nodes)]
+            bounds = []
+            iter_time = current_time
+
+            for b in range(control_steps):
+                time_float = iter_time.hour + (iter_time.minute / 60.0)
+                current_h = int(time_float) % 24
+
+                for i in range(self.num_nodes):
+                    is_enabled = self.is_enabled_24h[i, current_h] > 0.5
+
+                    if is_enabled:
+                        bounds.append((0.0, self.max_powers[i]))
+                    else:
+                        bounds.append((0.0, 0.0))
+
+                iter_time += pd.Timedelta(seconds=(self.block_size * dt))
+
+            initial_guess = np.zeros(control_steps * self.num_nodes)
 
             res = minimize(
                 self.cost_function,
@@ -182,10 +201,80 @@ class HVAC:
             self.plan_step_index = 0
 
         if self.plan_step_index < len(self.cached_plan):
-            current_optimal_q = self.cached_plan[self.plan_step_index, :] * self.enabled_mask
+            time_float = current_time.hour + (current_time.minute / 60.0)
+            current_h = int(time_float) % 24
+            active_mask = self.is_enabled_24h[:, current_h]
+
+            current_optimal_q = self.cached_plan[self.plan_step_index, :] * active_mask
         else:
             current_optimal_q = np.zeros(self.num_nodes)
 
         self.plan_step_index += 1
 
         return current_optimal_q
+
+    # def step(self, current_time, dt, thermal_solver, weather_service, weather_solver):
+    #     if dt == 0:
+    #         return np.zeros(self.num_nodes)
+    #
+    #     horizon_steps = int((self.horizon_hours * 3600) / dt)
+    #
+    #     needs_recalc = False
+    #
+    #     if self.cached_plan is None:
+    #         needs_recalc = True
+    #     elif not self.is_digital_twin and self.plan_step_index >= 12:
+    #         needs_recalc = True
+    #
+    #     if needs_recalc:
+    #         t_out_forecast = np.zeros(horizon_steps)
+    #         q_env_forecast = np.zeros((horizon_steps, self.num_nodes))
+    #         future_time = current_time
+    #         T_frozen_for_prediction = np.copy(thermal_solver.T)
+    #
+    #         for k in range(horizon_steps):
+    #             w = weather_service.get_weather(future_time)
+    #             t_out_forecast[k] = w["temperature"]
+    #             q_env = weather_solver.calculate_environmental_gains(
+    #                 w["sun_radiation"], w["sun_altitude"], w["sun_azimuth"],
+    #                 w["wind_speed"], w["wind_direction"], w["temperature"],
+    #                 T_frozen_for_prediction
+    #             )
+    #             q_env_forecast[k, :] = q_env
+    #             future_time += pd.Timedelta(seconds=dt)
+    #
+    #         T_min_hor, T_max_hor = self.get_target_trajectories(current_time, dt, horizon_steps)
+    #
+    #         control_steps = horizon_steps // self.block_size
+    #
+    #         initial_guess = np.tile(self.max_powers / 2.0, control_steps)
+    #         bounds = [(0.0, self.max_powers[i]) for _ in range(control_steps) for i in range(self.num_nodes)]
+    #
+    #         res = minimize(
+    #             self.cost_function,
+    #             initial_guess,
+    #             args=(thermal_solver.T, T_min_hor, T_max_hor, t_out_forecast, q_env_forecast, thermal_solver, dt,
+    #                   horizon_steps),
+    #             method='L-BFGS-B',
+    #             bounds=bounds,
+    #             options={
+    #                 'maxiter': 20,
+    #                 'ftol': 1e-3,
+    #                 'eps': 100.0,
+    #                 'disp': False
+    #             }
+    #         )
+    #
+    #         optimal_plan_blocked = res.x.reshape((control_steps, self.num_nodes))
+    #
+    #         self.cached_plan = np.repeat(optimal_plan_blocked, self.block_size, axis=0)
+    #         self.plan_step_index = 0
+    #
+    #     if self.plan_step_index < len(self.cached_plan):
+    #         current_optimal_q = self.cached_plan[self.plan_step_index, :] * self.enabled_mask
+    #     else:
+    #         current_optimal_q = np.zeros(self.num_nodes)
+    #
+    #     self.plan_step_index += 1
+    #
+    #     return current_optimal_q

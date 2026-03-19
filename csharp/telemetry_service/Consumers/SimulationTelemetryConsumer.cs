@@ -62,8 +62,12 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
             db.SimulationTelemetry.Add(entity);
             await db.SaveChangesAsync();
 
+            Console.WriteLine(currentTimestamp);
+
             if (currentTimestamp.Hour != _lastProcessedHour)
             {
+                Console.WriteLine($"current ts: {currentTimestamp} last processed hour: {_lastProcessedHour}");
+
                 _lastProcessedHour = currentTimestamp.Hour;
 
                 var twinRequest = new DigitalTwinRequest

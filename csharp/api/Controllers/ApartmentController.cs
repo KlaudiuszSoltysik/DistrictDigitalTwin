@@ -79,7 +79,7 @@ public class ApartmentController(
                             Tolerance = userTolerance.HasValue
                                 ? double.Clamp(userTolerance.Value, 0.1, 10.0)
                                 : 0.5,
-                            IsEnabled = userIsEnabled ?? false
+                            IsEnabled = userIsEnabled ?? Enumerable.Repeat(false, 24).ToList()
                         }
                     };
                 }).ToList()
@@ -138,7 +138,7 @@ public class ApartmentController(
                     {
                         Temperatures = Enumerable.Repeat(21.0, 24).ToList(),
                         Tolerance = 0.1,
-                        IsEnabled = false
+                        IsEnabled = Enumerable.Repeat(false, 24).ToList()
                     }
                 }).ToList()
         };

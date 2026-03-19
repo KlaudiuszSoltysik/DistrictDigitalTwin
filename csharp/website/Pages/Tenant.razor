@@ -42,7 +42,7 @@
                     Name="@room.Name"
                     Temperatures="_temperatures[room.Id]"
                     @bind-Tolerance="room.HvacControl.Tolerance"
-                    @bind-IsEnabled="room.HvacControl.IsEnabled"/>
+                    IsEnabled="_isEnabled[room.Id]"/>
             </div>
         }
     </div>
@@ -59,6 +59,7 @@
     private ApartmentConfig? _apartmentConfig;
 
     private readonly Dictionary<string, double[]> _temperatures = new();
+    private readonly Dictionary<string, bool[]> _isEnabled = new();
     private List<RoomConfig> _rooms = [];
 
     private bool _isLoading = true;
@@ -76,15 +77,26 @@
             if (_apartmentConfig != null)
             {
                 _rooms = _apartmentConfig.Rooms;
+
                 foreach (var room in _rooms)
                 {
-                    var temps = room.HvacControl?.Temperatures?.ToArray();
+                    var temps = room.HvacControl.Temperatures.ToArray();
+
                     if (temps is not { Length: 24 })
                     {
                         temps = Enumerable.Repeat(21.0, 24).ToArray();
                     }
 
                     _temperatures[room.Id] = temps;
+
+                    var isEnabled = room.HvacControl.IsEnabled.ToArray();
+
+                    if (isEnabled is not { Length: 24 })
+                    {
+                    isEnabled = Enumerable.Repeat(false, 24).ToArray();
+                    }
+
+                    _isEnabled[room.Id] = isEnabled;
                 }
             }
         }
@@ -111,8 +123,10 @@
             foreach (var room in _apartmentConfig.Rooms)
             {
                 if (!_temperatures.TryGetValue(room.Id, out var modifiedTemps)) continue;
+                if (!_isEnabled.TryGetValue(room.Id, out var modifiedIsEnabled)) continue;
 
                 room.HvacControl.Temperatures = modifiedTemps.ToList();
+                room.HvacControl.IsEnabled = modifiedIsEnabled.ToList();
             }
 
             var command = _apartmentConfig;
