@@ -103,6 +103,7 @@ public class AllApartmentsConfigRoom
 public class AllApartmentsConfigHvac
 {
     public List<double> TemperaturesMin { get; set; } = [];
-    public List<double> Temperatures { get; set; } = [];
+    public List<double?> Temperatures { get; set; } = [];
     public List<double> TemperaturesMax { get; set; } = [];
+    public List<bool> IsEnabled { get; set; } = [];
 }

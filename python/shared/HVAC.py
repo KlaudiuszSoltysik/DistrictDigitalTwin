@@ -72,8 +72,13 @@ class HVAC:
             w = time_float - int(time_float)
             mu = (1.0 - np.cos(w * np.pi)) / 2.0
 
-            T_min_horizon[k, :] = self.min_24h[:, h0] * (1.0 - mu) + self.min_24h[:, h1] * mu
-            T_max_horizon[k, :] = self.max_24h[:, h0] * (1.0 - mu) + self.max_24h[:, h1] * mu
+            base_min = self.min_24h[:, h0] * (1.0 - mu) + self.min_24h[:, h1] * mu
+            base_max = self.max_24h[:, h0] * (1.0 - mu) + self.max_24h[:, h1] * mu
+
+            is_active = self.is_enabled_24h[:, h0] > 0.5
+
+            T_min_horizon[k, :] = np.where(is_active, base_min, 16.0)
+            T_max_horizon[k, :] = np.where(is_active, base_max, 26.0)
 
             future_time += pd.Timedelta(seconds=dt)
 
@@ -161,23 +166,7 @@ class HVAC:
 
             control_steps = horizon_steps // self.block_size
 
-            bounds = []
-            iter_time = current_time
-
-            for b in range(control_steps):
-                time_float = iter_time.hour + (iter_time.minute / 60.0)
-                current_h = int(time_float) % 24
-
-                for i in range(self.num_nodes):
-                    is_enabled = self.is_enabled_24h[i, current_h] > 0.5
-
-                    if is_enabled:
-                        bounds.append((0.0, self.max_powers[i]))
-                    else:
-                        bounds.append((0.0, 0.0))
-
-                iter_time += pd.Timedelta(seconds=(self.block_size * dt))
-
+            bounds = [(0.0, self.max_powers[i]) for _ in range(control_steps) for i in range(self.num_nodes)]
             initial_guess = np.zeros(control_steps * self.num_nodes)
 
             res = minimize(
@@ -201,11 +190,7 @@ class HVAC:
             self.plan_step_index = 0
 
         if self.plan_step_index < len(self.cached_plan):
-            time_float = current_time.hour + (current_time.minute / 60.0)
-            current_h = int(time_float) % 24
-            active_mask = self.is_enabled_24h[:, current_h]
-
-            current_optimal_q = self.cached_plan[self.plan_step_index, :] * active_mask
+            current_optimal_q = self.cached_plan[self.plan_step_index, :]
         else:
             current_optimal_q = np.zeros(self.num_nodes)
 
