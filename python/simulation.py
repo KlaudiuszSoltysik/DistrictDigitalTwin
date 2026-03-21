@@ -78,9 +78,6 @@ class SimulationService:
                     self.simulation_step = target_config["simulation_step"]
                     self.room_temperature_noise_sigma = target_config["room_temperature_noise_sigma"]
 
-                elif action == "UPDATE_HVAC_CONFIG":
-                    self.simulation.hvac.set_unit_config()
-
                 elif action == "UPDATE_APARTMENT_CONFIG":
                     self.simulation.hvac.set_temperatures_config()
 

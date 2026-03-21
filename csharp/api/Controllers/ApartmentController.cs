@@ -194,7 +194,7 @@ public class ApartmentController(
 
             targetTemp = Math.Round(targetTemp, 2);
 
-            if (isEnabled[h0] && isEnabled[h1] || isEnabled[h0] && m % 60 == 0)
+            if ((isEnabled[h0] && isEnabled[h1]) || (isEnabled[h0] && m % 60 == 0))
             {
                 result.Temperatures.Add(targetTemp);
                 result.TemperaturesMin.Add(Math.Round(targetTemp - tolerance, 2));

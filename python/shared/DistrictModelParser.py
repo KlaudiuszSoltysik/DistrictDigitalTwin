@@ -23,6 +23,7 @@ class DistrictModelParser:
         self.C = np.zeros(self.N)
 
         self.max_heating_powers = np.zeros(self.N)
+        self.max_cooling_powers = np.zeros(self.N)
 
         self.standards = {building["id"]: building["standards"] for building in self.raw_data["buildings"]}
 
@@ -53,6 +54,7 @@ class DistrictModelParser:
             self.C[i] = c_air + (room["area"] * capacity_value)
 
             self.max_heating_powers[i] = room["area"] * standards["heating_power_per_m2"]
+            self.max_cooling_powers[i] = room["area"] * standards["cooling_power_per_m2"]
 
         for building in self.raw_data["buildings"]:
             building_standards = building["standards"]

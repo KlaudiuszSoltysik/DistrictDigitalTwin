@@ -79,14 +79,6 @@ public class HvacControl
     public List<bool> IsEnabled { get; set; } = [];
 }
 
-[BsonIgnoreExtraElements]
-public class HvacUnitConfig
-{
-    public required string Name { get; set; }
-    public double PBand { get; set; }
-    public double Ti { get; set; }
-}
-
 public class AllApartmentsConfig
 {
     public required string BuildingId { get; set; }

@@ -6,7 +6,7 @@ from shared.MongoDbController import MongoDbController
 
 
 class HVAC:
-    def __init__(self, num_nodes, max_heating_powers, district_id_dict, is_digital_twin):
+    def __init__(self, num_nodes, max_heating_powers, max_cooling_powers, district_id_dict, is_digital_twin):
         self.horizon_hours = 6
         self.block_size = 12
 
@@ -17,6 +17,7 @@ class HVAC:
 
         self.num_nodes = num_nodes
         self.max_powers = max_heating_powers
+        self.min_powers = max_cooling_powers
         self.district_id_dict = district_id_dict
         self.is_digital_twin = is_digital_twin
 
@@ -89,7 +90,7 @@ class HVAC:
         Q_hvac_blocked = q_hvac_flat.reshape((-1, self.num_nodes))
         Q_hvac_matrix = np.repeat(Q_hvac_blocked, self.block_size, axis=0)
 
-        T_sim = np.copy(current_T)
+        T_sim = np.array(current_T, dtype=float)
         total_penalty = 0.0
 
         G = thermal_solver.G
@@ -111,24 +112,25 @@ class HVAC:
             below_min = np.maximum(0, T_min_hor[k] - T_sim)
             above_max = np.maximum(0, T_sim - T_max_hor[k])
 
-            total_penalty += np.sum(below_min) * 10000.0
-            total_penalty += np.sum(above_max) * 10000.0
+            # penalty for temperatures
+            total_penalty += np.sum(below_min) * 10000.0 + np.sum(below_min ** 2) * 50000.0
+            total_penalty += np.sum(above_max) * 10000.0 + np.sum(above_max ** 2) * 50000.0
 
-            total_penalty += np.sum(below_min ** 2) * 50000.0
-            total_penalty += np.sum(above_max ** 2) * 50000.0
+            # penalty for causing dew on the floor
+            floor_freezing_penalty = np.maximum(0, 19.0 - T_sim)
+            total_penalty += np.sum(floor_freezing_penalty) * 100000.0
 
-            delta_q = np.diff(Q_hvac_blocked, axis=0)
+        delta_q = np.diff(Q_hvac_blocked, axis=0)
+        delta_percent = delta_q / self.max_powers
 
-            delta_percent = delta_q / self.max_powers
+        # penalty for low stability
+        total_penalty += np.sum(delta_percent ** 2) * 5000.0
 
-            total_penalty += np.sum(delta_percent ** 2) * 5000.0
+        # penalty for exceeding maximum power change
+        illegal_jumps = np.maximum(0, np.abs(delta_percent) - 0.15)
+        total_penalty += np.sum(illegal_jumps) * 10000000.0
 
-            delta_q = np.abs(np.diff(Q_hvac_blocked, axis=0))
-            delta_percent = delta_q / (self.max_powers + 1e-9)
-
-            illegal_jumps = np.maximum(0, delta_percent - 0.15)
-
-            total_penalty += np.sum(illegal_jumps) * 10000000.0
+        # penalty for energy consumption
 
         return total_penalty
 
@@ -166,7 +168,8 @@ class HVAC:
 
             control_steps = horizon_steps // self.block_size
 
-            bounds = [(0.0, self.max_powers[i]) for _ in range(control_steps) for i in range(self.num_nodes)]
+            bounds = [(-self.min_powers[i], self.max_powers[i]) for _ in range(control_steps) for i in
+                      range(self.num_nodes)]
             initial_guess = np.zeros(control_steps * self.num_nodes)
 
             res = minimize(
@@ -197,69 +200,3 @@ class HVAC:
         self.plan_step_index += 1
 
         return current_optimal_q
-
-    # def step(self, current_time, dt, thermal_solver, weather_service, weather_solver):
-    #     if dt == 0:
-    #         return np.zeros(self.num_nodes)
-    #
-    #     horizon_steps = int((self.horizon_hours * 3600) / dt)
-    #
-    #     needs_recalc = False
-    #
-    #     if self.cached_plan is None:
-    #         needs_recalc = True
-    #     elif not self.is_digital_twin and self.plan_step_index >= 12:
-    #         needs_recalc = True
-    #
-    #     if needs_recalc:
-    #         t_out_forecast = np.zeros(horizon_steps)
-    #         q_env_forecast = np.zeros((horizon_steps, self.num_nodes))
-    #         future_time = current_time
-    #         T_frozen_for_prediction = np.copy(thermal_solver.T)
-    #
-    #         for k in range(horizon_steps):
-    #             w = weather_service.get_weather(future_time)
-    #             t_out_forecast[k] = w["temperature"]
-    #             q_env = weather_solver.calculate_environmental_gains(
-    #                 w["sun_radiation"], w["sun_altitude"], w["sun_azimuth"],
-    #                 w["wind_speed"], w["wind_direction"], w["temperature"],
-    #                 T_frozen_for_prediction
-    #             )
-    #             q_env_forecast[k, :] = q_env
-    #             future_time += pd.Timedelta(seconds=dt)
-    #
-    #         T_min_hor, T_max_hor = self.get_target_trajectories(current_time, dt, horizon_steps)
-    #
-    #         control_steps = horizon_steps // self.block_size
-    #
-    #         initial_guess = np.tile(self.max_powers / 2.0, control_steps)
-    #         bounds = [(0.0, self.max_powers[i]) for _ in range(control_steps) for i in range(self.num_nodes)]
-    #
-    #         res = minimize(
-    #             self.cost_function,
-    #             initial_guess,
-    #             args=(thermal_solver.T, T_min_hor, T_max_hor, t_out_forecast, q_env_forecast, thermal_solver, dt,
-    #                   horizon_steps),
-    #             method='L-BFGS-B',
-    #             bounds=bounds,
-    #             options={
-    #                 'maxiter': 20,
-    #                 'ftol': 1e-3,
-    #                 'eps': 100.0,
-    #                 'disp': False
-    #             }
-    #         )
-    #
-    #         optimal_plan_blocked = res.x.reshape((control_steps, self.num_nodes))
-    #
-    #         self.cached_plan = np.repeat(optimal_plan_blocked, self.block_size, axis=0)
-    #         self.plan_step_index = 0
-    #
-    #     if self.plan_step_index < len(self.cached_plan):
-    #         current_optimal_q = self.cached_plan[self.plan_step_index, :] * self.enabled_mask
-    #     else:
-    #         current_optimal_q = np.zeros(self.num_nodes)
-    #
-    #     self.plan_step_index += 1
-    #
-    #     return current_optimal_q
