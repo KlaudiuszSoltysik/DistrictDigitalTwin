@@ -79,14 +79,6 @@ public class HvacControl
     public List<bool> IsEnabled { get; set; } = [];
 }
 
-[BsonIgnoreExtraElements]
-public class HvacUnitConfig
-{
-    public required string Name { get; set; }
-    public double PBand { get; set; }
-    public double Ti { get; set; }
-}
-
 public class AllApartmentsConfig
 {
     public required string BuildingId { get; set; }
@@ -103,6 +95,7 @@ public class AllApartmentsConfigRoom
 public class AllApartmentsConfigHvac
 {
     public List<double> TemperaturesMin { get; set; } = [];
-    public List<double> Temperatures { get; set; } = [];
+    public List<double?> Temperatures { get; set; } = [];
     public List<double> TemperaturesMax { get; set; } = [];
+    public List<bool> IsEnabled { get; set; } = [];
 }

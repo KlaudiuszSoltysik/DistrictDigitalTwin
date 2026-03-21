@@ -47,14 +47,14 @@
                          Name="@roomName"
                          Items="GetSimulationPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
-                         YValue="@(p => (decimal)p.Temperature)"/>
+                         YValue="@(p => (decimal?)p.Temperature)"/>
 
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
                          Name="@($"{roomName} digital twin")"
                          Items="GetDigitalTwinPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
-                         YValue="@(p => (decimal)p.Temperature)"/>
+                         YValue="@(p => (decimal?)p.Temperature)"/>
 
         @if (_selectedRoom == "All")
         {
@@ -67,26 +67,26 @@
                              Name="@($"{roomName} min")"
                              Items="GetConfigPoints(roomName, ConfigLineType.Min)"
                              XValue="@(p => p.Timestamp)"
-                             YValue="@(p => (decimal)p.Temperature)"/>
+                             YValue="@(p => (decimal?)p.Temperature)"/>
 
             <ApexPointSeries TItem="ChartPoint"
                              SeriesType="SeriesType.Line"
                              Name="@($"{roomName} desired")"
                              Items="GetConfigPoints(roomName, ConfigLineType.Target)"
                              XValue="@(p => p.Timestamp)"
-                             YValue="@(p => (decimal)p.Temperature)"/>
+                             YValue="@(p => (decimal?)p.Temperature)"/>
 
             <ApexPointSeries TItem="ChartPoint"
                              SeriesType="SeriesType.Line"
                              Name="@($"{roomName} max")"
                              Items="GetConfigPoints(roomName, ConfigLineType.Max)"
                              XValue="@(p => p.Timestamp)"
-                             YValue="@(p => (decimal)p.Temperature)"/>
+                             YValue="@(p => (decimal?)p.Temperature)"/>
         }
     }
 </ApexChart>
 
-<ApexChart TItem="ChartPoint" Title="Room heatings [%]" Options="_roomHeatingsOptions"
+<ApexChart TItem="ChartPoint" Title="Room heatings/coolings [%]" Options="_roomHeatingsOptions"
            @ref="_chart2">
     @foreach (var roomName in _activeRoomNames)
     {
@@ -108,21 +108,21 @@
 
 @if (_simulationTelemetry.Count != 0)
 {
-    <ApexChart TItem="Telemetry" Title="Heating power [kW]" Options="_heatingPowerOptions"
+    <ApexChart TItem="Telemetry" Title="HVAC power [kW]" Options="_heatingPowerOptions"
                @ref="_chart3">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Heating power"
+                         Name="HAVC power"
                          Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal)t.RoomHvacQ.Values.Sum() / 1000)"/>
+                         YValue="@(t => Math.Abs((decimal)t.RoomHvacQ.Values.Sum()) / 1000)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Heating power digital twin"
+                         Name="HVAC power digital twin"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal)t.RoomHvacQ.Values.Sum() / 1000)"/>
+                         YValue="@(t => Math.Abs((decimal)t.RoomHvacQ.Values.Sum()) / 1000)"/>
     </ApexChart>
 }
 
@@ -132,7 +132,7 @@
     public class ChartPoint
     {
         public DateTimeOffset Timestamp { get; set; }
-        public double Temperature { get; set; }
+        public double? Temperature { get; set; }
         public double Heating { get; set; }
     }
 
@@ -170,8 +170,8 @@
 
     protected override void OnInitialized()
     {
-        _roomTemperaturesOptions = GenerateOptions<ChartPoint>("°C");
-        _roomHeatingsOptions = GenerateOptions<ChartPoint>("%");
+        _roomTemperaturesOptions = GenerateOptions<ChartPoint>("°C", min: 15.0, max: 27.0);
+        _roomHeatingsOptions = GenerateOptions<ChartPoint>("%", min: -100.0, max: 100.0);
         _heatingPowerOptions = GenerateOptions<Telemetry>("kW", 300);
     }
 
@@ -312,7 +312,7 @@
         return points;
     }
 
-    private static ApexChartOptions<T> GenerateOptions<T>(string unitSuffix, int height = 600) where T : class
+    private static ApexChartOptions<T> GenerateOptions<T>(string unitSuffix, int height = 600, double? min = null, double? max = null) where T : class
     {
         return new ApexChartOptions<T>
         {
@@ -335,6 +335,8 @@
             [
                 new YAxis
                 {
+                    Min = min,
+                    Max = max,
                     Labels = new YAxisLabels
                     {
                         Formatter = $"function (value) {{ return value + '{unitSuffix}'; }}"

@@ -30,7 +30,8 @@ class DistrictSimulation:
         self.weather_service = WeatherService(weather_path, self.metadata["latitude"], self.metadata["longitude"],
                                               is_digital_twin)
 
-        self.hvac = HVAC(self.num_nodes, parser.max_heating_powers, self.index_to_id, is_digital_twin)
+        self.hvac = HVAC(self.num_nodes, parser.max_heating_powers, parser.max_cooling_powers, self.index_to_id,
+                         is_digital_twin)
 
     def run_step(self, dt, drift_sigma=0.0):
         weather = self.weather_service.get_weather(self.current_time)

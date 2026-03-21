@@ -177,6 +177,10 @@ public class ApartmentController(
 
         var tolerance = control?.Tolerance ?? 0.5;
 
+        var isEnabled = control?.IsEnabled is { Count: 24 }
+            ? control.IsEnabled
+            : Enumerable.Repeat(true, 24).ToList();
+
         for (var m = 0; m < 1440; m += 5)
         {
             var timeFloat = m / 60.0;
@@ -190,9 +194,18 @@ public class ApartmentController(
 
             targetTemp = Math.Round(targetTemp, 2);
 
-            result.Temperatures.Add(targetTemp);
-            result.TemperaturesMin.Add(Math.Round(targetTemp - tolerance, 2));
-            result.TemperaturesMax.Add(Math.Round(targetTemp + tolerance, 2));
+            if ((isEnabled[h0] && isEnabled[h1]) || (isEnabled[h0] && m % 60 == 0))
+            {
+                result.Temperatures.Add(targetTemp);
+                result.TemperaturesMin.Add(Math.Round(targetTemp - tolerance, 2));
+                result.TemperaturesMax.Add(Math.Round(targetTemp + tolerance, 2));
+            }
+            else
+            {
+                result.Temperatures.Add(null);
+                result.TemperaturesMin.Add(16.0);
+                result.TemperaturesMax.Add(26.0);
+            }
         }
 
         return result;

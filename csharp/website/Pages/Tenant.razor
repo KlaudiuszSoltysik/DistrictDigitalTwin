@@ -93,7 +93,7 @@
 
                     if (isEnabled is not { Length: 24 })
                     {
-                    isEnabled = Enumerable.Repeat(false, 24).ToArray();
+                        isEnabled = Enumerable.Repeat(false, 24).ToArray();
                     }
 
                     _isEnabled[room.Id] = isEnabled;
