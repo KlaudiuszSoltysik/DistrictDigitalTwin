@@ -128,7 +128,7 @@
             IsPaused = isPaused ?? current.IsPaused,
             SimulationSpeed = speed ?? current.SimulationSpeed,
             SimulationStep = step ?? current.SimulationStep,
-            RoomTemperatureNoiseSigma = sigma ?? current.RoomTemperatureNoiseSigma
+            RoomNoiseSigma = sigma ?? current.RoomNoiseSigma
         };
 
         await SimulationStatusService.SendCommandAsync("UPDATE_SIMULATION_CONFIG", targetConfig: newConfig);

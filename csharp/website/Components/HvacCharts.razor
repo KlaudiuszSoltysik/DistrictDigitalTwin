@@ -106,10 +106,50 @@
     }
 </ApexChart>
 
+<ApexChart TItem="ChartPoint" Title="Room CO₂ [ppm]" Options="_roomCo2Options"
+           @ref="_chart3">
+    @foreach (var roomName in _activeRoomNames)
+    {
+        <ApexPointSeries TItem="ChartPoint"
+                         SeriesType="SeriesType.Line"
+                         Name="@roomName"
+                         Items="GetSimulationPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal?)p.Co2)"/>
+
+        <ApexPointSeries TItem="ChartPoint"
+                         SeriesType="SeriesType.Line"
+                         Name="@($"{roomName} digital twin")"
+                         Items="GetDigitalTwinPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal?)p.Co2)"/>
+    }
+</ApexChart>
+
+<ApexChart TItem="ChartPoint" Title="Room ventilations [m³/h]" Options="_roomVentilationsOptions"
+           @ref="_chart4">
+    @foreach (var roomName in _activeRoomNames)
+    {
+        <ApexPointSeries TItem="ChartPoint"
+                         SeriesType="SeriesType.Line"
+                         Name="@roomName"
+                         Items="GetSimulationPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal)p.Ventilation)"/>
+
+        <ApexPointSeries TItem="ChartPoint"
+                         SeriesType="SeriesType.Line"
+                         Name="@($"{roomName} digital twin")"
+                         Items="GetDigitalTwinPoints(roomName)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal)p.Ventilation)"/>
+    }
+</ApexChart>
+
 @if (_simulationTelemetry.Count != 0)
 {
-    <ApexChart TItem="Telemetry" Title="HVAC power [kW]" Options="_heatingPowerOptions"
-               @ref="_chart3">
+    <ApexChart TItem="Telemetry" Title="HVAC power [kW]" Options="_hvacPowerOptions"
+               @ref="_chart5">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
                          Name="HAVC power"
@@ -133,7 +173,9 @@
     {
         public DateTimeOffset Timestamp { get; set; }
         public double? Temperature { get; set; }
+        public int Co2 { get; set; }
         public double Heating { get; set; }
+        public double Ventilation { get; set; }
     }
 
     public enum ConfigLineType
@@ -150,11 +192,15 @@
 
     private ApexChart<ChartPoint> _chart1 = new();
     private ApexChart<ChartPoint> _chart2 = new();
-    private ApexChart<Telemetry> _chart3 = new();
+    private ApexChart<ChartPoint> _chart3 = new();
+    private ApexChart<ChartPoint> _chart4 = new();
+    private ApexChart<Telemetry> _chart5 = new();
 
     private ApexChartOptions<ChartPoint> _roomTemperaturesOptions = new();
     private ApexChartOptions<ChartPoint> _roomHeatingsOptions = new();
-    private ApexChartOptions<Telemetry> _heatingPowerOptions = new();
+    private ApexChartOptions<ChartPoint> _roomCo2Options = new();
+    private ApexChartOptions<ChartPoint> _roomVentilationsOptions = new();
+    private ApexChartOptions<Telemetry> _hvacPowerOptions = new();
 
     private readonly string[] _basePalette =
     [
@@ -172,7 +218,9 @@
     {
         _roomTemperaturesOptions = GenerateOptions<ChartPoint>("°C", min: 15.0, max: 27.0);
         _roomHeatingsOptions = GenerateOptions<ChartPoint>("%", min: -100.0, max: 100.0);
-        _heatingPowerOptions = GenerateOptions<Telemetry>("kW", 300);
+        _roomCo2Options = GenerateOptions<ChartPoint>("ppm", min: 350, max: 1050);
+        _roomVentilationsOptions = GenerateOptions<ChartPoint>("m³/h");
+        _hvacPowerOptions = GenerateOptions<Telemetry>("kW", 300);
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)
@@ -199,13 +247,17 @@
                 ConfigureChartOptions();
                 await _chart1.UpdateOptionsAsync(true, true, false);
                 await _chart2.UpdateOptionsAsync(true, true, false);
+                await _chart3.UpdateOptionsAsync(true, true, false);
+                await _chart4.UpdateOptionsAsync(true, true, false);
             }
 
             await Task.WhenAll(
                 InvokeAsync(StateHasChanged),
                 _chart1.UpdateSeriesAsync(),
                 _chart2.UpdateSeriesAsync(),
-                _chart3.UpdateSeriesAsync()
+                _chart3.UpdateSeriesAsync(),
+                _chart4.UpdateSeriesAsync(),
+                _chart5.UpdateSeriesAsync()
             );
         }
     }
@@ -234,12 +286,16 @@
 
         await _chart1.UpdateOptionsAsync(true, true, false);
         await _chart2.UpdateOptionsAsync(true, true, false);
+        await _chart3.UpdateOptionsAsync(true, true, false);
+        await _chart4.UpdateOptionsAsync(true, true, false);
 
         await Task.WhenAll(
             InvokeAsync(StateHasChanged),
             _chart1.UpdateSeriesAsync(),
             _chart2.UpdateSeriesAsync(),
-            _chart3.UpdateSeriesAsync()
+            _chart3.UpdateSeriesAsync(),
+            _chart4.UpdateSeriesAsync(),
+            _chart5.UpdateSeriesAsync()
         );
     }
 
@@ -249,7 +305,9 @@
         {
             Timestamp = t.Timestamp,
             Temperature = t.RoomTemperatures[roomName],
-            Heating = t.RoomHeatings[roomName]
+            Co2 = t.RoomCo2[roomName],
+            Heating = t.RoomHeatings[roomName],
+            Ventilation = t.RoomVentilations[roomName]
         }).ToList();
     }
 
@@ -259,7 +317,9 @@
         {
             Timestamp = t.Timestamp,
             Temperature = t.RoomTemperatures[roomName],
-            Heating = t.RoomHeatings[roomName]
+            Co2 = t.RoomCo2[roomName],
+            Heating = t.RoomHeatings[roomName],
+            Ventilation = t.RoomVentilations[roomName]
         }).ToList();
     }
 
@@ -381,12 +441,18 @@
 
         _roomTemperaturesOptions.Colors = colors;
         _roomHeatingsOptions.Colors = colors;
+        _roomCo2Options.Colors = colors;
+        _roomVentilationsOptions.Colors = colors;
 
         _roomTemperaturesOptions.Stroke ??= new Stroke();
         _roomHeatingsOptions.Stroke ??= new Stroke();
+        _roomCo2Options.Stroke ??= new Stroke();
+        _roomVentilationsOptions.Stroke ??= new Stroke();
 
         _roomTemperaturesOptions.Stroke.DashArray = dashArray;
         _roomHeatingsOptions.Stroke.DashArray = dashArray;
+        _roomCo2Options.Stroke.DashArray = dashArray;
+        _roomVentilationsOptions.Stroke.DashArray = dashArray;
     }
 
     private IEnumerable<string> GetBuildingOptions()
@@ -449,6 +515,12 @@
 
         await _chart2.UpdateOptionsAsync(true, true, false);
         await _chart2.UpdateSeriesAsync();
+
+        await _chart3.UpdateOptionsAsync(true, true, false);
+        await _chart3.UpdateSeriesAsync();
+
+        await _chart4.UpdateOptionsAsync(true, true, false);
+        await _chart4.UpdateSeriesAsync();
     }
 
 }

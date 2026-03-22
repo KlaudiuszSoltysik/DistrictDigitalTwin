@@ -1,32 +1,35 @@
 ﻿import numpy as np
 
 
-class ThermalSolver:
-    def __init__(self, G, C, G_ext_air, G_ext_ground, T_ground):
+class Co2Solver:
+    def __init__(self, G, V, G_ext_air_mix):
         self.G = G
-        self.C = C
-        self.G_ext_air = G_ext_air
-        self.G_ext_ground = G_ext_ground
-        self.T_ground = T_ground
+        self.V = V
+        self.G_ext_air_mix = G_ext_air_mix
 
-        self.T = np.full(len(C), 21.0)
+        self.co2 = np.full(len(V), 750.0)
 
-    def step(self, dt, T_outside, Q_extra, drift_sigma_per_hour=0.0):
-        Q_inter = np.dot(self.G, self.T) - (np.sum(self.G, axis=1) * self.T)
+    def step(self, dt, outside_co2, room_noise_sigma=0.0):
+        co2_mixed = np.dot(self.G, self.co2) - (np.sum(self.G, axis=1) * self.co2)
 
-        Q_air = self.G_ext_air * (T_outside - self.T)
+        co2_infiltrated = self.G_ext_air_mix * (outside_co2 - self.co2)
 
-        Q_ground = self.G_ext_ground * (self.T_ground - self.T)
+        # --- MIEJSCE NA PRZYSZŁOŚĆ ---
+        # Tutaj za chwilę wpadnie generacja z ludzi:
+        # co2_generated = generation_rate * is_enabled_mask
+        # Oraz wentylacja z MPC:
+        # co2_vented = active_vent_m3_s * (outside_co2 - self.co2)
+        # -----------------------------
 
-        total_Q = Q_inter + Q_air + Q_ground + Q_extra
+        total_co2_flow = co2_mixed + co2_infiltrated
 
-        self.T += (total_Q / self.C) * dt
+        self.co2 += (total_co2_flow / self.V) * dt
 
-        if drift_sigma_per_hour > 0:
+        if room_noise_sigma > 0:
             time_scale = np.sqrt(dt / 3600.0)
 
-            state_drift = np.random.normal(loc=0.0, scale=drift_sigma_per_hour * time_scale, size=len(self.T))
+            state_drift = np.random.normal(0.0, room_noise_sigma * time_scale, size=len(self.V))
 
-            self.T += state_drift
+            self.co2 += state_drift
 
-        return self.T
+        return np.round(self.co2).astype(int)

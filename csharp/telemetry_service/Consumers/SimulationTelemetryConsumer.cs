@@ -54,9 +54,12 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 SunRadiation = msg.Weather.SunRadiation,
                 SunAltitude = msg.Weather.SunAltitude,
                 SunAzimuth = msg.Weather.SunAzimuth,
+                Co2 = msg.Weather.Co2,
                 RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures),
+                RoomCo2 = JsonSerializer.Serialize(msg.RoomCo2),
                 RoomHvacQ = JsonSerializer.Serialize(msg.RoomHvacQ),
-                RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings)
+                RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings),
+                RoomVentilations = JsonSerializer.Serialize(msg.RoomVentilations)
             };
 
             db.SimulationTelemetry.Add(entity);
@@ -74,6 +77,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 {
                     StartTimestamp = currentTimestamp,
                     T = msg.RoomTemperatures,
+                    Co2 = msg.RoomCo2,
                     HvacQ = msg.RoomHvacQ
                 };
 

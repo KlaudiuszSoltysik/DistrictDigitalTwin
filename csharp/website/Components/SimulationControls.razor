@@ -94,12 +94,12 @@
                 </tr>
 
                 <tr>
-                    <td class="py-5 px-2 font-medium uppercase text-xs">Room temperature noise factor</td>
+                    <td class="py-5 px-2 font-medium uppercase text-xs">Room noise factor</td>
                     <td class="py-5 px-2">
                         <div class="flex flex-wrap gap-2">
                             @foreach (var sigmaValue in new[] { 0.0, 0.1, 0.2, 0.5 })
                             {
-                                var isActive = Config.RoomTemperatureNoiseSigma is { } sigma &&
+                                var isActive = Config.RoomNoiseSigma is { } sigma &&
                                                    Math.Abs(sigma - sigmaValue) < 0.001;
 
                                 <button @onclick="() => OnSigmaChange.InvokeAsync(sigmaValue)"

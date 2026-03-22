@@ -38,11 +38,15 @@
                            class="absolute w-64 h-1 bg-gray-800 rounded-lg appearance-none outline-none thermostat-range @(isHourEnabled ? "cursor-pointer" : "cursor-not-allowed")"
                            style="transform: rotate(-90deg);"
                            @bind="Temperatures[hour]"
-                           @bind:event="oninput"/>
+                           @bind:event="oninput"
+                           @bind:after="NotifyTemperaturesChanged"/>
                 </div>
 
                 <label class="relative inline-flex items-center cursor-pointer mt-4 mb-1" title="Enable/Disable hour">
-                    <input type="checkbox" class="sr-only peer" @bind="IsEnabled[hour]"/>
+                    <input type="checkbox"
+                           class="sr-only peer"
+                           @bind="IsEnabled[hour]"
+                           @bind:after="NotifyIsEnabledChanged"/>
                     <div
                         class="w-8 h-4 bg-gray-700 rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-500 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500 transition-colors hover:bg-gray-600"></div>
                 </label>
@@ -70,37 +74,77 @@
                        class="absolute w-64 h-2 bg-gray-700 rounded-lg appearance-none outline-none thermostat-range cursor-ns-resize"
                        style="transform: rotate(-90deg);"
                        @bind="Tolerance"
-                       @oninput="OnToleranceInput"/>
+                       @@bind:event="oninput"
+                       @bind:event="oninput"
+                       @bind:after="NotifyToleranceChanged"/>
             </div>
 
             <span class="text-[10px] sm:text-xs text-fuchsia-500/70 mt-auto mb-1 font-bold uppercase tracking-widest">
                 Tolerance
             </span>
         </div>
+
+        <div
+            class="flex flex-col items-center w-24 h-full bg-gray-800/30 rounded-lg p-1 border border-gray-800 shadow-lg">
+            <span class="text-[10px] sm:text-xs font-bold text-fuchsia-400 mb-4 h-4 transition-all">
+                @Co2.ToString() ppm
+            </span>
+
+            <div class="relative h-64 w-8 flex items-center justify-center">
+                <input type="range"
+                       min="400"
+                       max="1000"
+                       step="25"
+                       class="absolute w-64 h-2 bg-gray-700 rounded-lg appearance-none outline-none thermostat-range cursor-ns-resize"
+                       style="transform: rotate(-90deg);"
+                       @bind="Co2"
+                       @bind:event="oninput"
+                       @bind:after="NotifyCo2Changed"/>
+            </div>
+
+            <span class="text-[10px] sm:text-xs text-fuchsia-500/70 mt-auto mb-1 font-bold uppercase tracking-widest">
+                CO₂
+            </span>
+        </div>
     </div>
 </div>
 
 @code {
-    [Parameter] public string Name { get; set; }
+    [Parameter] public required string Name { get; set; }
 
-    [Parameter] public double[] Temperatures { get; set; } = [];
+    [Parameter] public List<double> Temperatures { get; set; } = [];
+    [Parameter] public EventCallback<List<double>> TemperaturesChanged { get; set; }
+
+    [Parameter] public int Co2 { get; set; }
+    [Parameter] public EventCallback<int> Co2Changed { get; set; }
 
     [Parameter] public double Tolerance { get; set; }
     [Parameter] public EventCallback<double> ToleranceChanged { get; set; }
 
-    [Parameter] public bool[] IsEnabled { get; set; } = Enumerable.Repeat(true, 24).ToArray();
-    [Parameter] public EventCallback<bool> IsEnabledChanged { get; set; }
+    [Parameter] public List<bool> IsEnabled { get; set; } = [];
+    [Parameter] public EventCallback<List<bool>> IsEnabledChanged { get; set; }
+
+    private async Task NotifyTemperaturesChanged()
+    {
+        await TemperaturesChanged.InvokeAsync(Temperatures);
+    }
+
+    private async Task NotifyCo2Changed()
+    {
+        await Co2Changed.InvokeAsync(Co2);
+    }
+
+    private async Task NotifyToleranceChanged()
+    {
+        await ToleranceChanged.InvokeAsync(Tolerance);
+    }
+
+    private async Task NotifyIsEnabledChanged()
+    {
+        await IsEnabledChanged.InvokeAsync(IsEnabled);
+    }
 
     private bool IsActive => IsEnabled.Any(s => s);
-
-    private async Task OnToleranceInput(ChangeEventArgs e)
-    {
-        if (double.TryParse(e.Value?.ToString(), out var newVal))
-        {
-            Tolerance = newVal;
-            await ToleranceChanged.InvokeAsync(newVal);
-        }
-    }
 
     private void OnMasterSwitchChanged(ChangeEventArgs e)
     {

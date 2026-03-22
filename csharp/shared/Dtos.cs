@@ -13,9 +13,14 @@ public class Telemetry
     [JsonPropertyName("room_temperatures")]
     public Dictionary<string, double> RoomTemperatures { get; set; } = new();
 
+    [JsonPropertyName("room_co2")] public Dictionary<string, int> RoomCo2 { get; set; } = new();
+
     [JsonPropertyName("room_hvac_q")] public Dictionary<string, double> RoomHvacQ { get; set; } = new();
 
     [JsonPropertyName("room_heatings")] public Dictionary<string, double> RoomHeatings { get; set; } = new();
+
+    [JsonPropertyName("room_ventilations")]
+    public Dictionary<string, double> RoomVentilations { get; set; } = new();
 }
 
 public class WeatherData
@@ -26,6 +31,7 @@ public class WeatherData
     [JsonPropertyName("sun_radiation")] public double SunRadiation { get; set; }
     [JsonPropertyName("sun_altitude")] public double SunAltitude { get; set; }
     [JsonPropertyName("sun_azimuth")] public double SunAzimuth { get; set; }
+    [JsonPropertyName("co2")] public int Co2 { get; set; }
 }
 
 public class Config
@@ -34,8 +40,7 @@ public class Config
     [JsonPropertyName("simulation_speed")] public int? SimulationSpeed { get; set; }
     [JsonPropertyName("simulation_step")] public int? SimulationStep { get; set; }
 
-    [JsonPropertyName("room_temperature_noise_sigma")]
-    public double? RoomTemperatureNoiseSigma { get; set; }
+    [JsonPropertyName("room_noise_sigma")] public double? RoomNoiseSigma { get; set; }
 }
 
 public class SimulationConfig
@@ -54,6 +59,7 @@ public class DigitalTwinRequest
 {
     [JsonPropertyName("start_timestamp")] public DateTimeOffset StartTimestamp { get; set; }
     [JsonPropertyName("t")] public Dictionary<string, double> T { get; set; } = new();
+    [JsonPropertyName("co2")] public Dictionary<string, int> Co2 { get; set; } = new();
     [JsonPropertyName("hvac_q")] public Dictionary<string, double> HvacQ { get; set; } = new();
 }
 
@@ -75,6 +81,7 @@ public class RoomConfig
 public class HvacControl
 {
     public List<double> Temperatures { get; set; } = [];
+    public int Co2 { get; set; }
     public double Tolerance { get; set; } = 0.1;
     public List<bool> IsEnabled { get; set; } = [];
 }
@@ -97,5 +104,5 @@ public class AllApartmentsConfigHvac
     public List<double> TemperaturesMin { get; set; } = [];
     public List<double?> Temperatures { get; set; } = [];
     public List<double> TemperaturesMax { get; set; } = [];
-    public List<bool> IsEnabled { get; set; } = [];
+    public List<int> Co2 { get; set; } = [];
 }

@@ -17,17 +17,21 @@ class DistrictModelParser:
         self.build_node_index()
         self.N = len(self.nodes)
 
-        self.G = np.zeros((self.N, self.N))
+        self.G_temp = np.zeros((self.N, self.N))
         self.G_ext_air = np.zeros(self.N)
         self.G_ext_ground = np.zeros(self.N)
         self.C = np.zeros(self.N)
+
+        self.G_air = np.zeros((self.N, self.N))
+        self.G_ext_air_mix = np.zeros(self.N)
+        self.V = np.zeros(self.N)
 
         self.max_heating_powers = np.zeros(self.N)
         self.max_cooling_powers = np.zeros(self.N)
 
         self.standards = {building["id"]: building["standards"] for building in self.raw_data["buildings"]}
 
-        self.metadata = self.raw_data.get("metadata", {})
+        self.metadata = self.raw_data["metadata"]
 
     def build_node_index(self):
         idx = 0
@@ -53,6 +57,8 @@ class DistrictModelParser:
 
             self.C[i] = c_air + (room["area"] * capacity_value)
 
+            self.V[i] = room["volume"]
+
             self.max_heating_powers[i] = room["area"] * standards["heating_power_per_m2"]
             self.max_cooling_powers[i] = room["area"] * standards["cooling_power_per_m2"]
 
@@ -74,13 +80,17 @@ class DistrictModelParser:
         code = standards[connection["thermal_code"]]
         ua = connection["area"] * code["u_value"]
 
-        self.G[idx_a, idx_b] += ua
-        self.G[idx_b, idx_a] += ua
+        self.G_temp[idx_a, idx_b] += ua
+        self.G_temp[idx_b, idx_a] += ua
 
         wall_capacity = connection["area"] * code["heat_capacity_per_m2"]
 
         self.C[idx_a] += wall_capacity * 0.5
         self.C[idx_b] += wall_capacity * 0.5
+
+        mixing_rate = standards["air_mixing_rate"]
+        self.G_air[idx_a, idx_b] += mixing_rate
+        self.G_air[idx_b, idx_a] += mixing_rate
 
     def apply_external_connection(self, connection, standards, building_id):
         idx_a = self.nodes[f"{building_id}:{connection["from"]}"]
@@ -98,6 +108,12 @@ class DistrictModelParser:
             windows_to_solve.append({"area": window["area"], "shgc": window_standard["shgc"]})
 
         if target != "ground":
+            ach = standards["ach_wind_coef"]
+            vol = self.room_data[idx_a]["room"]["volume"]
+
+            infiltration_m3_s = (vol * ach) / 3600.0
+            self.G_ext_air_mix[idx_a] += infiltration_m3_s
+
             self.external_connections.append(
                 {
                     "room_idx": idx_a,
@@ -105,15 +121,14 @@ class DistrictModelParser:
                     "tilt": connection["tilt"],
                     "area_gross": connection["area"],
                     "windows": windows_to_solve,
-                    "volume": self.room_data[idx_a]["room"]["volume"],
-                    "ach_wind_coef": standards["ach_wind_coef"],
+                    "volume": vol,
+                    "ach_wind_coef": ach,
                     "u_value": thermal_code["u_value"],
                     "absorptance": thermal_code["absorptance"]
                 })
 
         wall_net_area = connection["area"] - windows_area_sum
         ua_wall = wall_net_area * thermal_code["u_value"]
-
         ua_windows = sum(
             window["area"] * standards[window["thermal_code"]]["u_value"] for window in connection.get("windows", []))
 

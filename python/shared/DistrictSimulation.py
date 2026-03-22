@@ -2,6 +2,7 @@
 
 import pandas as pd
 
+from shared.Co2Solver import Co2Solver
 from shared.DistrictModelParser import DistrictModelParser
 from shared.HVAC import HVAC
 from shared.ThermalSolver import ThermalSolver
@@ -19,8 +20,10 @@ class DistrictSimulation:
 
         self.index_to_id = {v: k for k, v in parser.nodes.items()}
 
-        self.thermal_solver = ThermalSolver(parser.G, parser.C, parser.G_ext_air, parser.G_ext_ground,
+        self.thermal_solver = ThermalSolver(parser.G_temp, parser.C, parser.G_ext_air, parser.G_ext_ground,
                                             self.metadata["ground_temperature"])
+
+        self.co2_solver = Co2Solver(parser.G_air, parser.V, parser.G_ext_air_mix)
 
         self.weather_solver = WeatherSolver(parser.external_connections, parser.standards, self.num_nodes)
 
@@ -33,7 +36,7 @@ class DistrictSimulation:
         self.hvac = HVAC(self.num_nodes, parser.max_heating_powers, parser.max_cooling_powers, self.index_to_id,
                          is_digital_twin)
 
-    def run_step(self, dt, drift_sigma=0.0):
+    def run_step(self, dt, room_noise_sigma=0.0):
         weather = self.weather_service.get_weather(self.current_time)
 
         q_env = self.weather_solver.calculate_environmental_gains(
@@ -46,7 +49,9 @@ class DistrictSimulation:
 
         q_total = q_env + q_hvac
 
-        temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, drift_sigma)
+        temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, room_noise_sigma)
+
+        ppm_array = self.co2_solver.step(dt, weather["co2"], room_noise_sigma)
 
         self.current_time += timedelta(seconds=dt)
         if self.current_time >= self.end_timestamp:
@@ -57,6 +62,7 @@ class DistrictSimulation:
         weather_clean = {k: round(v, 2) for k, v in weather.items() if k not in keys_to_remove}
 
         room_temps = {self.index_to_id[i]: round(float(temperatures_array[i]), 2) for i in range(self.num_nodes)}
+        room_co2 = {self.index_to_id[i]: int(ppm_array[i]) for i in range(self.num_nodes)}
         room_hvac_q = {self.index_to_id[i]: round(float(q_hvac[i]), 2) for i in range(self.num_nodes)}
 
         q_percentage = (q_hvac / self.hvac.max_powers) * 100.0
@@ -66,6 +72,8 @@ class DistrictSimulation:
             "timestamp": output_timestamp,
             "weather": weather_clean,
             "room_temperatures": room_temps,
+            "room_co2": room_co2,
             "room_hvac_q": room_hvac_q,
-            "room_heatings": room_heatings
+            "room_heatings": room_heatings,
+            "room_ventilations": {self.index_to_id[i]: 0 for i in range(self.num_nodes)}
         }

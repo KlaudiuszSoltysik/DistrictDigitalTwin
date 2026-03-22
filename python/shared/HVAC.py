@@ -93,7 +93,7 @@ class HVAC:
         T_sim = np.array(current_T, dtype=float)
         total_penalty = 0.0
 
-        G = thermal_solver.G
+        G = thermal_solver.G_temp
         C = thermal_solver.C
         G_ext_air = thermal_solver.G_ext_air
         G_ext_ground = thermal_solver.G_ext_ground

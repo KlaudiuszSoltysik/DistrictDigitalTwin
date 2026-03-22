@@ -36,25 +36,23 @@ class WeatherService:
 
         rho_value = 0.95
 
-        if "temperature" in df.columns:
-            df["temperature"] += generate_drift_noise(n, rho_value, 0.5)
+        df["temperature"] += generate_drift_noise(n, rho_value, 0.5)
 
-        if "wind_u" in df.columns:
-            df["wind_u"] += generate_drift_noise(n, rho_value, 0.5)
+        df["wind_u"] += generate_drift_noise(n, rho_value, 0.5)
 
-        if "wind_v" in df.columns:
-            df["wind_v"] += generate_drift_noise(n, rho_value, 0.5)
+        df["wind_v"] += generate_drift_noise(n, rho_value, 0.5)
 
-        if "wind_speed" in df.columns:
-            df["wind_speed"] += generate_drift_noise(n, rho_value, 0.5)
-            df["wind_speed"] = df["wind_speed"].clip(lower=0.0)
+        df["wind_speed"] += generate_drift_noise(n, rho_value, 0.5)
+        df["wind_speed"] = df["wind_speed"].clip(lower=0.0)
 
-        if "sun_radiation" in df.columns:
-            drift_noise = generate_drift_noise(n, rho_value, 25.0)
+        drift_noise = generate_drift_noise(n, rho_value, 25.0)
 
-            mask = df["sun_radiation"] > 0
-            df.loc[mask, "sun_radiation"] += drift_noise[mask]
-            df["sun_radiation"] = df["sun_radiation"].clip(lower=0.0)
+        mask = df["sun_radiation"] > 0
+        df.loc[mask, "sun_radiation"] += drift_noise[mask]
+        df["sun_radiation"] = df["sun_radiation"].clip(lower=0.0)
+
+        df["co2"] += generate_drift_noise(n, rho_value, 10)
+        df["co2"] = df["co2"].clip(lower=0)
 
         self.weather_history = df
 
@@ -79,5 +77,7 @@ class WeatherService:
 
         raw_weather["sun_altitude"] = solar_pos["apparent_elevation"].iloc[0]
         raw_weather["sun_azimuth"] = solar_pos["azimuth"].iloc[0]
+
+        raw_weather["co2"] = int(round(raw_weather["co2"]))
 
         return raw_weather

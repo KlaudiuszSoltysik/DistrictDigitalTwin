@@ -95,3 +95,4 @@ Creating a scalable backend system that manages a virtual residential district, 
 - divide into tenant and admin systems
 - billing system
 - fix hvac q spikes
+- grafana

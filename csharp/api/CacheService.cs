@@ -91,14 +91,19 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         WindDirection = e.WindDirection,
                         SunAltitude = e.SunAltitude,
                         SunAzimuth = e.SunAzimuth,
-                        SunRadiation = e.SunRadiation
+                        SunRadiation = e.SunRadiation,
+                        Co2 = e.Co2
                     },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
+                    RoomCo2 = JsonSerializer.Deserialize<Dictionary<string, int>>(e.RoomCo2) ??
+                              new Dictionary<string, int>(),
                     RoomHvacQ = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacQ) ??
                                 new Dictionary<string, double>(),
                     RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
-                                   new Dictionary<string, double>()
+                                   new Dictionary<string, double>(),
+                    RoomVentilations = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomVentilations) ??
+                                       new Dictionary<string, double>()
                 });
 
             foreach (var item in mappedData) _simulationTelemetry.Enqueue(item);
@@ -150,14 +155,19 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         WindDirection = e.WindDirection,
                         SunAltitude = e.SunAltitude,
                         SunAzimuth = e.SunAzimuth,
-                        SunRadiation = e.SunRadiation
+                        SunRadiation = e.SunRadiation,
+                        Co2 = e.Co2
                     },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
+                    RoomCo2 = JsonSerializer.Deserialize<Dictionary<string, int>>(e.RoomCo2) ??
+                              new Dictionary<string, int>(),
                     RoomHvacQ = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacQ) ??
                                 new Dictionary<string, double>(),
                     RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
-                                   new Dictionary<string, double>()
+                                   new Dictionary<string, double>(),
+                    RoomVentilations = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomVentilations) ??
+                                       new Dictionary<string, double>()
                 });
 
             foreach (var item in mappedData) _digitalTwinTelemetry.Enqueue(item);

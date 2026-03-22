@@ -65,6 +65,22 @@
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
     </ApexChart>
+
+    <ApexChart TItem="Telemetry" Title="CO₂ [ppm]" Options="_co2ChartOptions" @ref="_chart5">
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="CO₂"
+                         Items="_simulationTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.Co2)"/>
+
+        <ApexPointSeries TItem="Telemetry"
+                         SeriesType="SeriesType.Line"
+                         Name="CO₂ forecast"
+                         Items="_digitalTwinTelemetry"
+                         XValue="@(t => t.Timestamp)"
+                         YValue="@(t => (decimal?)t.Weather.Co2)"/>
+    </ApexChart>
 }
 
 
@@ -78,11 +94,13 @@
     private ApexChart<Telemetry> _chart2 = new();
     private ApexChart<Telemetry> _chart3 = new();
     private ApexChart<Telemetry> _chart4 = new();
+    private ApexChart<Telemetry> _chart5 = new();
 
     private ApexChartOptions<Telemetry> _temperatureChartOptions = new();
     private ApexChartOptions<Telemetry> _windSpeedChartOptions = new();
     private ApexChartOptions<Telemetry> _sunRadiationChartOptions = new();
     private ApexChartOptions<Telemetry> _sunAltitudeChartOptions = new();
+    private ApexChartOptions<Telemetry> _co2ChartOptions = new();
 
 
     protected override void OnInitialized()
@@ -91,6 +109,7 @@
         _windSpeedChartOptions = GenerateOptions(" km/h");
         _sunRadiationChartOptions = GenerateOptions(" W/m²");
         _sunAltitudeChartOptions = GenerateOptions("°");
+        _co2ChartOptions = GenerateOptions(" ppm");
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)
@@ -111,7 +130,8 @@
                 _chart1.UpdateSeriesAsync(),
                 _chart2.UpdateSeriesAsync(),
                 _chart3.UpdateSeriesAsync(),
-                _chart4.UpdateSeriesAsync()
+                _chart4.UpdateSeriesAsync(),
+                _chart5.UpdateSeriesAsync()
             );
         }
     }
@@ -132,7 +152,8 @@
             _chart1.UpdateSeriesAsync(),
             _chart2.UpdateSeriesAsync(),
             _chart3.UpdateSeriesAsync(),
-            _chart4.UpdateSeriesAsync()
+            _chart4.UpdateSeriesAsync(),
+            _chart5.UpdateSeriesAsync()
         );
     }
 
@@ -145,7 +166,8 @@
             _chart1.UpdateSeriesAsync(),
             _chart2.UpdateSeriesAsync(),
             _chart3.UpdateSeriesAsync(),
-            _chart4.UpdateSeriesAsync()
+            _chart4.UpdateSeriesAsync(),
+            _chart5.UpdateSeriesAsync()
         );
 
         await InvokeAsync(StateHasChanged);
@@ -186,6 +208,5 @@
             }
         };
     }
-
 
 }

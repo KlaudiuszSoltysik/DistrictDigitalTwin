@@ -12,8 +12,10 @@ buildings:
   - id: "b1"
 
     standards:
-      heating_power_per_m2: 250.0
-      ach_wind_coef: 0.02
+      heating_power_per_m2: 100.0
+      cooling_power_per_m2: 50.0
+      ach_wind_coef: 0.005
+      air_mixing_rate: 0.05
       wall_ext:
         u_value: 0.15
         heat_capacity_per_m2: 45000
