@@ -45,13 +45,13 @@ class WeatherService:
         df["wind_speed"] += generate_drift_noise(n, rho_value, 0.5)
         df["wind_speed"] = df["wind_speed"].clip(lower=0.0)
 
-        drift_noise = generate_drift_noise(n, rho_value, 25.0)
+        drift_noise = generate_drift_noise(n, rho_value, 10.0)
 
         mask = df["sun_radiation"] > 0
         df.loc[mask, "sun_radiation"] += drift_noise[mask]
         df["sun_radiation"] = df["sun_radiation"].clip(lower=0.0)
 
-        df["co2"] += generate_drift_noise(n, rho_value, 10)
+        df["co2"] += generate_drift_noise(n, rho_value, 5)
         df["co2"] = df["co2"].clip(lower=0)
 
         self.weather_history = df

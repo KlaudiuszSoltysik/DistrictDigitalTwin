@@ -74,8 +74,11 @@ class DistrictModelParser:
                     self.apply_external_connection(connection, building_standards, building["id"])
 
     def apply_internal_connection(self, connection, standards, building_id):
-        idx_a = self.nodes[f"{building_id}:{connection["from"]}"]
-        idx_b = self.nodes[f"{building_id}:{connection["to"]}"]
+        from_str = connection["from"]
+        to_str = connection["to"]
+
+        idx_a = self.nodes[f"{building_id}:{from_str}"]
+        idx_b = self.nodes[f"{building_id}:{to_str}"]
 
         code = standards[connection["thermal_code"]]
         ua = connection["area"] * code["u_value"]
@@ -88,9 +91,15 @@ class DistrictModelParser:
         self.C[idx_a] += wall_capacity * 0.5
         self.C[idx_b] += wall_capacity * 0.5
 
-        mixing_rate = standards["air_mixing_rate"]
-        self.G_air[idx_a, idx_b] += mixing_rate
-        self.G_air[idx_b, idx_a] += mixing_rate
+        apt_a = from_str.split(":")[0]
+        apt_b = to_str.split(":")[0]
+
+        if apt_a == apt_b:
+            mixing_rate = standards.get("air_mixing_rate", 0.015)
+            self.G_air[idx_a, idx_b] += mixing_rate
+            self.G_air[idx_b, idx_a] += mixing_rate
+        else:
+            pass
 
     def apply_external_connection(self, connection, standards, building_id):
         idx_a = self.nodes[f"{building_id}:{connection["from"]}"]

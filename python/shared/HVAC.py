@@ -36,25 +36,25 @@ class HVAC:
 
         mongo_map = {}
         for apt in configs:
-            b_id = apt.get("BuildingId")
-            a_id = apt.get("ApartmentId")
+            b_id = apt["BuildingId"]
+            a_id = apt["ApartmentId"]
 
-            for room in apt.get("Rooms", []):
-                r_id = room.get("_id")
+            for room in apt["Rooms"]:
+                r_id = room["_id"]
                 flat_key = f"{b_id}:{a_id}:{r_id}"
-                mongo_map[flat_key] = room.get("HvacControl", {})
+                mongo_map[flat_key] = room["HvacControl"]
 
         for idx, full_id in self.district_id_dict.items():
             if full_id in mongo_map:
                 ctrl = mongo_map[full_id]
 
-                temps = ctrl.get("Temperatures")
+                temps = ctrl["Temperatures"]
                 if temps and len(temps) == 24:
                     self.target_24h[idx, :] = temps
 
-                tolerance_channel[idx] = ctrl.get("Tolerance", 0.5)
+                tolerance_channel[idx] = ctrl["Tolerance"]
 
-                is_enabled = ctrl.get("IsEnabled")
+                is_enabled = ctrl["IsEnabled"]
                 if is_enabled and len(is_enabled) == 24:
                     self.is_enabled_24h[idx, :] = [1.0 if s else 0.0 for s in is_enabled]
 

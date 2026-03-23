@@ -60,7 +60,6 @@ public class DigitalTwinRequest
     [JsonPropertyName("start_timestamp")] public DateTimeOffset StartTimestamp { get; set; }
     [JsonPropertyName("t")] public Dictionary<string, double> T { get; set; } = new();
     [JsonPropertyName("co2")] public Dictionary<string, int> Co2 { get; set; } = new();
-    [JsonPropertyName("hvac_q")] public Dictionary<string, double> HvacQ { get; set; } = new();
 }
 
 [BsonIgnoreExtraElements]

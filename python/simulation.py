@@ -80,6 +80,7 @@ class SimulationService:
 
                 elif action == "UPDATE_APARTMENT_CONFIG":
                     self.simulation.hvac.set_temperatures_config()
+                    self.simulation.co2_solver.set_on_hours()
 
                 elif action == "RESET":
                     self.reset_simulation_logic()

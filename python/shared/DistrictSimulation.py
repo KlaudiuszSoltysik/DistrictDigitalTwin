@@ -1,5 +1,6 @@
 ﻿from datetime import timedelta
 
+import numpy as np
 import pandas as pd
 
 from shared.Co2Solver import Co2Solver
@@ -23,7 +24,7 @@ class DistrictSimulation:
         self.thermal_solver = ThermalSolver(parser.G_temp, parser.C, parser.G_ext_air, parser.G_ext_ground,
                                             self.metadata["ground_temperature"])
 
-        self.co2_solver = Co2Solver(parser.G_air, parser.V, parser.G_ext_air_mix)
+        self.co2_solver = Co2Solver(parser.G_air, parser.V, parser.G_ext_air_mix, self.num_nodes, self.index_to_id)
 
         self.weather_solver = WeatherSolver(parser.external_connections, parser.standards, self.num_nodes)
 
@@ -51,7 +52,7 @@ class DistrictSimulation:
 
         temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, room_noise_sigma)
 
-        ppm_array = self.co2_solver.step(dt, weather["co2"], room_noise_sigma)
+        ppm_array = self.co2_solver.step(self.current_time, dt, weather["co2"], room_noise_sigma)
 
         self.current_time += timedelta(seconds=dt)
         if self.current_time >= self.end_timestamp:
@@ -65,7 +66,8 @@ class DistrictSimulation:
         room_co2 = {self.index_to_id[i]: int(ppm_array[i]) for i in range(self.num_nodes)}
         room_hvac_q = {self.index_to_id[i]: round(float(q_hvac[i]), 2) for i in range(self.num_nodes)}
 
-        q_percentage = (q_hvac / self.hvac.max_powers) * 100.0
+        denominators = np.where(q_hvac >= 0, self.hvac.max_powers, self.hvac.min_powers)
+        q_percentage = (q_hvac / denominators) * 100.0
         room_heatings = {self.index_to_id[i]: round(float(q_percentage[i]), 2) for i in range(self.num_nodes)}
 
         return {

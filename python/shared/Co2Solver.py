@@ -1,35 +1,75 @@
 ﻿import numpy as np
 
+from shared.MongoDbController import MongoDbController
+
 
 class Co2Solver:
-    def __init__(self, G, V, G_ext_air_mix):
+    def __init__(self, G, V, G_ext_air_mix, num_nodes, district_id_dict):
         self.G = G
         self.V = V
         self.G_ext_air_mix = G_ext_air_mix
+        self.num_nodes = num_nodes
+        self.district_id_dict = district_id_dict
 
         self.co2 = np.full(len(V), 750.0)
 
-    def step(self, dt, outside_co2, room_noise_sigma=0.0):
-        co2_mixed = np.dot(self.G, self.co2) - (np.sum(self.G, axis=1) * self.co2)
+        self.mongodb = MongoDbController()
 
-        co2_infiltrated = self.G_ext_air_mix * (outside_co2 - self.co2)
+        self.is_enabled_mask = None
+        self.set_on_hours()
 
-        # --- MIEJSCE NA PRZYSZŁOŚĆ ---
-        # Tutaj za chwilę wpadnie generacja z ludzi:
-        # co2_generated = generation_rate * is_enabled_mask
-        # Oraz wentylacja z MPC:
-        # co2_vented = active_vent_m3_s * (outside_co2 - self.co2)
-        # -----------------------------
+    def set_on_hours(self):
+        self.is_enabled_mask = np.zeros((self.num_nodes, 24))
 
-        total_co2_flow = co2_mixed + co2_infiltrated
+        configs = list(self.mongodb.db["apartments-config"].find({}))
 
-        self.co2 += (total_co2_flow / self.V) * dt
+        mongo_map = {}
+        for apt in configs:
+            b_id = apt["BuildingId"]
+            a_id = apt["ApartmentId"]
+
+            for room in apt["Rooms"]:
+                r_id = room["_id"]
+                flat_key = f"{b_id}:{a_id}:{r_id}"
+                mongo_map[flat_key] = room["HvacControl"]
+
+        for idx, full_id in self.district_id_dict.items():
+            if full_id in mongo_map:
+                is_enabled = mongo_map[full_id]["IsEnabled"]
+
+                if is_enabled and len(is_enabled) == 24:
+                    self.is_enabled_mask[idx, :] = [1.0 if s else 0.0 for s in is_enabled]
+
+    def step(self, current_time, dt, outside_co2, room_noise_sigma=0.0):
+        if dt <= 0:
+            return np.round(self.co2).astype(int)
+
+        time_float = current_time.hour + (current_time.minute / 60.0)
+        current_h = int(time_float) % 24
+
+        current_mask = self.is_enabled_mask[:, current_h]
+
+        max_micro_dt = 60.0
+        steps = int(np.ceil(dt / max_micro_dt))
+        micro_dt = dt / steps
+
+        co2_generation_m3_s = (0.015 / 3600.0) * current_mask
+
+        for _ in range(steps):
+            co2_mixed = np.dot(self.G, self.co2) - (np.sum(self.G, axis=1) * self.co2)
+            co2_infiltrated = self.G_ext_air_mix * (outside_co2 - self.co2)
+
+            total_co2_flow = co2_mixed + co2_infiltrated
+
+            self.co2 += (total_co2_flow / self.V) * micro_dt
+
+            self.co2 += (co2_generation_m3_s / self.V) * 1_000_000.0 * micro_dt
 
         if room_noise_sigma > 0:
             time_scale = np.sqrt(dt / 3600.0)
-
-            state_drift = np.random.normal(0.0, room_noise_sigma * time_scale, size=len(self.V))
-
+            state_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 100, size=len(self.V))
             self.co2 += state_drift
+
+        self.co2 = np.maximum(self.co2, 400.0)
 
         return np.round(self.co2).astype(int)
