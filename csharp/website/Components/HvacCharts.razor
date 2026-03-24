@@ -307,7 +307,7 @@
             Temperature = t.RoomTemperatures[roomName],
             Co2 = t.RoomCo2[roomName],
             Heating = t.RoomHeatings[roomName],
-            Ventilation = t.RoomVentilations[roomName]
+            Ventilation = t.RoomHvacV[roomName]
         }).ToList();
     }
 
@@ -319,7 +319,7 @@
             Temperature = t.RoomTemperatures[roomName],
             Co2 = t.RoomCo2[roomName],
             Heating = t.RoomHeatings[roomName],
-            Ventilation = t.RoomVentilations[roomName]
+            Ventilation = t.RoomHvacV[roomName]
         }).ToList();
     }
 
@@ -372,7 +372,7 @@
         return points;
     }
 
-    private static ApexChartOptions<T> GenerateOptions<T>(string unitSuffix, int height = 600, double? min = null, double? max = null) where T : class
+    private static ApexChartOptions<T> GenerateOptions<T>(string unitSuffix, int height = 450, double? min = null, double? max = null) where T : class
     {
         return new ApexChartOptions<T>
         {

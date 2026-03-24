@@ -46,13 +46,14 @@ class DistrictSimulation:
             self.thermal_solver.T
         )
 
-        q_hvac = self.hvac.step(self.current_time, dt, self.thermal_solver, self.weather_service, self.weather_solver)
+        q_hvac, v_hvac = self.hvac.step(self.current_time, dt, self.thermal_solver, self.co2_solver,
+                                        self.weather_service, self.weather_solver)
 
         q_total = q_env + q_hvac
 
-        temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, room_noise_sigma)
+        temperatures_array = self.thermal_solver.step(dt, weather["temperature"], q_total, v_hvac, room_noise_sigma)
 
-        ppm_array = self.co2_solver.step(self.current_time, dt, weather["co2"], room_noise_sigma)
+        co2_array = self.co2_solver.step(self.current_time, dt, weather["co2"], v_hvac, room_noise_sigma)
 
         self.current_time += timedelta(seconds=dt)
         if self.current_time >= self.end_timestamp:
@@ -63,12 +64,14 @@ class DistrictSimulation:
         weather_clean = {k: round(v, 2) for k, v in weather.items() if k not in keys_to_remove}
 
         room_temps = {self.index_to_id[i]: round(float(temperatures_array[i]), 2) for i in range(self.num_nodes)}
-        room_co2 = {self.index_to_id[i]: int(ppm_array[i]) for i in range(self.num_nodes)}
+        room_co2 = {self.index_to_id[i]: int(co2_array[i]) for i in range(self.num_nodes)}
         room_hvac_q = {self.index_to_id[i]: round(float(q_hvac[i]), 2) for i in range(self.num_nodes)}
 
         denominators = np.where(q_hvac >= 0, self.hvac.max_powers, self.hvac.min_powers)
         q_percentage = (q_hvac / denominators) * 100.0
         room_heatings = {self.index_to_id[i]: round(float(q_percentage[i]), 2) for i in range(self.num_nodes)}
+
+        room_hvac_v = {self.index_to_id[i]: round(float(v_hvac[i] * 3600.0), 2) for i in range(self.num_nodes)}
 
         return {
             "timestamp": output_timestamp,
@@ -77,5 +80,5 @@ class DistrictSimulation:
             "room_co2": room_co2,
             "room_hvac_q": room_hvac_q,
             "room_heatings": room_heatings,
-            "room_ventilations": {self.index_to_id[i]: 0 for i in range(self.num_nodes)}
+            "room_hvac_v": room_hvac_v
         }

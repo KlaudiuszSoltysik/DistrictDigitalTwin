@@ -40,8 +40,8 @@ class Co2Solver:
                 if is_enabled and len(is_enabled) == 24:
                     self.is_enabled_mask[idx, :] = [1.0 if s else 0.0 for s in is_enabled]
 
-    def step(self, current_time, dt, outside_co2, room_noise_sigma=0.0):
-        if dt <= 0:
+    def step(self, current_time, dt, outside_co2, v_hvac, room_noise_sigma=0.0):
+        if dt == 0:
             return np.round(self.co2).astype(int)
 
         time_float = current_time.hour + (current_time.minute / 60.0)
@@ -49,17 +49,19 @@ class Co2Solver:
 
         current_mask = self.is_enabled_mask[:, current_h]
 
-        max_micro_dt = 60.0
-        steps = int(np.ceil(dt / max_micro_dt))
+        steps = int(np.ceil(dt / 60))
         micro_dt = dt / steps
 
         co2_generation_m3_s = (0.015 / 3600.0) * current_mask
 
         for _ in range(steps):
             co2_mixed = np.dot(self.G, self.co2) - (np.sum(self.G, axis=1) * self.co2)
+
             co2_infiltrated = self.G_ext_air_mix * (outside_co2 - self.co2)
 
-            total_co2_flow = co2_mixed + co2_infiltrated
+            co2_vented = v_hvac * (outside_co2 - self.co2)
+
+            total_co2_flow = co2_mixed + co2_infiltrated + co2_vented
 
             self.co2 += (total_co2_flow / self.V) * micro_dt
 

@@ -59,7 +59,7 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 RoomCo2 = JsonSerializer.Serialize(msg.RoomCo2),
                 RoomHvacQ = JsonSerializer.Serialize(msg.RoomHvacQ),
                 RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings),
-                RoomVentilations = JsonSerializer.Serialize(msg.RoomVentilations)
+                RoomHvacV = JsonSerializer.Serialize(msg.RoomHvacV)
             };
 
             db.SimulationTelemetry.Add(entity);

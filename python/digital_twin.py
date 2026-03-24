@@ -74,7 +74,8 @@ class DigitalTwinService:
             self.simulation.co2_solver.set_on_hours()
 
             self.simulation.hvac.set_temperatures_config()
-            self.simulation.hvac.cached_plan = None
+            self.simulation.hvac.cached_t_plan = None
+            self.simulation.hvac.cached_v_plan = None
             self.simulation.hvac.plan_step_index = 0
 
             self.run_physics_loop(end_ts)

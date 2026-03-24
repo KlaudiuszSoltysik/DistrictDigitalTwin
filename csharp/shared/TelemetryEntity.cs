@@ -19,7 +19,7 @@ public class TelemetryEntity
     [Column(TypeName = "jsonb")] public string RoomCo2 { get; set; } = "{}";
     [Column(TypeName = "jsonb")] public string RoomHvacQ { get; set; } = "{}";
     [Column(TypeName = "jsonb")] public string RoomHeatings { get; set; } = "{}";
-    [Column(TypeName = "jsonb")] public string RoomVentilations { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string RoomHvacV { get; set; } = "{}";
 }
 
 public class SimulationTelemetryEntity : TelemetryEntity;
