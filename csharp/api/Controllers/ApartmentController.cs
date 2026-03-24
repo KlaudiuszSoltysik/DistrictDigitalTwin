@@ -33,6 +33,8 @@ public class ApartmentController(
                     .Select(t => double.Clamp(t, 16.0, 26.0))
                     .ToList();
 
+                existingRoom.HvacControl.Co2 = int.Clamp(incomingRoom.HvacControl.Co2, 400, 1000);
+
                 existingRoom.HvacControl.Tolerance = double.Clamp(incomingRoom.HvacControl.Tolerance, 0.1, 10.0);
 
                 existingRoom.HvacControl.IsEnabled = incomingRoom.HvacControl.IsEnabled;
@@ -63,6 +65,7 @@ public class ApartmentController(
                     var roomId = r["id"].AsString;
                     var userRoom = incomingConfig.Rooms.FirstOrDefault(ur => ur.Id == roomId);
                     var userTemperatures = userRoom?.HvacControl.Temperatures;
+                    var userCo2 = userRoom?.HvacControl.Co2;
                     var userTolerance = userRoom?.HvacControl.Tolerance;
                     var userIsEnabled = userRoom?.HvacControl.IsEnabled;
 
@@ -75,7 +78,9 @@ public class ApartmentController(
                             Temperatures = userTemperatures is { Count: 24 }
                                 ? userTemperatures.Select(t => double.Clamp(t, 16.0, 26.0)).ToList()
                                 : Enumerable.Repeat(21.0, 24).ToList(),
-
+                            Co2 = userCo2.HasValue
+                                ? int.Clamp(userCo2.Value, 400, 1000)
+                                : 800,
                             Tolerance = userTolerance.HasValue
                                 ? double.Clamp(userTolerance.Value, 0.1, 10.0)
                                 : 0.5,
@@ -137,6 +142,7 @@ public class ApartmentController(
                     HvacControl = new HvacControl
                     {
                         Temperatures = Enumerable.Repeat(21.0, 24).ToList(),
+                        Co2 = 800,
                         Tolerance = 0.1,
                         IsEnabled = Enumerable.Repeat(false, 24).ToList()
                     }
@@ -206,6 +212,8 @@ public class ApartmentController(
                 result.TemperaturesMin.Add(16.0);
                 result.TemperaturesMax.Add(26.0);
             }
+
+            result.Co2.Add(control.Co2);
         }
 
         return result;

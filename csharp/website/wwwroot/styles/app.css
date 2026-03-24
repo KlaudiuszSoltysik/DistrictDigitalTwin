@@ -245,10 +245,6 @@
     }
 }
 @layer utilities {
-    .pointer-events-none {
-        pointer-events: none;
-    }
-
     .sr-only {
         position: absolute;
         width: 1px;
@@ -349,10 +345,6 @@
         margin-bottom: calc(var(--spacing) * 10);
     }
 
-    .mb-\[-1rem\] {
-        margin-bottom: -1rem;
-    }
-
     .ml-3 {
         margin-left: calc(var(--spacing) * 3);
     }
@@ -399,10 +391,6 @@
 
     .h-full {
         height: 100%;
-    }
-
-    .h-px {
-        height: 1px;
     }
 
     .h-screen {
@@ -481,10 +469,6 @@
         animation: var(--animate-spin);
     }
 
-    .cursor-ew-resize {
-        cursor: ew-resize;
-    }
-
     .cursor-not-allowed {
         cursor: not-allowed;
     }
@@ -539,10 +523,6 @@
 
     .gap-6 {
         gap: calc(var(--spacing) * 6);
-    }
-
-    .gap-8 {
-        gap: calc(var(--spacing) * 8);
     }
 
     .space-y-2 {
@@ -898,10 +878,6 @@
 
     .uppercase {
         text-transform: uppercase;
-    }
-
-    .opacity-30 {
-        opacity: 30%;
     }
 
     .opacity-40 {

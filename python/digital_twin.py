@@ -69,13 +69,21 @@ class DigitalTwinService:
 
             self.simulation.current_time = start_ts
             self.simulation.thermal_solver.T = np.array(list(cmd_json["t"].values()), dtype=float)
+            self.simulation.co2_solver.co2 = np.array(list(cmd_json["co2"].values()), dtype=float)
+
+            self.simulation.co2_solver.set_on_hours()
 
             self.simulation.hvac.set_temperatures_config()
-            self.simulation.hvac.cached_plan = None
+            self.simulation.hvac.cached_t_plan = None
+            self.simulation.hvac.cached_v_plan = None
             self.simulation.hvac.plan_step_index = 0
 
             self.run_physics_loop(end_ts)
-        except Exception:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print("Error ", e)
+
             self.logger.error("Failed to parse and process command", exc_info=True, payload=cmd_json,
                               method="process_command")
 
@@ -107,7 +115,11 @@ class DigitalTwinService:
             )
 
             pub_conn.close()
-        except Exception:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print("Error ", e)
+
             self.logger.error("Failed to publish telemetry to RabbitMQ", exc_info=True, method="run_physics_loop")
 
 

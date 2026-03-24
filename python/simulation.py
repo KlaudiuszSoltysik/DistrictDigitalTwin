@@ -28,7 +28,7 @@ class SimulationService:
         self.is_paused = True
         self.simulation_speed = 30
         self.simulation_step = 300
-        self.room_temperature_noise_sigma = 0.1
+        self.room_noise_sigma = 0.1
 
     def start(self):
         listener_thread = Thread(target=self.listen_for_commands, daemon=True)
@@ -76,10 +76,11 @@ class SimulationService:
                     self.is_paused = target_config["is_paused"]
                     self.simulation_speed = target_config["simulation_speed"]
                     self.simulation_step = target_config["simulation_step"]
-                    self.room_temperature_noise_sigma = target_config["room_temperature_noise_sigma"]
+                    self.room_noise_sigma = target_config["room_noise_sigma"]
 
                 elif action == "UPDATE_APARTMENT_CONFIG":
                     self.simulation.hvac.set_temperatures_config()
+                    self.simulation.co2_solver.set_on_hours()
 
                 elif action == "RESET":
                     self.reset_simulation_logic()
@@ -96,7 +97,7 @@ class SimulationService:
         self.is_paused = True
         self.simulation_speed = 30
         self.simulation_step = 300
-        self.room_temperature_noise_sigma = 0.1
+        self.room_noise_sigma = 0.1
 
     def run_physics_loop(self):
         pub_conn = None
@@ -112,7 +113,6 @@ class SimulationService:
                 paused = self.is_paused
                 speed = self.simulation_speed
                 step = 0 if is_initial_run else self.simulation_step
-                room_temperature_noise_sigma = self.room_temperature_noise_sigma
 
             try:
                 if pub_conn is None or pub_conn.is_closed:
@@ -142,7 +142,7 @@ class SimulationService:
 
                 start_time = time()
 
-                simulation_result = self.simulation.run_step(step, room_temperature_noise_sigma)
+                simulation_result = self.simulation.run_step(step, self.room_noise_sigma)
                 simulation_result = {"run_id": self.run_id, **simulation_result}
 
                 telemetry_channel.basic_publish(
@@ -162,7 +162,11 @@ class SimulationService:
                 is_initial_run = False
 
                 self.wake_event.wait(real_sleep)
-            except Exception:
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print("Error ", e)
+
                 self.logger.error("Failed to publish telemetry to RabbitMQ", exc_info=True, method="run_physics_loop")
 
                 if pub_conn and pub_conn.is_open:
@@ -178,7 +182,7 @@ class SimulationService:
                 "is_paused": self.is_paused,
                 "simulation_speed": self.simulation_speed,
                 "simulation_step": self.simulation_step,
-                "room_temperature_noise_sigma": self.room_temperature_noise_sigma}
+                "room_noise_sigma": self.room_noise_sigma}
         }
 
         channel.basic_publish(

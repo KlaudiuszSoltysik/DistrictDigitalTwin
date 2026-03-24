@@ -28,13 +28,15 @@ Creating a scalable backend system that manages a virtual residential district, 
 **Engine (Python)**
 
 - Simulation microservice and Digital Twin that share the core engine code. The difference is that the simulation adds noise to simulated physical phenomena (to add realism), while the Digital Twin adds noise to the weather (simulating an imperfect weather forecast).
-- Building thermodynamics and CO2 simulation down to the individual room level. Includes heat transfer through floors, ceilings, roofs, external walls, windows, internal walls, wind impact (angle and speed), and solar radiation (angle and radiation).
+- Building thermodynamics and CO2 mass-flow simulation down to the individual room level. Includes heat transfer through floors, ceilings, roofs, external walls, windows, internal walls, wind impact (angle and speed), solar radiation, natural air infiltration, and human CO2 generation.
 - Simulation of HVAC for entire district with custom profiles per every room (setted by tenant).
 - Advanced Model Predictive Control (MPC) solver (L-BFGS-B) managing HVAC for the entire district. Capabilities include:
-  - **Bi-directional HVAC:** Seamless algorithmic switching between floor heating and floor cooling with dew-point safety constraints.
-  - **Dynamic Deadbands & 24h Scheduling:** Tenants set custom temperature ranges and hourly ON/OFF schedules.
-  - **Pre-heating / Pre-cooling:** The MPC algorithm anticipates scheduled status changes and dynamically shifts thermal loads to prepare rooms in advance using minimal energy.
-  - **Hardware Slew-Rate Limits:** Soft and hard constraints preventing damaging power spikes to the physical heat pumps.
+  - MIMO Architecture (Multiple-Input Multiple-Output): Simultaneous algorithmic control over thermal power ($Q_{hvac}$) and mechanical ventilation volume ($V_{vent}$). The solver dynamically balances the trade-off between flushing out CO2 and the thermal cost of conditioning outside air, factoring in Heat Recovery Ventilation (HRV) efficiency.
+  - Feature Scaling & Numerical Stability: The internal optimization space is fully normalized (0-100%) to stabilize the Hessian matrix, allowing the L-BFGS-B solver to smoothly navigate the gradient between completely different physical domains (Watts vs. $m^3/s$) without numerical explosions.
+  - Bi-directional HVAC: Seamless algorithmic switching between floor heating and floor cooling with dew-point safety constraints.
+  - Dynamic Deadbands & 24h Scheduling: Tenants set custom temperature ranges, CO2 limits, and hourly ON/OFF schedules.
+  - Pre-heating / Pre-cooling: The MPC algorithm anticipates scheduled status changes and dynamically shifts thermal loads to prepare rooms in advance using minimal energy.
+  - Hardware Slew-Rate Limits: Soft and hard constraints preventing damaging power spikes and rapid damper oscillations in physical hardware.
 - District definition via a `.yml` file.
 
 **Message Broker (RabbitMQ)**
@@ -89,9 +91,8 @@ Creating a scalable backend system that manages a virtual residential district, 
 - container limits and reservations
 - k8s with 2 clusters and dev/prod
 - powerful cicd (terraform, fix postgres: makemigrations, migrate and create hypertables)
-- implement ventilation
 - add connection status (?)
-- add co2 simulation (python)
 - divide into tenant and admin systems
 - billing system
-- fix hvac q spikes
+- fix hvac spikes
+- grafana

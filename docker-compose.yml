@@ -28,23 +28,23 @@ services:
     networks:
       - ddt_net
 
-  postgres-backup:
-    image: prodrigestivill/postgres-backup-local
-    container_name: ddt_database_backup
-    user: postgres:postgres
-    volumes:
-      - ./docker/backups:/backups
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - SCHEDULE=@every 4h00m
-      - BACKUP_KEEP_DAYS=2
-    networks:
-      - ddt_net
-    depends_on:
-      - postgres
+  # postgres-backup:
+  #   image: prodrigestivill/postgres-backup-local
+  #   container_name: ddt_database_backup
+  #   user: postgres:postgres
+  #   volumes:
+  #     - ./docker/backups:/backups
+  #   environment:
+  #     - POSTGRES_HOST=postgres
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - SCHEDULE=@every 4h00m
+  #     - BACKUP_KEEP_DAYS=2
+  #   networks:
+  #     - ddt_net
+  #   depends_on:
+  #     - postgres
 
   rabbitmq:
     container_name: ddt_rabbitmq
@@ -156,102 +156,102 @@ services:
     depends_on:
       - api
 
-  watchtower:
-    image: containrrr/watchtower
-    container_name: ddt_watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 --cleanup --label-enable
-    environment:
-      - DOCKER_API_VERSION=1.45
-    networks:
-      - ddt_net
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: ddt_cadvisor
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    networks:
-      - ddt_net
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: ddt_prometheus
-    volumes:
-      - ./docker/prometheus/config.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=48h"
-    # TODO: remove management port later
-    ports:
-      - "9090:9090"
-    networks:
-      - ddt_net
-    depends_on:
-      - cadvisor
-
-  promtail:
-    image: grafana/promtail:latest
-    container_name: ddt_promtail
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./docker/promtail/config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - ddt_net
-
-  loki:
-    image: grafana/loki:latest
-    container_name: ddt_loki
-    volumes:
-      - ./docker/loki/config.yml:/etc/loki/local-config.yaml
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - ddt_net
-    depends_on:
-      - promtail
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: ddt_grafana
-    user: "472"
-    volumes:
-      - grafana_data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
-      - GF_SMTP_ENABLED=true
-      - GF_SMTP_HOST=smtp.gmail.com:587
-      - GF_SMTP_USER=${GRAFANA_EMAIL}
-      - GF_SMTP_PASSWORD=${GRAFANA_EMAIL_PASSWORD}
-      - GF_SMTP_FROM_NAME=Digital Twin Alerts
-      - GF_SMTP_FROM_ADDRESS=${GRAFANA_EMAIL}
-    networks:
-      - ddt_net
-    depends_on:
-      - prometheus
-      - loki
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: ddt_tunnel
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-    depends_on:
-      - website
-      - grafana
-    networks:
-      - ddt_net
+#   watchtower:
+#     image: containrrr/watchtower
+#     container_name: ddt_watchtower
+#     volumes:
+#       - /var/run/docker.sock:/var/run/docker.sock
+#     command: --interval 30 --cleanup --label-enable
+#     environment:
+#       - DOCKER_API_VERSION=1.45
+#     networks:
+#       - ddt_net
+# 
+#   cadvisor:
+#     image: gcr.io/cadvisor/cadvisor:latest
+#     container_name: ddt_cadvisor
+#     volumes:
+#       - /:/rootfs:ro
+#       - /var/run:/var/run:ro
+#       - /sys:/sys:ro
+#       - /var/lib/docker/:/var/lib/docker:ro
+#       - /dev/disk/:/dev/disk:ro
+#     networks:
+#       - ddt_net
+# 
+#   prometheus:
+#     image: prom/prometheus:latest
+#     container_name: ddt_prometheus
+#     volumes:
+#       - ./docker/prometheus/config.yml:/etc/prometheus/prometheus.yml
+#       - prometheus_data:/prometheus
+#     command:
+#       - "--config.file=/etc/prometheus/prometheus.yml"
+#       - "--storage.tsdb.retention.time=48h"
+#     # TODO: remove management port later
+#     ports:
+#       - "9090:9090"
+#     networks:
+#       - ddt_net
+#     depends_on:
+#       - cadvisor
+# 
+#   promtail:
+#     image: grafana/promtail:latest
+#     container_name: ddt_promtail
+#     volumes:
+#       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+#       - /var/run/docker.sock:/var/run/docker.sock
+#       - ./docker/promtail/config.yml:/etc/promtail/config.yml
+#     command: -config.file=/etc/promtail/config.yml
+#     networks:
+#       - ddt_net
+# 
+#   loki:
+#     image: grafana/loki:latest
+#     container_name: ddt_loki
+#     volumes:
+#       - ./docker/loki/config.yml:/etc/loki/local-config.yaml
+#       - loki_data:/loki
+#     command: -config.file=/etc/loki/local-config.yaml
+#     networks:
+#       - ddt_net
+#     depends_on:
+#       - promtail
+# 
+#   grafana:
+#     image: grafana/grafana:latest
+#     container_name: ddt_grafana
+#     user: "472"
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#     environment:
+#       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+#       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+#       - GF_SERVER_ROOT_URL=https://district-digital-twin-grafana.260824.xyz
+#       - GF_SMTP_ENABLED=true
+#       - GF_SMTP_HOST=smtp.gmail.com:587
+#       - GF_SMTP_USER=${GRAFANA_EMAIL}
+#       - GF_SMTP_PASSWORD=${GRAFANA_EMAIL_PASSWORD}
+#       - GF_SMTP_FROM_NAME=Digital Twin Alerts
+#       - GF_SMTP_FROM_ADDRESS=${GRAFANA_EMAIL}
+#     networks:
+#       - ddt_net
+#     depends_on:
+#       - prometheus
+#       - loki
+# 
+#   cloudflared:
+#     image: cloudflare/cloudflared:latest
+#     container_name: ddt_tunnel
+#     command: tunnel run
+#     environment:
+#       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+#     depends_on:
+#       - website
+#       - grafana
+#     networks:
+#       - ddt_net
 
 networks:
   ddt_net:

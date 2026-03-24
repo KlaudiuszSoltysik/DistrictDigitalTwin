@@ -54,27 +54,26 @@ public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<Simulati
                 SunRadiation = msg.Weather.SunRadiation,
                 SunAltitude = msg.Weather.SunAltitude,
                 SunAzimuth = msg.Weather.SunAzimuth,
+                Co2 = msg.Weather.Co2,
                 RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures),
+                RoomCo2 = JsonSerializer.Serialize(msg.RoomCo2),
                 RoomHvacQ = JsonSerializer.Serialize(msg.RoomHvacQ),
-                RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings)
+                RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings),
+                RoomHvacV = JsonSerializer.Serialize(msg.RoomHvacV)
             };
 
             db.SimulationTelemetry.Add(entity);
             await db.SaveChangesAsync();
 
-            Console.WriteLine(currentTimestamp);
-
             if (currentTimestamp.Hour != _lastProcessedHour)
             {
-                Console.WriteLine($"current ts: {currentTimestamp} last processed hour: {_lastProcessedHour}");
-
                 _lastProcessedHour = currentTimestamp.Hour;
 
                 var twinRequest = new DigitalTwinRequest
                 {
                     StartTimestamp = currentTimestamp,
                     T = msg.RoomTemperatures,
-                    HvacQ = msg.RoomHvacQ
+                    Co2 = msg.RoomCo2
                 };
 
                 var sendEndpoint = await context.GetSendEndpoint(new Uri("queue:digital-twin-commands"));

@@ -1,8 +1,7 @@
 ﻿@page "/tenant-panel"
-@layout TenantLayout
 @using shared
 @using website.Components
-@implements IAsyncDisposable
+@layout TenantLayout
 @inject HttpClient HttpClient
 
 <div class="my-10 border border-gray-700 rounded-xl overflow-hidden select-none text-white">
@@ -35,14 +34,15 @@
             <p class="text-green-400 mb-4 font-semibold">@_saveMessage</p>
         }
 
-        @foreach (var room in _rooms)
+        @foreach (var room in _apartmentConfig.Rooms)
         {
             <div class="mb-6 last:mb-0">
-                <TemperatureScheduler
+                <HvacScheduler
                     Name="@room.Name"
-                    Temperatures="_temperatures[room.Id]"
+                    @bind-Temperatures="room.HvacControl.Temperatures"
                     @bind-Tolerance="room.HvacControl.Tolerance"
-                    IsEnabled="_isEnabled[room.Id]"/>
+                    @bind-Co2="room.HvacControl.Co2"
+                    @bind-IsEnabled="room.HvacControl.IsEnabled"/>
             </div>
         }
     </div>
@@ -58,10 +58,6 @@
 
     private ApartmentConfig? _apartmentConfig;
 
-    private readonly Dictionary<string, double[]> _temperatures = new();
-    private readonly Dictionary<string, bool[]> _isEnabled = new();
-    private List<RoomConfig> _rooms = [];
-
     private bool _isLoading = true;
     private bool _isApplying;
     private string? _errorMessage;
@@ -76,27 +72,17 @@
 
             if (_apartmentConfig != null)
             {
-                _rooms = _apartmentConfig.Rooms;
-
-                foreach (var room in _rooms)
+                foreach (var hvac in _apartmentConfig.Rooms.Select(room => room.HvacControl))
                 {
-                    var temps = room.HvacControl.Temperatures.ToArray();
-
-                    if (temps is not { Length: 24 })
+                    if (hvac.Temperatures is not { Count: 24 })
                     {
-                        temps = Enumerable.Repeat(21.0, 24).ToArray();
+                        hvac.Temperatures = Enumerable.Repeat(21.0, 24).ToList();
                     }
 
-                    _temperatures[room.Id] = temps;
-
-                    var isEnabled = room.HvacControl.IsEnabled.ToArray();
-
-                    if (isEnabled is not { Length: 24 })
+                    if (hvac.IsEnabled is not { Count: 24 })
                     {
-                        isEnabled = Enumerable.Repeat(false, 24).ToArray();
+                        hvac.IsEnabled = Enumerable.Repeat(false, 24).ToList();
                     }
-
-                    _isEnabled[room.Id] = isEnabled;
                 }
             }
         }
@@ -120,29 +106,12 @@
 
         try
         {
-            foreach (var room in _apartmentConfig.Rooms)
-            {
-                if (!_temperatures.TryGetValue(room.Id, out var modifiedTemps)) continue;
-                if (!_isEnabled.TryGetValue(room.Id, out var modifiedIsEnabled)) continue;
-
-                room.HvacControl.Temperatures = modifiedTemps.ToList();
-                room.HvacControl.IsEnabled = modifiedIsEnabled.ToList();
-            }
-
-            var command = _apartmentConfig;
-
-            var response = await HttpClient.PostAsJsonAsync("apartment/update-apartment-config", command);
+            var response = await HttpClient.PostAsJsonAsync("apartment/update-apartment-config", _apartmentConfig);
 
             if (response.IsSuccessStatusCode)
             {
                 _saveMessage = "Schedule applied successfully!";
-
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(3000);
-                    _saveMessage = null;
-                    await InvokeAsync(StateHasChanged);
-                });
+                ClearMessageAfterDelay(3000);
             }
             else
             {
@@ -156,12 +125,17 @@
         finally
         {
             _isApplying = false;
-            StateHasChanged();
         }
     }
 
-    public async ValueTask DisposeAsync()
+    private void ClearMessageAfterDelay(int milliseconds)
     {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(milliseconds);
+            _saveMessage = null;
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
 }

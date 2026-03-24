@@ -47,19 +47,22 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<Digital
                 .Where(t => t.Timestamp >= firstMsg.Timestamp)
                 .ExecuteDeleteAsync();
 
-            var entities = msgs.Select(m => new DigitalTwinTelemetryEntity
+            var entities = msgs.Select(msg => new DigitalTwinTelemetryEntity
             {
-                RunId = m.RunId,
-                Timestamp = m.Timestamp,
-                Temperature = m.Weather.Temperature,
-                WindSpeed = m.Weather.WindSpeed,
-                WindDirection = m.Weather.WindDirection,
-                SunRadiation = m.Weather.SunRadiation,
-                SunAltitude = m.Weather.SunAltitude,
-                SunAzimuth = m.Weather.SunAzimuth,
-                RoomTemperatures = JsonSerializer.Serialize(m.RoomTemperatures),
-                RoomHvacQ = JsonSerializer.Serialize(m.RoomHvacQ),
-                RoomHeatings = JsonSerializer.Serialize(m.RoomHeatings)
+                RunId = msg.RunId,
+                Timestamp = msg.Timestamp,
+                Temperature = msg.Weather.Temperature,
+                WindSpeed = msg.Weather.WindSpeed,
+                WindDirection = msg.Weather.WindDirection,
+                SunRadiation = msg.Weather.SunRadiation,
+                SunAltitude = msg.Weather.SunAltitude,
+                SunAzimuth = msg.Weather.SunAzimuth,
+                Co2 = msg.Weather.Co2,
+                RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures),
+                RoomCo2 = JsonSerializer.Serialize(msg.RoomCo2),
+                RoomHvacQ = JsonSerializer.Serialize(msg.RoomHvacQ),
+                RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings),
+                RoomHvacV = JsonSerializer.Serialize(msg.RoomHvacV)
             }).ToList();
 
             await db.DigitalTwinTelemetry.AddRangeAsync(entities);

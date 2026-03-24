@@ -17,18 +17,18 @@ class MongoDbController:
         except Exception as e:
             self.logger.error("Failed to connect to MongoDB", exc_info=True, method="__init__")
 
-    def get_device(self, device):
-        return self.db["devices-config"].find_one({"Name": device})
-
     def get_district(self):
         return self.db["district-config"].find_one({}, {"_id": 0})
 
-    def update_device(self, device, config):
-        self.db["devices-config"].update_one(
-            {"device": device},
-            {"$set": config},
-            upsert=True
-        )
+    # def get_device(self, device):
+    #     return self.db["devices-config"].find_one({"Name": device})
+    #
+    # def update_device(self, device, config):
+    #     self.db["devices-config"].update_one(
+    #         {"device": device},
+    #         {"$set": config},
+    #         upsert=True
+    #     )
 
     def close(self):
         self.client.close()
