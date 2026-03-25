@@ -139,17 +139,17 @@ class HVAC:
             total_Q = Q_inter + Q_air + Q_ground + Q_vent + q_env_for[k] + Q_hvac
             T_sim += (total_Q / C) * dt
 
-            # penalty for temperatures
+            # penalty for temperatures outside band
             below_min = np.maximum(0, T_min_hor[k] - T_sim)
             above_max = np.maximum(0, T_sim - T_max_hor[k])
             total_penalty += np.sum(below_min) * 10000.0 + np.sum(below_min ** 2) * 50000.0
             total_penalty += np.sum(above_max) * 10000.0 + np.sum(above_max ** 2) * 50000.0
 
-            # penalty for causing dew on the floor
+            # penalty for freezing floor
             floor_freezing_penalty = np.maximum(0, 19.0 - T_sim)
             total_penalty += np.sum(floor_freezing_penalty) * 100000.0
 
-            # penalty for too high co2 level
+            # penalty for exceeding co2 level
             co2_suffocation = np.maximum(0, co2_sim - 1000.0)
             total_penalty += np.sum(co2_suffocation) * 1000.0 + np.sum(co2_suffocation ** 2) * 5000.0
 
