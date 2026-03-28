@@ -7,6 +7,8 @@ from shared.Co2Solver import Co2Solver
 from shared.DistrictModelParser import DistrictModelParser
 from shared.EnergyService import EnergyService
 from shared.HVAC import HVAC
+from shared.HeatPump import HeatPump
+from shared.PVFarm import PVFarm
 from shared.ThermalSolver import ThermalSolver
 from shared.WeatherService import WeatherService
 from shared.WeatherSolver import WeatherSolver
@@ -34,14 +36,17 @@ class DistrictSimulation:
 
         self.weather_service = WeatherService(weather_path, self.metadata["latitude"], self.metadata["longitude"],
                                               is_digital_twin)
-        self.prices_service = EnergyService(prices_path, self.weather_service)
+        self.energy_service = EnergyService(prices_path)
 
-        self.hvac = HVAC(self.num_nodes, parser.max_heating_powers, parser.max_cooling_powers, self.index_to_id,
-                         is_digital_twin)
+        self.pv_farm = PVFarm()
+        self.heat_pump = HeatPump()
+
+        self.hvac = HVAC(self.pv_farm, self.heat_pump, self.num_nodes, parser.max_heating_powers, parser.max_cooling_powers,
+                         self.index_to_id, is_digital_twin)
 
     def run_step(self, dt, room_noise_sigma=0.0):
         weather = self.weather_service.get_weather(self.current_time)
-        prices = self.prices_service.get_prices(self.current_time)
+        energy_costs = self.energy_service.get_effective_costs(self.current_time, self.pv_farm, self.heat_pump, weather)
 
         q_env = self.weather_solver.calculate_environmental_gains(
             weather["sun_radiation"], weather["sun_altitude"], weather["sun_azimuth"],
@@ -50,7 +55,7 @@ class DistrictSimulation:
         )
 
         q_hvac, v_hvac = self.hvac.step(self.current_time, dt, self.thermal_solver, self.co2_solver,
-                                        self.weather_service, self.weather_solver)
+                                        self.weather_service, self.weather_solver, self.energy_service)
 
         q_total = q_env + q_hvac
 
@@ -79,7 +84,7 @@ class DistrictSimulation:
         return {
             "timestamp": output_timestamp,
             "weather": weather_clean,
-            "prices": prices,
+            "energy_costs": energy_costs,
             "room_temperatures": room_temps,
             "room_co2": room_co2,
             "room_hvac_q": room_hvac_q,

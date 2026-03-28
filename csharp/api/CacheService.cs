@@ -94,6 +94,14 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         SunRadiation = e.SunRadiation,
                         Co2 = e.Co2
                     },
+                    EnergyCosts = new EnergyCostsData
+                    {
+                        ElectricityCost = e.ElectricityCost,
+                        GasCost = e.GasCost,
+                        PvFarmYield = e.PvFarmYield,
+                        CopHeating = e.CopHeating,
+                        CopCooling = e.CopCooling
+                    },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
                     RoomCo2 = JsonSerializer.Deserialize<Dictionary<string, int>>(e.RoomCo2) ??
@@ -157,6 +165,14 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         SunAzimuth = e.SunAzimuth,
                         SunRadiation = e.SunRadiation,
                         Co2 = e.Co2
+                    },
+                    EnergyCosts = new EnergyCostsData
+                    {
+                        ElectricityCost = e.ElectricityCost,
+                        GasCost = e.GasCost,
+                        PvFarmYield = e.PvFarmYield,
+                        CopHeating = e.CopHeating,
+                        CopCooling = e.CopCooling
                     },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
