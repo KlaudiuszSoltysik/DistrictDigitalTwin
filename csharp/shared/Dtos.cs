@@ -22,6 +22,8 @@ public class Telemetry
     [JsonPropertyName("room_heatings")] public Dictionary<string, double> RoomHeatings { get; set; } = new();
 
     [JsonPropertyName("room_hvac_v")] public Dictionary<string, double> RoomHvacV { get; set; } = new();
+
+    [JsonPropertyName("metering")] public Dictionary<string, Dictionary<string, double>> Metering { get; set; } = new();
 }
 
 public class WeatherData

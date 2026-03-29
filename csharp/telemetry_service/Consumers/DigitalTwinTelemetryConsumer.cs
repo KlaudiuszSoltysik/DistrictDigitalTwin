@@ -67,7 +67,8 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<Digital
                 RoomCo2 = JsonSerializer.Serialize(msg.RoomCo2),
                 RoomHvacQ = JsonSerializer.Serialize(msg.RoomHvacQ),
                 RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings),
-                RoomHvacV = JsonSerializer.Serialize(msg.RoomHvacV)
+                RoomHvacV = JsonSerializer.Serialize(msg.RoomHvacV),
+                Metering = JsonSerializer.Serialize(msg.Metering)
             }).ToList();
 
             await db.DigitalTwinTelemetry.AddRangeAsync(entities);

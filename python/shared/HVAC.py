@@ -6,7 +6,8 @@ from shared.MongoDbController import MongoDbController
 
 
 class HVAC:
-    def __init__(self, pv_farm, heat_pump, num_nodes, max_heating_powers, max_cooling_powers, district_id_dict, is_digital_twin):
+    def __init__(self, pv_farm, heat_pump, num_nodes, max_heating_powers, max_cooling_powers, district_id_dict,
+                 is_digital_twin):
         self.horizon_hours = 6
         self.block_size = 12
 
@@ -88,7 +89,8 @@ class HVAC:
 
         return T_min_horizon, T_max_horizon
 
-    def cost_function(self, x_flat, current_T, current_co2, T_min_horizon, T_max_horizon, t_out_forecast, co2_out_forecast,
+    def cost_function(self, x_flat, current_T, current_co2, T_min_horizon, T_max_horizon, t_out_forecast,
+                      co2_out_forecast,
                       q_env_forecast, is_enabled_forecast, thermal_solver, co2_solver, dt, horizon_steps, control_steps,
                       elec_cost_forecast, gas_cost_forecast, res_yield_forecast, cop_heat_forecast, cop_cool_forecast):
         half_idx = control_steps * self.num_nodes
@@ -175,7 +177,7 @@ class HVAC:
             # Jeśli w przyszłości dodasz "Q_gas" jako osobną zmienną, tutaj dodasz:
             # step_cost += (np.sum(Q_gas)/1000.0 / 0.95) * gas_cost_for[k]
 
-            total_penalty += step_cost * 50000.0
+            total_penalty += step_cost * 50.0
 
             # penalty for using hvac
             total_penalty += np.sum(np.abs(Q_hvac)) * 0.01
@@ -193,7 +195,8 @@ class HVAC:
 
         return total_penalty
 
-    def step(self, current_time, dt, thermal_solver, co2_solver, weather_service, weather_solver, energy_service):
+    def step(self, current_time, dt, thermal_solver, co2_solver, weather_service, weather_solver, energy_service,
+             noise_sigma):
         if dt == 0:
             return np.zeros(self.num_nodes), np.zeros(self.num_nodes)
 
@@ -236,7 +239,7 @@ class HVAC:
                 current_h = int(time_float) % 24
                 is_enabled_forecast[k, :] = co2_solver.is_enabled_mask[:, current_h]
 
-                costs = energy_service.get_effective_costs(future_time, self.pv_farm, self.heat_pump, w)
+                costs = energy_service.get_effective_costs(future_time, self.pv_farm, self.heat_pump, w, noise_sigma)
 
                 elec_cost_forecast[k] = costs["electricity_cost"]
                 gas_cost_forecast[k] = costs["gas_cost"]

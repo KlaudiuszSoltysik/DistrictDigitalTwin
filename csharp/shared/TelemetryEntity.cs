@@ -25,6 +25,7 @@ public class TelemetryEntity
     [Column(TypeName = "jsonb")] public string RoomHvacQ { get; set; } = "{}";
     [Column(TypeName = "jsonb")] public string RoomHeatings { get; set; } = "{}";
     [Column(TypeName = "jsonb")] public string RoomHvacV { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string Metering { get; set; } = "{}";
 }
 
 public class SimulationTelemetryEntity : TelemetryEntity;

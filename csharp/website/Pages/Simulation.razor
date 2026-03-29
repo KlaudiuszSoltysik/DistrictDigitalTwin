@@ -5,7 +5,7 @@
 @using website.Components
 @implements IAsyncDisposable
 
-<PageTitle>District Digital Twin - Admin Panel</PageTitle>
+<PageTitle>DDT Simulation</PageTitle>
 
 <SimulationControls
     SimulationTimestamp="@SimulationStatusService.SimulationTimestamp"
@@ -19,64 +19,14 @@
     OnSigmaChange="UpdateSigma"
 />
 
-<TelemetryCharts @ref="_telemetryChartsComponent"/>
-
 <TelemetryJson SimulationTelemetry="SimulationStatusService.SimulationTelemetry"
                DigitalTwinTelemetry="SimulationStatusService.DigitalTwinTelemetry"/>
 
 @code {
 
-    private TelemetryCharts? _telemetryChartsComponent;
-
     protected override async Task OnInitializedAsync()
     {
-        SimulationStatusService.OnSimulationTelemetryReceived += HandleNewSimulationTelemetry;
-        SimulationStatusService.OnSimulationTelemetryDbReceived += HandleSimulationTelemetryDb;
-        SimulationStatusService.OnDigitalTwinTelemetryReceived += HandleDigitalTwinTelemetry;
-
         SimulationStatusService.OnStatusChanged += StateHasChanged;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && _telemetryChartsComponent != null)
-        {
-            if (SimulationStatusService.SimulationTelemetry.Any())
-                await _telemetryChartsComponent.LoadSimulationTelemetryAsync(SimulationStatusService.SimulationTelemetry);
-
-            if (SimulationStatusService.DigitalTwinTelemetry.Any())
-                await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(SimulationStatusService.DigitalTwinTelemetry);
-        }
-    }
-
-    private async void HandleNewSimulationTelemetry(Telemetry msg)
-    {
-        if (_telemetryChartsComponent != null)
-        {
-            await _telemetryChartsComponent.AddSimulationTelemetryAsync(msg);
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async void HandleSimulationTelemetryDb(List<Telemetry> msgs)
-    {
-        if (_telemetryChartsComponent != null)
-        {
-            await _telemetryChartsComponent.LoadSimulationTelemetryAsync(msgs);
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async void HandleDigitalTwinTelemetry(List<Telemetry> msgs)
-    {
-        if (_telemetryChartsComponent != null)
-        {
-            await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(msgs);
-        }
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task Reset()
@@ -85,11 +35,6 @@
         await Task.Delay(200);
 
         SimulationStatusService.ClearTelemetry();
-
-        if (_telemetryChartsComponent != null)
-        {
-            await _telemetryChartsComponent.ClearChartsAsync();
-        }
 
         StateHasChanged();
     }
@@ -136,9 +81,6 @@
 
     public async ValueTask DisposeAsync()
     {
-        SimulationStatusService.OnSimulationTelemetryReceived -= HandleNewSimulationTelemetry;
-        SimulationStatusService.OnSimulationTelemetryDbReceived -= HandleSimulationTelemetryDb;
-        SimulationStatusService.OnDigitalTwinTelemetryReceived -= HandleDigitalTwinTelemetry;
         SimulationStatusService.OnStatusChanged -= StateHasChanged;
     }
 
