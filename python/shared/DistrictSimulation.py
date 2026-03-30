@@ -67,7 +67,7 @@ class DistrictSimulation:
 
         co2_array = self.co2_solver.step(self.current_time, dt, weather["co2"], v_hvac, noise_sigma)
 
-        self.metering_service.update_meters(dt, energy_costs["gas_cost"], q_hvac, v_hvac)
+        self.metering_service.update_meters(dt, energy_costs, q_hvac, v_hvac)
 
         output_timestamp = self.current_time.isoformat()
 

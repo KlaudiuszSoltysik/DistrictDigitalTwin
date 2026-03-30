@@ -1,0 +1,61 @@
+﻿@page "/admin-panel/metering"
+
+@inject SimulationStatusService SimulationStatusService
+@using shared
+@using website.Components
+@implements IAsyncDisposable
+
+<PageTitle>DDT Metering</PageTitle>
+
+<MeteringCharts @ref="_meteringChartsComponent"/>
+
+@code {
+    private MeteringCharts? _meteringChartsComponent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SimulationStatusService.OnSimulationTelemetryReceived += HandleNewSimulationTelemetry;
+        SimulationStatusService.OnMonthlyTelemetryDbReceived += HandleMonthlyTelemetryDb;
+
+        SimulationStatusService.OnStatusChanged += StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _meteringChartsComponent != null)
+        {
+            if (SimulationStatusService.MonthlySimulationTelemetry.Any())
+            {
+                await _meteringChartsComponent.LoadSimulationTelemetryAsync(SimulationStatusService.MonthlySimulationTelemetry);
+            }
+        }
+    }
+
+    private async void HandleNewSimulationTelemetry(Telemetry msg)
+    {
+        if (_meteringChartsComponent != null)
+        {
+            await _meteringChartsComponent.AddSimulationTelemetryAsync(msg);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleMonthlyTelemetryDb(List<Telemetry> msgs)
+    {
+        if (_meteringChartsComponent != null)
+        {
+            await _meteringChartsComponent.LoadSimulationTelemetryAsync(msgs);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SimulationStatusService.OnSimulationTelemetryReceived -= HandleNewSimulationTelemetry;
+        SimulationStatusService.OnMonthlyTelemetryDbReceived -= HandleMonthlyTelemetryDb;
+        SimulationStatusService.OnStatusChanged -= StateHasChanged;
+    }
+
+}

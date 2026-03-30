@@ -23,7 +23,7 @@ public class Telemetry
 
     [JsonPropertyName("room_hvac_v")] public Dictionary<string, double> RoomHvacV { get; set; } = new();
 
-    [JsonPropertyName("metering")] public Dictionary<string, Dictionary<string, double>> Metering { get; set; } = new();
+    [JsonPropertyName("metering")] public MeteringData Metering { get; set; }
 }
 
 public class WeatherData
@@ -44,6 +44,14 @@ public class EnergyCostsData
     [JsonPropertyName("pv_farm_yield")] public double PvFarmYield { get; set; }
     [JsonPropertyName("cop_heating")] public double CopHeating { get; set; }
     [JsonPropertyName("cop_cooling")] public double CopCooling { get; set; }
+}
+
+public class MeteringData
+{
+    [JsonPropertyName("admin_meters")] public Dictionary<string, double> AdminMeters { get; set; } = new();
+
+    [JsonPropertyName("tenant_meters")]
+    public Dictionary<string, Dictionary<string, double>> TenantMeters { get; set; } = new();
 }
 
 public class Config
