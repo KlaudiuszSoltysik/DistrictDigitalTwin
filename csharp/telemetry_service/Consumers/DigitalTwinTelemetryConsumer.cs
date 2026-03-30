@@ -58,11 +58,17 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<Digital
                 SunAltitude = msg.Weather.SunAltitude,
                 SunAzimuth = msg.Weather.SunAzimuth,
                 Co2 = msg.Weather.Co2,
+                ElectricityCost = msg.EnergyCosts.ElectricityCost,
+                GasCost = msg.EnergyCosts.GasCost,
+                PvFarmYield = msg.EnergyCosts.PvFarmYield,
+                CopHeating = msg.EnergyCosts.CopHeating,
+                CopCooling = msg.EnergyCosts.CopCooling,
                 RoomTemperatures = JsonSerializer.Serialize(msg.RoomTemperatures),
                 RoomCo2 = JsonSerializer.Serialize(msg.RoomCo2),
                 RoomHvacQ = JsonSerializer.Serialize(msg.RoomHvacQ),
                 RoomHeatings = JsonSerializer.Serialize(msg.RoomHeatings),
-                RoomHvacV = JsonSerializer.Serialize(msg.RoomHvacV)
+                RoomHvacV = JsonSerializer.Serialize(msg.RoomHvacV),
+                Metering = JsonSerializer.Serialize(msg.Metering)
             }).ToList();
 
             await db.DigitalTwinTelemetry.AddRangeAsync(entities);

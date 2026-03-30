@@ -1,18 +1,17 @@
-﻿@page "/admin-panel/hvac"
+﻿@page "/admin-panel/weather"
 
 @inject SimulationStatusService SimulationStatusService
 @using shared
 @using website.Components
 @implements IAsyncDisposable
-@inject HttpClient HttpClient
 
-<PageTitle>DDT HVAC</PageTitle>
+<PageTitle>DDT Weather</PageTitle>
 
-<HvacCharts @ref="_hvacChartsComponent" ApartmentsConfig="@_apartamentsConfig"/>
+<WeatherCharts @ref="_telemetryChartsComponent"/>
 
 @code {
-    private HvacCharts? _hvacChartsComponent;
-    private List<AllApartmentsConfig>? _apartamentsConfig;
+
+    private WeatherCharts? _telemetryChartsComponent;
 
     protected override async Task OnInitializedAsync()
     {
@@ -21,33 +20,25 @@
         SimulationStatusService.OnDigitalTwinTelemetryReceived += HandleDigitalTwinTelemetry;
 
         SimulationStatusService.OnStatusChanged += StateHasChanged;
-
-        try
-        {
-            _apartamentsConfig = await HttpClient.GetFromJsonAsync<List<AllApartmentsConfig>>("apartment/get-all-apartments-config");
-        }
-        catch (Exception ex)
-        {
-        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _hvacChartsComponent != null)
+        if (firstRender && _telemetryChartsComponent != null)
         {
             if (SimulationStatusService.SimulationTelemetry.Any())
-                await _hvacChartsComponent.LoadSimulationTelemetryAsync(SimulationStatusService.SimulationTelemetry);
+                await _telemetryChartsComponent.LoadSimulationTelemetryAsync(SimulationStatusService.SimulationTelemetry);
 
             if (SimulationStatusService.DigitalTwinTelemetry.Any())
-                await _hvacChartsComponent.LoadDigitalTwinTelemetryAsync(SimulationStatusService.DigitalTwinTelemetry);
+                await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(SimulationStatusService.DigitalTwinTelemetry);
         }
     }
 
     private async void HandleNewSimulationTelemetry(Telemetry msg)
     {
-        if (_hvacChartsComponent != null)
+        if (_telemetryChartsComponent != null)
         {
-            await _hvacChartsComponent.AddSimulationTelemetryAsync(msg);
+            await _telemetryChartsComponent.AddSimulationTelemetryAsync(msg);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -55,9 +46,9 @@
 
     private async void HandleSimulationTelemetryDb(List<Telemetry> msgs)
     {
-        if (_hvacChartsComponent != null)
+        if (_telemetryChartsComponent != null)
         {
-            await _hvacChartsComponent.LoadSimulationTelemetryAsync(msgs);
+            await _telemetryChartsComponent.LoadSimulationTelemetryAsync(msgs);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -65,9 +56,9 @@
 
     private async void HandleDigitalTwinTelemetry(List<Telemetry> msgs)
     {
-        if (_hvacChartsComponent != null)
+        if (_telemetryChartsComponent != null)
         {
-            await _hvacChartsComponent.LoadDigitalTwinTelemetryAsync(msgs);
+            await _telemetryChartsComponent.LoadDigitalTwinTelemetryAsync(msgs);
         }
 
         await InvokeAsync(StateHasChanged);

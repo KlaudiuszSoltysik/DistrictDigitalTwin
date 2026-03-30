@@ -6,7 +6,8 @@ from shared.MongoDbController import MongoDbController
 
 
 class HVAC:
-    def __init__(self, num_nodes, max_heating_powers, max_cooling_powers, district_id_dict, is_digital_twin):
+    def __init__(self, pv_farm, heat_pump, num_nodes, max_heating_powers, max_cooling_powers, district_id_dict,
+                 is_digital_twin):
         self.horizon_hours = 6
         self.block_size = 12
 
@@ -16,6 +17,8 @@ class HVAC:
 
         self.mongodb = MongoDbController()
 
+        self.pv_farm = pv_farm
+        self.heat_pump = heat_pump
         self.num_nodes = num_nodes
         self.max_powers = max_heating_powers
         self.min_powers = max_cooling_powers
@@ -86,8 +89,10 @@ class HVAC:
 
         return T_min_horizon, T_max_horizon
 
-    def cost_function(self, x_flat, current_T, current_co2, T_min_hor, T_max_hor, t_out_for, co2_out_for, q_env_for,
-                      is_enabled_for, thermal_solver, co2_solver, dt, horizon_steps, control_steps):
+    def cost_function(self, x_flat, current_T, current_co2, T_min_horizon, T_max_horizon, t_out_forecast,
+                      co2_out_forecast,
+                      q_env_forecast, is_enabled_forecast, thermal_solver, co2_solver, dt, horizon_steps, control_steps,
+                      elec_cost_forecast, gas_cost_forecast, res_yield_forecast, cop_heat_forecast, cop_cool_forecast):
         half_idx = control_steps * self.num_nodes
 
         Q_percent_blocked = x_flat[:half_idx].reshape((control_steps, self.num_nodes))
@@ -118,12 +123,12 @@ class HVAC:
             Q_hvac = Q_hvac_matrix[k]
             V_vent = V_vent_matrix[k]
 
-            co2_generation_m3_s = (0.015 / 3600.0) * is_enabled_for[k]
+            co2_generation_m3_s = (0.015 / 3600.0) * is_enabled_forecast[k]
 
             for _ in range(micro_steps):
                 co2_mixed = np.dot(co2_solver.G, co2_sim) - (np.sum(co2_solver.G, axis=1) * co2_sim)
-                co2_infil = co2_solver.G_ext_air_mix * (co2_out_for[k] - co2_sim)
-                co2_vent = V_vent * (co2_out_for[k] - co2_sim)
+                co2_infil = co2_solver.G_ext_air_mix * (co2_out_forecast[k] - co2_sim)
+                co2_vent = V_vent * (co2_out_forecast[k] - co2_sim)
 
                 total_co2 = co2_mixed + co2_infil + co2_vent
                 co2_sim += (total_co2 / co2_solver.V) * micro_dt
@@ -132,30 +137,51 @@ class HVAC:
             co2_sim = np.maximum(co2_sim, 400.0)
 
             Q_inter = np.dot(G, T_sim) - (np.sum(G, axis=1) * T_sim)
-            Q_air = G_ext_air * (t_out_for[k] - T_sim)
+            Q_air = G_ext_air * (t_out_forecast[k] - T_sim)
             Q_ground = G_ext_ground * (T_ground - T_sim)
-            Q_vent = V_vent * 1200.0 * (1.0 - 0.8) * (t_out_for[k] - T_sim)
+            Q_vent = V_vent * 1200.0 * (1.0 - 0.8) * (t_out_forecast[k] - T_sim)
 
-            total_Q = Q_inter + Q_air + Q_ground + Q_vent + q_env_for[k] + Q_hvac
+            total_Q = Q_inter + Q_air + Q_ground + Q_vent + q_env_forecast[k] + Q_hvac
             T_sim += (total_Q / C) * dt
 
-            # penalty for temperatures
-            below_min = np.maximum(0, T_min_hor[k] - T_sim)
-            above_max = np.maximum(0, T_sim - T_max_hor[k])
+            # penalty for temperatures outside band
+            below_min = np.maximum(0, T_min_horizon[k] - T_sim)
+            above_max = np.maximum(0, T_sim - T_max_horizon[k])
             total_penalty += np.sum(below_min) * 10000.0 + np.sum(below_min ** 2) * 50000.0
             total_penalty += np.sum(above_max) * 10000.0 + np.sum(above_max ** 2) * 50000.0
 
-            # penalty for causing dew on the floor
+            # penalty for freezing floor
             floor_freezing_penalty = np.maximum(0, 19.0 - T_sim)
             total_penalty += np.sum(floor_freezing_penalty) * 100000.0
 
-            # penalty for too high co2 level
+            # penalty for exceeding co2 level
             co2_suffocation = np.maximum(0, co2_sim - 1000.0)
             total_penalty += np.sum(co2_suffocation) * 1000.0 + np.sum(co2_suffocation ** 2) * 5000.0
 
-            # penalty for energy consumption
+            # penalty for energy expenses
+            Q_heating = np.maximum(0, Q_hvac)
+            Q_cooling = np.maximum(0, -Q_hvac)
+
+            V_power_watts = V_vent * 1000.0
+
+            heat_elec_demand = np.sum(Q_heating) / cop_heat_forecast[k]
+            cool_elec_demand = np.sum(Q_cooling) / cop_cool_forecast[k]
+            vent_elec_demand = np.sum(V_power_watts)
+
+            total_elec_demand_kw = (heat_elec_demand + cool_elec_demand + vent_elec_demand) / 1000.0
+
+            grid_buy_kw = np.maximum(0, total_elec_demand_kw - res_yield_forecast[k])
+
+            step_cost = grid_buy_kw * elec_cost_forecast[k]
+
+            # Jeśli w przyszłości dodasz "Q_gas" jako osobną zmienną, tutaj dodasz:
+            # step_cost += (np.sum(Q_gas)/1000.0 / 0.95) * gas_cost_for[k]
+
+            total_penalty += step_cost * 50.0
+
+            # penalty for using hvac
             total_penalty += np.sum(np.abs(Q_hvac)) * 0.01
-            total_penalty += np.sum(V_vent) * 500.0
+            total_penalty += np.sum(V_vent) * 100.0
 
         # penalty for low stability
         delta_q_frac = np.diff(Q_percent_blocked, axis=0) / 100.0
@@ -169,7 +195,8 @@ class HVAC:
 
         return total_penalty
 
-    def step(self, current_time, dt, thermal_solver, co2_solver, weather_service, weather_solver):
+    def step(self, current_time, dt, thermal_solver, co2_solver, weather_service, weather_solver, energy_service,
+             noise_sigma):
         if dt == 0:
             return np.zeros(self.num_nodes), np.zeros(self.num_nodes)
 
@@ -185,7 +212,13 @@ class HVAC:
             t_out_forecast = np.zeros(horizon_steps)
             co2_out_forecast = np.zeros(horizon_steps)
             q_env_forecast = np.zeros((horizon_steps, self.num_nodes))
-            is_enabled_for = np.zeros((horizon_steps, self.num_nodes))
+            is_enabled_forecast = np.zeros((horizon_steps, self.num_nodes))
+
+            elec_cost_forecast = np.zeros(horizon_steps)
+            gas_cost_forecast = np.zeros(horizon_steps)
+            res_yield_forecast = np.zeros(horizon_steps)
+            cop_heat_forecast = np.zeros(horizon_steps)
+            cop_cool_forecast = np.zeros(horizon_steps)
 
             future_time = current_time
             T_frozen_for_prediction = np.copy(thermal_solver.T)
@@ -204,11 +237,19 @@ class HVAC:
 
                 time_float = future_time.hour + (future_time.minute / 60.0)
                 current_h = int(time_float) % 24
-                is_enabled_for[k, :] = co2_solver.is_enabled_mask[:, current_h]
+                is_enabled_forecast[k, :] = co2_solver.is_enabled_mask[:, current_h]
+
+                costs = energy_service.get_effective_costs(future_time, self.pv_farm, self.heat_pump, w, noise_sigma)
+
+                elec_cost_forecast[k] = costs["electricity_cost"]
+                gas_cost_forecast[k] = costs["gas_cost"]
+                res_yield_forecast[k] = costs["pv_farm_yield"]
+                cop_heat_forecast[k] = costs["cop_heating"]
+                cop_cool_forecast[k] = costs["cop_cooling"]
 
                 future_time += pd.Timedelta(seconds=dt)
 
-            T_min_hor, T_max_hor = self.get_target_trajectories(current_time, dt, horizon_steps)
+            T_min_horizon, T_max_horizon = self.get_target_trajectories(current_time, dt, horizon_steps)
 
             control_steps = horizon_steps // self.block_size
 
@@ -221,8 +262,9 @@ class HVAC:
             res = minimize(
                 self.cost_function,
                 initial_guess,
-                args=(thermal_solver.T, co2_solver.co2, T_min_hor, T_max_hor, t_out_forecast, co2_out_forecast,
-                      q_env_forecast, is_enabled_for, thermal_solver, co2_solver, dt, horizon_steps, control_steps),
+                args=(thermal_solver.T, co2_solver.co2, T_min_horizon, T_max_horizon, t_out_forecast, co2_out_forecast,
+                      q_env_forecast, is_enabled_forecast, thermal_solver, co2_solver, dt, horizon_steps, control_steps,
+                      elec_cost_forecast, gas_cost_forecast, res_yield_forecast, cop_heat_forecast, cop_cool_forecast),
                 method='L-BFGS-B',
                 bounds=bounds,
                 options={

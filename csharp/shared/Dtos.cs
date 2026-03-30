@@ -10,6 +10,8 @@ public class Telemetry
 
     [JsonPropertyName("weather")] public WeatherData Weather { get; set; }
 
+    [JsonPropertyName("energy_costs")] public EnergyCostsData EnergyCosts { get; set; }
+
     [JsonPropertyName("room_temperatures")]
     public Dictionary<string, double> RoomTemperatures { get; set; } = new();
 
@@ -20,6 +22,8 @@ public class Telemetry
     [JsonPropertyName("room_heatings")] public Dictionary<string, double> RoomHeatings { get; set; } = new();
 
     [JsonPropertyName("room_hvac_v")] public Dictionary<string, double> RoomHvacV { get; set; } = new();
+
+    [JsonPropertyName("metering")] public Dictionary<string, Dictionary<string, double>> Metering { get; set; } = new();
 }
 
 public class WeatherData
@@ -31,6 +35,15 @@ public class WeatherData
     [JsonPropertyName("sun_altitude")] public double SunAltitude { get; set; }
     [JsonPropertyName("sun_azimuth")] public double SunAzimuth { get; set; }
     [JsonPropertyName("co2")] public int Co2 { get; set; }
+}
+
+public class EnergyCostsData
+{
+    [JsonPropertyName("electricity_cost")] public double ElectricityCost { get; set; }
+    [JsonPropertyName("gas_cost")] public double GasCost { get; set; }
+    [JsonPropertyName("pv_farm_yield")] public double PvFarmYield { get; set; }
+    [JsonPropertyName("cop_heating")] public double CopHeating { get; set; }
+    [JsonPropertyName("cop_cooling")] public double CopCooling { get; set; }
 }
 
 public class Config

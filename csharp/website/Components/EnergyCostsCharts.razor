@@ -1,85 +1,71 @@
 ﻿@using shared
 @if (_simulationTelemetry.Count != 0)
 {
-    <ApexChart TItem="Telemetry" Title="Temperature [°C]" Options="_temperatureChartOptions" @ref="_chart1">
+    <ApexChart TItem="Telemetry" Title="Electricity cost [EUR/MWh]" Options="_electricityCostChartOptions"
+               @ref="_chart1">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Temperature"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Temperature)"/>
-
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Temperature forecast"
+                         Name="Electricity price"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Temperature)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.ElectricityCost)"/>
     </ApexChart>
 
-    <ApexChart TItem="Telemetry" Title="Wind speed [km/h]" Options="_windSpeedChartOptions" @ref="_chart2">
+    <ApexChart TItem="Telemetry" Title="Gas cost [EUR/MWh]" Options="_gasCostChartOptions" @ref="_chart2">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Wind speed"
-                         Items="_simulationTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
-
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Wind speed forecast"
+                         Name="Gas price"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.GasCost)"/>
     </ApexChart>
 
-    <ApexChart TItem="Telemetry" Title="Sun radiation [W/m²]" Options="_sunRadiationChartOptions"
-               @ref="_chart3">
+    <ApexChart TItem="Telemetry" Title="PV farm yield [kW]" Options="_pvFarmYieldChartOptions" @ref="_chart3">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun radiation"
+                         Name="PV farm power"
                          Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.PvFarmYield)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun radiation forecast"
+                         Name="PV farm power forecast"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.PvFarmYield)"/>
     </ApexChart>
 
-    <ApexChart TItem="Telemetry" Title="Sun altitude [°]" Options="_sunAltitudeChartOptions" @ref="_chart4">
+    <ApexChart TItem="Telemetry" Title="COP heating" Options="_copHeatingChartOptions" @ref="_chart4">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun altitude"
+                         Name="Heat pump heating coefficient"
                          Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.CopHeating)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun altitude forecast"
+                         Name="Heat pump heating coefficient forecast"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.CopHeating)"/>
     </ApexChart>
 
-    <ApexChart TItem="Telemetry" Title="CO₂ [ppm]" Options="_co2ChartOptions" @ref="_chart5">
+    <ApexChart TItem="Telemetry" Title="COP cooling" Options="_copCoolingChartOptions" @ref="_chart5">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="CO₂"
+                         Name="Heat pump cooling coefficient"
                          Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Co2)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.CopCooling)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="CO₂ forecast"
+                         Name="Heat pump cooling coefficient forecast"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Co2)"/>
+                         YValue="@(t => (decimal?)t.EnergyCosts.CopCooling)"/>
     </ApexChart>
 }
 
@@ -96,20 +82,20 @@
     private ApexChart<Telemetry> _chart4 = new();
     private ApexChart<Telemetry> _chart5 = new();
 
-    private ApexChartOptions<Telemetry> _temperatureChartOptions = new();
-    private ApexChartOptions<Telemetry> _windSpeedChartOptions = new();
-    private ApexChartOptions<Telemetry> _sunRadiationChartOptions = new();
-    private ApexChartOptions<Telemetry> _sunAltitudeChartOptions = new();
-    private ApexChartOptions<Telemetry> _co2ChartOptions = new();
+    private ApexChartOptions<Telemetry> _electricityCostChartOptions = new();
+    private ApexChartOptions<Telemetry> _gasCostChartOptions = new();
+    private ApexChartOptions<Telemetry> _pvFarmYieldChartOptions = new();
+    private ApexChartOptions<Telemetry> _copHeatingChartOptions = new();
+    private ApexChartOptions<Telemetry> _copCoolingChartOptions = new();
 
 
     protected override void OnInitialized()
     {
-        _temperatureChartOptions = GenerateOptions("°C");
-        _windSpeedChartOptions = GenerateOptions(" km/h");
-        _sunRadiationChartOptions = GenerateOptions(" W/m²");
-        _sunAltitudeChartOptions = GenerateOptions("°");
-        _co2ChartOptions = GenerateOptions(" ppm");
+        _electricityCostChartOptions = GenerateOptions(" EUR/MWh");
+        _gasCostChartOptions = GenerateOptions(" EUR/MWh");
+        _pvFarmYieldChartOptions = GenerateOptions(" kW");
+        _copHeatingChartOptions = GenerateOptions("");
+        _copCoolingChartOptions = GenerateOptions("");
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)
@@ -155,22 +141,6 @@
             _chart4.UpdateSeriesAsync(),
             _chart5.UpdateSeriesAsync()
         );
-    }
-
-    public async Task ClearChartsAsync()
-    {
-        _simulationTelemetry.Clear();
-        _digitalTwinTelemetry.Clear();
-
-        await Task.WhenAll(
-            _chart1.UpdateSeriesAsync(),
-            _chart2.UpdateSeriesAsync(),
-            _chart3.UpdateSeriesAsync(),
-            _chart4.UpdateSeriesAsync(),
-            _chart5.UpdateSeriesAsync()
-        );
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private static ApexChartOptions<Telemetry> GenerateOptions(string unitSuffix)

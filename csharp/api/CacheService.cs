@@ -41,7 +41,7 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
         if (latestTwin != null)
         {
             _currentDigitalTwinRunId = 1;
-            var cutoff = latestTwin.Timestamp.AddHours(-24);
+            var cutoff = latestTwin.Timestamp.AddHours(-48);
             await LoadDigitalTwinTelemetryFromDb(cutoff);
         }
     }
@@ -94,6 +94,14 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         SunRadiation = e.SunRadiation,
                         Co2 = e.Co2
                     },
+                    EnergyCosts = new EnergyCostsData
+                    {
+                        ElectricityCost = e.ElectricityCost,
+                        GasCost = e.GasCost,
+                        PvFarmYield = e.PvFarmYield,
+                        CopHeating = e.CopHeating,
+                        CopCooling = e.CopCooling
+                    },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
                     RoomCo2 = JsonSerializer.Deserialize<Dictionary<string, int>>(e.RoomCo2) ??
@@ -103,7 +111,9 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
                                    new Dictionary<string, double>(),
                     RoomHvacV = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacV) ??
-                                new Dictionary<string, double>()
+                                new Dictionary<string, double>(),
+                    Metering = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(e.Metering) ??
+                               new Dictionary<string, Dictionary<string, double>>()
                 });
 
             foreach (var item in mappedData) _simulationTelemetry.Enqueue(item);
@@ -158,6 +168,14 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                         SunRadiation = e.SunRadiation,
                         Co2 = e.Co2
                     },
+                    EnergyCosts = new EnergyCostsData
+                    {
+                        ElectricityCost = e.ElectricityCost,
+                        GasCost = e.GasCost,
+                        PvFarmYield = e.PvFarmYield,
+                        CopHeating = e.CopHeating,
+                        CopCooling = e.CopCooling
+                    },
                     RoomTemperatures = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomTemperatures) ??
                                        new Dictionary<string, double>(),
                     RoomCo2 = JsonSerializer.Deserialize<Dictionary<string, int>>(e.RoomCo2) ??
@@ -167,7 +185,9 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     RoomHeatings = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHeatings) ??
                                    new Dictionary<string, double>(),
                     RoomHvacV = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacV) ??
-                                new Dictionary<string, double>()
+                                new Dictionary<string, double>(),
+                    Metering = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(e.Metering) ??
+                               new Dictionary<string, Dictionary<string, double>>()
                 });
 
             foreach (var item in mappedData) _digitalTwinTelemetry.Enqueue(item);
