@@ -66,7 +66,7 @@ public class SimulationStatusService : IAsyncDisposable
 
         _hubConnection.On<List<Telemetry>>("ReceiveDigitalTwinTelemetry", msg =>
         {
-            DigitalTwinTimestamp = msg[^1].Timestamp;
+            DigitalTwinTimestamp = msg[0].Timestamp;
 
             foreach (var incomingItem in msg)
             {

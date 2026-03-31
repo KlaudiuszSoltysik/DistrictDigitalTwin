@@ -1,41 +1,11 @@
 ﻿@using shared
-@if (_prevMonthData.Count != 0)
-{
-    <h4 class="mt-4 text-xl">Last month</h4>
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <ApexChart TItem="MeteringChartPoint" Title="Electricity import (Total) [kWh]"
-                       Options="_electricityImportSumChartOptions" @ref="_chart1">
-                <ApexPointSeries TItem="MeteringChartPoint"
-                                 SeriesType="SeriesType.Area"
-                                 Name="Total import"
-                                 Items="_prevMonthData"
-                                 XValue="@(t => t.Timestamp)"
-                                 YValue="@(t => t.ElectricityImportSum)"/>
-            </ApexChart>
-        </div>
-
-        <div class="col-md-6">
-            <ApexChart TItem="MeteringChartPoint" Title="Electricity import (Step) [kWh]"
-                       Options="_electricityImportDeltaChartOptions" @ref="_chart2">
-                <ApexPointSeries TItem="MeteringChartPoint"
-                                 SeriesType="SeriesType.Bar"
-                                 Name="Step import"
-                                 Items="_prevMonthData"
-                                 XValue="@(t => t.Timestamp)"
-                                 YValue="@(t => t.ElectricityImportDelta)"/>
-            </ApexChart>
-        </div>
-    </div>
-}
-
-@if (_currentMonthData.Count != 0)
+@if (_currentMonthData.Count > 0)
 {
     <h4 class="mt-4 text-xl">Current month</h4>
     <div class="row">
         <div class="col-md-6">
             <ApexChart TItem="MeteringChartPoint" Title="Electricity import (Total) [kWh]"
-                       Options="_electricityImportSumChartOptions" @ref="_chart3">
+                       Options="_chart1Options" @ref="_chart1">
                 <ApexPointSeries TItem="MeteringChartPoint"
                                  SeriesType="SeriesType.Area"
                                  Name="Total import"
@@ -47,9 +17,9 @@
 
         <div class="col-md-6">
             <ApexChart TItem="MeteringChartPoint" Title="Electricity import (Step) [kWh]"
-                       Options="_electricityImportDeltaChartOptions" @ref="_chart4">
+                       Options="_chart2Options" @ref="_chart2">
                 <ApexPointSeries TItem="MeteringChartPoint"
-                                 SeriesType="SeriesType.Bar"
+                                 SeriesType="SeriesType.Area"
                                  Name="Step import"
                                  Items="_currentMonthData"
                                  XValue="@(t => t.Timestamp)"
@@ -60,24 +30,29 @@
 }
 
 @code {
+
+    public class MeteringChartPoint
+    {
+        public DateTimeOffset Timestamp { get; set; }
+        public decimal ElectricityImportSum { get; set; }
+        public decimal ElectricityImportDelta { get; set; }
+    }
+
     private int _updateCounter;
 
-    private List<MeteringChartPoint> _prevMonthData = [];
     private List<MeteringChartPoint> _currentMonthData = [];
     private Telemetry? _lastTelemetry;
 
-    private ApexChart<MeteringChartPoint>? _chart1;
-    private ApexChart<MeteringChartPoint>? _chart2;
-    private ApexChart<MeteringChartPoint> _chart3 = new();
-    private ApexChart<MeteringChartPoint> _chart4 = new();
+    private ApexChart<MeteringChartPoint> _chart1 = new();
+    private ApexChart<MeteringChartPoint> _chart2 = new();
 
-    private ApexChartOptions<MeteringChartPoint> _electricityImportSumChartOptions = new();
-    private ApexChartOptions<MeteringChartPoint> _electricityImportDeltaChartOptions = new();
+    private ApexChartOptions<MeteringChartPoint> _chart1Options = new();
+    private ApexChartOptions<MeteringChartPoint> _chart2Options = new();
 
     protected override void OnInitialized()
     {
-        _electricityImportSumChartOptions = GenerateOptions(" kWh");
-        _electricityImportDeltaChartOptions = GenerateOptions(" kWh");
+        _chart1Options = GenerateOptions(" kWh");
+        _chart2Options = GenerateOptions(" kWh");
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)
@@ -85,20 +60,6 @@
         _updateCounter++;
 
         var newPoint = CreateMeteringPoint(msg, _lastTelemetry);
-
-        if (_currentMonthData.Count > 0)
-        {
-            var currentSimulationMonth = _currentMonthData.Last().Timestamp.Month;
-            if (msg.Timestamp.Month != currentSimulationMonth)
-            {
-                _prevMonthData = _currentMonthData.ToList();
-                _currentMonthData.Clear();
-
-                _chart1 = null;
-                _chart2 = null;
-            }
-        }
-
         _currentMonthData.Add(newPoint);
         _lastTelemetry = msg;
 
@@ -106,35 +67,19 @@
         {
             _currentMonthData = _currentMonthData.ToList();
 
-            var tasks = new List<Task>
-            {
-                InvokeAsync(StateHasChanged)
-            };
+            await InvokeAsync(StateHasChanged);
 
-            if (_currentMonthData.Count > 1)
+            if (_currentMonthData.Count > 0)
             {
-                tasks.Add(_chart3.UpdateSeriesAsync());
-                tasks.Add(_chart4.UpdateSeriesAsync());
+                await _chart1.UpdateSeriesAsync();
+                await _chart2.UpdateSeriesAsync();
             }
-
-            if (_prevMonthData.Count > 1 && _chart1 != null && _chart2 != null)
-            {
-                _prevMonthData = _prevMonthData.ToList();
-                tasks.Add(_chart1.UpdateSeriesAsync());
-                tasks.Add(_chart2.UpdateSeriesAsync());
-            }
-
-            await Task.WhenAll(tasks);
         }
     }
 
     public async Task LoadSimulationTelemetryAsync(List<Telemetry> msgs)
     {
         if (msgs.Count == 0) return;
-
-        _prevMonthData.Clear();
-        _currentMonthData.Clear();
-        _lastTelemetry = null;
 
         var orderedMsgs = msgs.OrderBy(m => m.Timestamp).ToList();
 
@@ -146,15 +91,10 @@
 
         foreach (var msg in orderedMsgs)
         {
-            var point = CreateMeteringPoint(msg, previousMsg);
-
             if (msg.Timestamp.Year == currentYear && msg.Timestamp.Month == currentMonth)
             {
+                var point = CreateMeteringPoint(msg, previousMsg);
                 _currentMonthData.Add(point);
-            }
-            else
-            {
-                _prevMonthData.Add(point);
             }
 
             previousMsg = msg;
@@ -162,18 +102,11 @@
 
         if (_currentMonthData.Count > 1 && _currentMonthData[0].ElectricityImportDelta == 0)
         {
-            _currentMonthData[0].ElectricityImportDelta = _currentMonthData[1].ElectricityImportDelta;
-        }
-
-        if (_prevMonthData.Count > 1 && _prevMonthData[0].ElectricityImportDelta == 0)
-        {
-            _prevMonthData[0].ElectricityImportDelta = _prevMonthData[1].ElectricityImportDelta;
+            _currentMonthData[0].ElectricityImportDelta = _currentMonthData[0].ElectricityImportSum;
         }
 
         _lastTelemetry = orderedMsgs.LastOrDefault();
-
         _currentMonthData = _currentMonthData.ToList();
-        _prevMonthData = _prevMonthData.ToList();
 
         await InvokeAsync(StateHasChanged);
     }
@@ -187,7 +120,7 @@
         {
             Timestamp = current.Timestamp,
             ElectricityImportSum = currentElectricityImport,
-            ElectricityImportDelta = Math.Max(0, currentElectricityImport - prevElectricityImport)
+            ElectricityImportDelta = currentElectricityImport - prevElectricityImport
         };
     }
 
@@ -214,6 +147,7 @@
             [
                 new YAxis
                 {
+                    Min = 0,
                     Labels = new YAxisLabels
                     {
                         Formatter = $"function (value) {{ return value.toFixed(2) + '{unitSuffix}'; }}"
@@ -225,13 +159,6 @@
                 X = new TooltipX { Format = "dd-MM-yyyy HH:mm" }
             }
         };
-    }
-
-    public class MeteringChartPoint
-    {
-        public DateTimeOffset Timestamp { get; set; }
-        public decimal ElectricityImportSum { get; set; }
-        public decimal ElectricityImportDelta { get; set; }
     }
 
 }

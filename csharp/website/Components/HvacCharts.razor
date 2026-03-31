@@ -115,14 +115,14 @@
                          Name="@roomName"
                          Items="GetSimulationPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
-                         YValue="@(p => (decimal?)p.Co2)"/>
+                         YValue="@(p => p.Co2)"/>
 
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
                          Name="@($"{roomName} digital twin")"
                          Items="GetDigitalTwinPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
-                         YValue="@(p => (decimal?)p.Co2)"/>
+                         YValue="@(p => p.Co2)"/>
     }
 </ApexChart>
 

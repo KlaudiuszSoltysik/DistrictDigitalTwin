@@ -72,14 +72,14 @@
                          Name="CO₂"
                          Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Co2)"/>
+                         YValue="@(t => t.Weather.Co2)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
                          Name="CO₂ forecast"
                          Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.Weather.Co2)"/>
+                         YValue="@(t => t.Weather.Co2)"/>
     </ApexChart>
 }
 
