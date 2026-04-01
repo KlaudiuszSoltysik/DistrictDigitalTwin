@@ -59,7 +59,6 @@ public class SimulationStatusService : IAsyncDisposable
 
         _hubConnection.On<List<Telemetry>>("ReceiveMonthlyTelemetryDb", msgs =>
         {
-            if (msgs.Count > 0) SimulationTimestamp = msgs[^1].Timestamp;
             MonthlySimulationTelemetry = msgs;
             OnMonthlyTelemetryDbReceived?.Invoke(msgs);
         });
