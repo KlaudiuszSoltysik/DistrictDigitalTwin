@@ -68,7 +68,7 @@ class MeteringService:
                 "gas_cost": round(self.admin_gas_cost, 2)
             },
             "tenant_meters": {
-                "heatinc": {k: round(v, 3) for k, v in self.room_heat_delivered.items()},
+                "heating": {k: round(v, 3) for k, v in self.room_heat_delivered.items()},
                 "cooling": {k: round(v, 3) for k, v in self.room_cool_delivered.items()},
                 "ventilation": {k: round(v, 2) for k, v in self.room_vent_volume.items()}
             }

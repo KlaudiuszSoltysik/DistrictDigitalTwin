@@ -1,29 +1,29 @@
 ﻿@using shared
 @if (_previousMonthData.Count > 0)
 {
-    <h4 class="mt-4 text-xl">Previous month</h4>
+    <h4 class="mt-4 text-xl">Previous month - @Title</h4>
     <div class="row">
         <div class="col-md-6">
-            <ApexChart TItem="DataPoint" Title="Electricity import (Total) [kWh]"
-                       Options="_previousElectricityImportSumChartOptions" @ref="_chart1">
+            <ApexChart TItem="DataPoint" Title="@($"Total [{Unit}]")"
+                       Options="_previousSumChartOptions" @ref="_chart1">
                 <ApexPointSeries TItem="DataPoint"
                                  SeriesType="SeriesType.Area"
-                                 Name="Total import"
+                                 Name="Total"
                                  Items="_previousMonthData"
                                  XValue="@(t => t.Timestamp)"
-                                 YValue="@(t => t.ElectricityImportSum - _previousMonthData[0].ElectricityImportSum)"/>
+                                 YValue="@(t => t.Sum - _previousMonthData[0].Sum)"/>
             </ApexChart>
         </div>
 
         <div class="col-md-6">
-            <ApexChart TItem="DataPoint" Title="Electricity import (Step) [kWh]"
-                       Options="_previousElectricityImportDeltaChartOptions" @ref="_chart2">
+            <ApexChart TItem="DataPoint" Title="@($"Step [{Unit}]")"
+                       Options="_previousDeltaChartOptions" @ref="_chart2">
                 <ApexPointSeries TItem="DataPoint"
                                  SeriesType="SeriesType.Area"
-                                 Name="Step import"
+                                 Name="Step"
                                  Items="_previousMonthData"
                                  XValue="@(t => t.Timestamp)"
-                                 YValue="@(t => t.ElectricityImportDelta)"/>
+                                 YValue="@(t => t.Delta)"/>
             </ApexChart>
         </div>
     </div>
@@ -31,41 +31,44 @@
 
 @if (_currentMonthData.Count > 0)
 {
-    <h4 class="mt-4 text-xl">Current month</h4>
+    <h4 class="mt-4 text-xl">Current month - @Title</h4>
     <div class="row">
         <div class="col-md-6">
-            <ApexChart TItem="DataPoint" Title="Electricity import (Total) [kWh]"
-                       Options="_currentElectricityImportSumChartOptions" @ref="_chart3">
+            <ApexChart TItem="DataPoint" Title="@($"Total [{Unit}]")"
+                       Options="_currentSumChartOptions" @ref="_chart3">
                 <ApexPointSeries TItem="DataPoint"
                                  SeriesType="SeriesType.Area"
-                                 Name="Total import"
+                                 Name="Total"
                                  Items="_currentMonthData"
                                  XValue="@(t => t.Timestamp)"
-                                 YValue="@(t => t.ElectricityImportSum - _currentMonthData[0].ElectricityImportSum)"/>
+                                 YValue="@(t => t.Sum - _currentMonthData[0].Sum)"/>
             </ApexChart>
         </div>
 
         <div class="col-md-6">
-            <ApexChart TItem="DataPoint" Title="Electricity import (Step) [kWh]"
-                       Options="_currentElectricityImportDeltaChartOptionsC" @ref="_chart4">
+            <ApexChart TItem="DataPoint" Title="@($"Step [{Unit}]")"
+                       Options="_currentDeltaChartOptions" @ref="_chart4">
                 <ApexPointSeries TItem="DataPoint"
                                  SeriesType="SeriesType.Area"
-                                 Name="Step import"
+                                 Name="Step"
                                  Items="_currentMonthData"
                                  XValue="@(t => t.Timestamp)"
-                                 YValue="@(t => t.ElectricityImportDelta)"/>
+                                 YValue="@(t => t.Delta)"/>
             </ApexChart>
         </div>
     </div>
 }
 
 @code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Unit { get; set; } = "";
+    [Parameter] public string MeterKey { get; set; } = "";
 
     public class DataPoint
     {
         public DateTimeOffset Timestamp { get; set; }
-        public decimal ElectricityImportSum { get; set; }
-        public decimal ElectricityImportDelta { get; set; }
+        public decimal Sum { get; set; }
+        public decimal Delta { get; set; }
     }
 
     private int _updateCounter;
@@ -79,29 +82,30 @@
     private ApexChart<DataPoint>? _chart3;
     private ApexChart<DataPoint>? _chart4;
 
-    private ApexChartOptions<DataPoint> _previousElectricityImportSumChartOptions = new();
-    private ApexChartOptions<DataPoint> _previousElectricityImportDeltaChartOptions = new();
-    private ApexChartOptions<DataPoint> _currentElectricityImportSumChartOptions = new();
-    private ApexChartOptions<DataPoint> _currentElectricityImportDeltaChartOptionsC = new();
+    private ApexChartOptions<DataPoint> _previousSumChartOptions = new();
+    private ApexChartOptions<DataPoint> _previousDeltaChartOptions = new();
+    private ApexChartOptions<DataPoint> _currentSumChartOptions = new();
+    private ApexChartOptions<DataPoint> _currentDeltaChartOptions = new();
 
     protected override void OnInitialized()
     {
-        _previousElectricityImportSumChartOptions = GenerateOptions(" kWh");
-        _previousElectricityImportDeltaChartOptions = GenerateOptions(" kWh");
-
-        _currentElectricityImportSumChartOptions = GenerateOptions(" kWh");
-        _currentElectricityImportDeltaChartOptionsC = GenerateOptions(" kWh");
+        _previousSumChartOptions = GenerateOptions($" {Unit}");
+        _previousDeltaChartOptions = GenerateOptions($" {Unit}");
+        _currentSumChartOptions = GenerateOptions($" {Unit}");
+        _currentDeltaChartOptions = GenerateOptions($" {Unit}");
     }
 
     public async Task AddSimulationTelemetryAsync(Telemetry msg)
     {
         _updateCounter++;
 
+        var currentVal = (decimal)msg.Metering.AdminMeters[MeterKey];
+
         var newDataPoint = new DataPoint
         {
             Timestamp = msg.Timestamp,
-            ElectricityImportSum = (decimal)msg.Metering.AdminMeters["electricity_import"],
-            ElectricityImportDelta = _fullData.Count == 0 ? (decimal)msg.Metering.AdminMeters["electricity_import"] : (decimal)msg.Metering.AdminMeters["electricity_import"] - _fullData[^1].ElectricityImportSum
+            Sum = currentVal,
+            Delta = _fullData.Count == 0 ? currentVal : currentVal - _fullData[^1].Sum
         };
 
         _fullData.Add(newDataPoint);
@@ -120,7 +124,6 @@
             if (firstTimestamp.Month == lastTimestamp.Month)
             {
                 _currentMonthData = _fullData;
-
                 await InvokeAsync(StateHasChanged);
             }
             else
@@ -141,13 +144,13 @@
 
     public async Task LoadSimulationTelemetryAsync(List<Telemetry> msgs)
     {
+        if (msgs.Count == 0) return;
+
         _fullData = msgs.Select((m, i) => new DataPoint
         {
             Timestamp = m.Timestamp,
-            ElectricityImportSum = (decimal)m.Metering.AdminMeters["electricity_import"],
-            ElectricityImportDelta = i == 0 ?
-                (decimal)m.Metering.AdminMeters["electricity_import"] :
-                (decimal)(m.Metering.AdminMeters["electricity_import"] - msgs[i - 1].Metering.AdminMeters["electricity_import"])
+            Sum = (decimal)m.Metering.AdminMeters[MeterKey],
+            Delta = i == 0 ? (decimal)m.Metering.AdminMeters[MeterKey] : (decimal)(m.Metering.AdminMeters[MeterKey] - msgs[i - 1].Metering.AdminMeters[MeterKey])
         }).ToList();
 
         var firstTimestamp = _fullData[0].Timestamp;
@@ -172,7 +175,7 @@
         {
             Chart = new Chart
             {
-                Height = 400,
+                Height = 200,
                 Type = ChartType.Area,
                 Animations = new Animations { Enabled = false },
                 Toolbar = new Toolbar { Show = false },

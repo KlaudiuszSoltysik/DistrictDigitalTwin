@@ -7,10 +7,25 @@
 
 <PageTitle>DDT Metering</PageTitle>
 
-<MeteringCharts @ref="_meteringChartsComponent"/>
+<AdminMeteringCharts @ref="_electricityImportCharts" Title="electricity import" Unit="kWh" MeterKey="electricity_import"/>
+<hr class="my-4"/>
+<AdminMeteringCharts @ref="_electricityExportCharts" Title="electricity export" Unit="kWh" MeterKey="electricity_export"/>
+<hr class="my-4"/>
+<AdminMeteringCharts @ref="_pvFarmYieldCharts" Title="PV Farm yield" Unit="kWh" MeterKey="pv_farm_yield"/>
+<hr class="my-4"/>
+<AdminMeteringCharts @ref="_gasImportCharts" Title="gas import" Unit="m³" MeterKey="gas_import"/>
+<hr class="my-4"/>
+<AdminMeteringCharts @ref="_electricityCostCharts" Title="electricity cost" Unit="EUR" MeterKey="elec_cost"/>
+<hr class="my-4"/>
+<AdminMeteringCharts @ref="_gasCostCharts" Title="gas cost" Unit="EUR" MeterKey="gas_cost"/>
 
 @code {
-    private MeteringCharts? _meteringChartsComponent;
+    private AdminMeteringCharts? _electricityImportCharts;
+    private AdminMeteringCharts? _electricityExportCharts;
+    private AdminMeteringCharts? _pvFarmYieldCharts;
+    private AdminMeteringCharts? _gasImportCharts;
+    private AdminMeteringCharts? _electricityCostCharts;
+    private AdminMeteringCharts? _gasCostCharts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -20,35 +35,35 @@
         SimulationStatusService.OnStatusChanged += StateHasChanged;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && _meteringChartsComponent != null)
-        {
-            if (SimulationStatusService.MonthlySimulationTelemetry.Any())
-            {
-                await _meteringChartsComponent.LoadSimulationTelemetryAsync(SimulationStatusService.MonthlySimulationTelemetry);
-            }
-        }
-    }
-
     private async void HandleNewSimulationTelemetry(Telemetry msg)
     {
-        if (_meteringChartsComponent != null)
-        {
-            await _meteringChartsComponent.AddSimulationTelemetryAsync(msg);
-        }
+        var tasks = new List<Task>();
+        if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.AddSimulationTelemetryAsync(msg));
+        if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.AddSimulationTelemetryAsync(msg));
+        if (_pvFarmYieldCharts != null) tasks.Add(_pvFarmYieldCharts.AddSimulationTelemetryAsync(msg));
+        if (_gasImportCharts != null) tasks.Add(_gasImportCharts.AddSimulationTelemetryAsync(msg));
+        if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.AddSimulationTelemetryAsync(msg));
+        if (_gasCostCharts != null) tasks.Add(_gasCostCharts.AddSimulationTelemetryAsync(msg));
 
-        await InvokeAsync(StateHasChanged);
+        await Task.WhenAll(tasks);
     }
 
     private async void HandleMonthlyTelemetryDb(List<Telemetry> msgs)
     {
-        if (_meteringChartsComponent != null)
-        {
-            await _meteringChartsComponent.LoadSimulationTelemetryAsync(msgs);
-        }
+        await LoadAllWidgetsAsync(msgs);
+    }
 
-        await InvokeAsync(StateHasChanged);
+    private async Task LoadAllWidgetsAsync(List<Telemetry> msgs)
+    {
+        var tasks = new List<Task>();
+        if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_pvFarmYieldCharts != null) tasks.Add(_pvFarmYieldCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_gasImportCharts != null) tasks.Add(_gasImportCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_gasCostCharts != null) tasks.Add(_gasCostCharts.LoadSimulationTelemetryAsync(msgs));
+
+        await Task.WhenAll(tasks);
     }
 
     public async ValueTask DisposeAsync()
