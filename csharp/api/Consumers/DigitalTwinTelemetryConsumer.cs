@@ -4,7 +4,7 @@ using shared;
 
 namespace api.Consumers;
 
-public class DigitalTwinTelemetryConsumer(
+public abstract class DigitalTwinTelemetryConsumer(
     IHubContext<TelemetryHub> simulationHubContext,
     CacheService cacheService,
     ILogger<DigitalTwinTelemetryConsumer> logger)

@@ -1,42 +1,5 @@
 ﻿@using shared
-<div class="p-6 flex flex-wrap gap-6 items-end">
-    <div class="flex flex-col gap-2 w-full sm:w-48">
-        <label class="font-medium uppercase text-xs text-gray-400">Building</label>
-        <select @bind="_selectedBuilding" @bind:after="OnBuildingChangedAsync"
-                class="bg-gray-800 border border-gray-700 text-sm font-medium rounded-md px-3 py-2.5 shadow-sm transition-all outline-none hover:bg-gray-700 hover:border-gray-600 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
-            <option value="All">All</option>
-            @foreach (var opt in GetBuildingOptions())
-            {
-                <option value="@opt">@opt</option>
-            }
-        </select>
-    </div>
-
-    <div class="flex flex-col gap-2 w-full sm:w-48">
-        <label class="font-medium uppercase text-xs text-gray-400">Apartment</label>
-        <select @bind="_selectedApartment" @bind:after="OnApartmentChangedAsync"
-                disabled="@(_selectedBuilding == "All")"
-                class="bg-gray-800 border border-gray-700 text-sm font-medium rounded-md px-3 py-2.5 shadow-sm transition-all outline-none hover:bg-gray-700 hover:border-gray-600 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-800 disabled:hover:border-gray-700">
-            <option value="All">All</option>
-            @foreach (var opt in GetApartmentOptions())
-            {
-                <option value="@opt">@opt</option>
-            }
-        </select>
-    </div>
-
-    <div class="flex flex-col gap-2 w-full sm:w-48">
-        <label class="font-medium uppercase text-xs text-gray-400">Room</label>
-        <select @bind="_selectedRoom" @bind:after="OnRoomChangedAsync" disabled="@(_selectedApartment == "All")"
-                class="bg-gray-800 border border-gray-700 text-sm font-medium rounded-md px-3 py-2.5 shadow-sm transition-all outline-none hover:bg-gray-700 hover:border-gray-600 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-800 disabled:hover:border-gray-700">
-            <option value="All">All</option>
-            @foreach (var opt in GetRoomOptions())
-            {
-                <option value="@opt">@opt</option>
-            }
-        </select>
-    </div>
-</div>
+<RoomSelector RoomNames="_roomNames" OnActiveRoomsChanged="HandleActiveRoomsChanged"/>
 
 <ApexChart TItem="ChartPoint" Title="Room temperatures [°C]" Options="_roomTemperaturesOptions"
            @ref="_chart1">
@@ -56,7 +19,7 @@
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => (decimal?)p.Temperature)"/>
 
-        @if (_selectedRoom == "All")
+        @if (_activeRoomNames.Count != 1)
         {
             continue;
         }
@@ -171,11 +134,11 @@
 
     public class ChartPoint
     {
-        public DateTimeOffset Timestamp { get; set; }
-        public double? Temperature { get; set; }
-        public int Co2 { get; set; }
-        public double Heating { get; set; }
-        public double Ventilation { get; set; }
+        public DateTimeOffset Timestamp { get; init; }
+        public double? Temperature { get; init; }
+        public int Co2 { get; init; }
+        public double Heating { get; init; }
+        public double Ventilation { get; init; }
     }
 
     public enum ConfigLineType
@@ -189,6 +152,7 @@
     private List<Telemetry> _simulationTelemetry = [];
     private List<Telemetry> _digitalTwinTelemetry = [];
     private readonly List<string> _roomNames = [];
+    private List<string> _activeRoomNames = [];
 
     private ApexChart<ChartPoint> _chart1 = new();
     private ApexChart<ChartPoint> _chart2 = new();
@@ -207,12 +171,6 @@
         "#008FFB", "#00E396", "#FEB019", "#FF4560", "#775DD0",
         "#3F51B5", "#546E7A", "#D4526E", "#8D5B4C", "#F86624", "#D7263D"
     ];
-
-    private string _selectedBuilding = "All";
-    private string _selectedApartment = "All";
-    private string _selectedRoom = "All";
-
-    private List<string> _activeRoomNames = [];
 
     protected override void OnInitialized()
     {
@@ -239,8 +197,6 @@
             if (_roomNames.Count == 0)
             {
                 _roomNames.AddRange(msg.RoomTemperatures.Keys);
-
-                await ApplyFiltersAndUpdateChartAsync();
             }
             else
             {
@@ -249,6 +205,12 @@
                 await _chart2.UpdateOptionsAsync(true, true, false);
                 await _chart3.UpdateOptionsAsync(true, true, false);
                 await _chart4.UpdateOptionsAsync(true, true, false);
+            }
+
+            if (_activeRoomNames.Count == 0)
+            {
+                _activeRoomNames = _roomNames.ToList();
+                ConfigureChartOptions();
             }
 
             await Task.WhenAll(
@@ -271,9 +233,13 @@
         if (latest?.RoomTemperatures != null)
         {
             _roomNames.AddRange(latest.RoomTemperatures.Keys);
-        }
 
-        await ApplyFiltersAndUpdateChartAsync();
+            if (_activeRoomNames.Count == 0)
+            {
+                _activeRoomNames = _roomNames.ToList();
+                ConfigureChartOptions();
+            }
+        }
 
         await InvokeAsync(StateHasChanged);
     }
@@ -427,7 +393,7 @@
             colors.Add(roomColor);
             dashArray.Add(5);
 
-            if (_selectedRoom == "All") continue;
+            if (_activeRoomNames.Count > 1) continue;
 
             colors.Add("#FF4560");
             dashArray.Add(8);
@@ -455,72 +421,29 @@
         _roomVentilationsOptions.Stroke.DashArray = dashArray;
     }
 
-    private IEnumerable<string> GetBuildingOptions()
+    private async Task HandleActiveRoomsChanged(List<string> filteredRooms)
     {
-        return _roomNames.Select(k => k.Split(':')[0]).Distinct();
-    }
-
-    private IEnumerable<string> GetApartmentOptions()
-    {
-        return _selectedBuilding == "All"
-            ? []
-            : _roomNames.Where(k => k.StartsWith($"{_selectedBuilding}:"))
-                .Select(k => k.Split(':')[1]).Distinct();
-    }
-
-    private IEnumerable<string> GetRoomOptions()
-    {
-        return _selectedApartment == "All"
-            ? []
-            : _roomNames.Where(k => k.StartsWith($"{_selectedBuilding}:{_selectedApartment}:"))
-                .Select(k => k.Split(':')[2]).Distinct();
-    }
-
-    private async Task OnBuildingChangedAsync()
-    {
-        _selectedApartment = "All";
-        _selectedRoom = "All";
-        await ApplyFiltersAndUpdateChartAsync();
-    }
-
-    private async Task OnApartmentChangedAsync()
-    {
-        _selectedRoom = "All";
-        await ApplyFiltersAndUpdateChartAsync();
-    }
-
-    private async Task OnRoomChangedAsync()
-    {
-        await ApplyFiltersAndUpdateChartAsync();
-    }
-
-    private async Task ApplyFiltersAndUpdateChartAsync()
-    {
-        _activeRoomNames = _roomNames.Where(key =>
-        {
-            var parts = key.Split(':');
-            if (parts.Length < 3) return false;
-
-            var match1 = _selectedBuilding == "All" || parts[0] == _selectedBuilding;
-            var match2 = _selectedApartment == "All" || parts[1] == _selectedApartment;
-            var match3 = _selectedRoom == "All" || parts[2] == _selectedRoom;
-
-            return match1 && match2 && match3;
-        }).ToList();
+        _activeRoomNames = filteredRooms;
 
         ConfigureChartOptions();
 
-        await _chart1.UpdateOptionsAsync(true, true, false);
-        await _chart1.UpdateSeriesAsync();
+        await InvokeAsync(StateHasChanged);
 
-        await _chart2.UpdateOptionsAsync(true, true, false);
-        await _chart2.UpdateSeriesAsync();
+        var tasks = new List<Task>
+        {
+            UpdateChartSafelyAsync(_chart1),
+            UpdateChartSafelyAsync(_chart2),
+            UpdateChartSafelyAsync(_chart3),
+            UpdateChartSafelyAsync(_chart4)
+        };
 
-        await _chart3.UpdateOptionsAsync(true, true, false);
-        await _chart3.UpdateSeriesAsync();
+        await Task.WhenAll(tasks);
+    }
 
-        await _chart4.UpdateOptionsAsync(true, true, false);
-        await _chart4.UpdateSeriesAsync();
+    private async Task UpdateChartSafelyAsync(ApexChart<ChartPoint> chart)
+    {
+        await chart.UpdateOptionsAsync(true, true, false);
+        await chart.UpdateSeriesAsync();
     }
 
 }

@@ -5,7 +5,7 @@ using shared;
 
 namespace telemetry_service.Consumers;
 
-public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<DigitalTwinTelemetryConsumer> logger)
+public abstract class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<DigitalTwinTelemetryConsumer> logger)
     : IConsumer<Telemetry[]>
 {
     private static long _currentRunId = -1;

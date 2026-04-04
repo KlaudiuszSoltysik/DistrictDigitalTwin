@@ -1,9 +1,11 @@
 ﻿@using shared
-@if (_previousMonthData.Count > 0)
-{
-    <h4 class="mt-4 text-xl">Previous month - @Title</h4>
-    <div class="row">
+<p class="text-2xl">@Title</p>
+<div class="grid grid-cols-2 gap-6">
+    @if (_previousMonthData.Count > 0)
+    {
         <div class="col-md-6">
+            <p class="my-4 text-xl">Previous month</p>
+
             <ApexChart TItem="DataPoint" Title="@($"Total [{Unit}]")"
                        Options="_previousSumChartOptions" @ref="_chart1">
                 <ApexPointSeries TItem="DataPoint"
@@ -13,9 +15,7 @@
                                  XValue="@(t => t.Timestamp)"
                                  YValue="@(t => t.Sum - _previousMonthData[0].Sum)"/>
             </ApexChart>
-        </div>
 
-        <div class="col-md-6">
             <ApexChart TItem="DataPoint" Title="@($"Step [{Unit}]")"
                        Options="_previousDeltaChartOptions" @ref="_chart2">
                 <ApexPointSeries TItem="DataPoint"
@@ -26,14 +26,13 @@
                                  YValue="@(t => t.Delta)"/>
             </ApexChart>
         </div>
-    </div>
-}
+    }
 
-@if (_currentMonthData.Count > 0)
-{
-    <h4 class="mt-4 text-xl">Current month - @Title</h4>
-    <div class="row">
+    @if (_currentMonthData.Count > 0)
+    {
         <div class="col-md-6">
+            <p class="my-4 text-xl">Current month</p>
+
             <ApexChart TItem="DataPoint" Title="@($"Total [{Unit}]")"
                        Options="_currentSumChartOptions" @ref="_chart3">
                 <ApexPointSeries TItem="DataPoint"
@@ -43,9 +42,7 @@
                                  XValue="@(t => t.Timestamp)"
                                  YValue="@(t => t.Sum - _currentMonthData[0].Sum)"/>
             </ApexChart>
-        </div>
 
-        <div class="col-md-6">
             <ApexChart TItem="DataPoint" Title="@($"Step [{Unit}]")"
                        Options="_currentDeltaChartOptions" @ref="_chart4">
                 <ApexPointSeries TItem="DataPoint"
@@ -56,8 +53,8 @@
                                  YValue="@(t => t.Delta)"/>
             </ApexChart>
         </div>
-    </div>
-}
+    }
+</div>
 
 @code {
     [Parameter] public string Title { get; set; } = "";
@@ -66,9 +63,9 @@
 
     public class DataPoint
     {
-        public DateTimeOffset Timestamp { get; set; }
-        public decimal Sum { get; set; }
-        public decimal Delta { get; set; }
+        public DateTimeOffset Timestamp { get; init; }
+        public decimal Sum { get; init; }
+        public decimal Delta { get; init; }
     }
 
     private int _updateCounter;
@@ -175,7 +172,7 @@
         {
             Chart = new Chart
             {
-                Height = 200,
+                Height = 250,
                 Type = ChartType.Area,
                 Animations = new Animations { Enabled = false },
                 Toolbar = new Toolbar { Show = false },
@@ -192,7 +189,6 @@
             [
                 new YAxis
                 {
-                    Min = 0,
                     Labels = new YAxisLabels
                     {
                         Formatter = $"function (value) {{ return value.toFixed(2) + '{unitSuffix}'; }}"

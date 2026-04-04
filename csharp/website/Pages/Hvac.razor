@@ -8,11 +8,11 @@
 
 <PageTitle>DDT HVAC</PageTitle>
 
-<HvacCharts @ref="_hvacChartsComponent" ApartmentsConfig="@_apartamentsConfig"/>
+<HvacCharts @ref="_hvacChartsComponent" ApartmentsConfig="@_apartmentsConfig"/>
 
 @code {
     private HvacCharts? _hvacChartsComponent;
-    private List<AllApartmentsConfig>? _apartamentsConfig;
+    private List<AllApartmentsConfig>? _apartmentsConfig;
 
     protected override async Task OnInitializedAsync()
     {
@@ -24,7 +24,7 @@
 
         try
         {
-            _apartamentsConfig = await HttpClient.GetFromJsonAsync<List<AllApartmentsConfig>>("apartment/get-all-apartments-config");
+            _apartmentsConfig = await HttpClient.GetFromJsonAsync<List<AllApartmentsConfig>>("apartment/get-all-apartments-config");
         }
         catch (Exception ex)
         {

@@ -1,0 +1,278 @@
+﻿@using shared
+<p class="text-2xl">@Title</p>
+<div class="grid grid-cols-2 gap-6">
+    @if (_previousMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Previous month</p>
+
+            <ApexChart TItem="TenantDataPoint" Title="@($"Total [{Unit}]")" Options="_previousSumChartOptions"
+                       @ref="_chart1">
+                @foreach (var room in ActiveRoomNames)
+                {
+                    <ApexPointSeries TItem="TenantDataPoint" SeriesType="SeriesType.Area" Name="@room"
+                                     Items="_previousMonthData" XValue="@(t => t.Timestamp)"
+                                     YValue="@(t => t.Sums.TryGetValue(room, out var sum) ? sum - _previousMonthData[0].Sums[room] : 0)"/>
+                }
+            </ApexChart>
+
+            <ApexChart TItem="TenantDataPoint" Title="@($"Step [{Unit}]")" Options="_previousDeltaChartOptions"
+                       @ref="_chart2">
+                @foreach (var room in ActiveRoomNames)
+                {
+                    <ApexPointSeries TItem="TenantDataPoint" SeriesType="SeriesType.Area" Name="@room"
+                                     Items="_previousMonthData" XValue="@(t => t.Timestamp)"
+                                     YValue="@(t => t.Deltas.GetValueOrDefault(room, 0))"/>
+                }
+            </ApexChart>
+        </div>
+    }
+
+    @if (_currentMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Current month </p>
+
+            <ApexChart TItem="TenantDataPoint" Title="@($"Total [{Unit}]")" Options="_currentSumChartOptions"
+                       @ref="_chart3">
+                @foreach (var room in ActiveRoomNames)
+                {
+                    <ApexPointSeries TItem="TenantDataPoint" SeriesType="SeriesType.Area" Name="@room"
+                                     Items="_currentMonthData" XValue="@(t => t.Timestamp)"
+                                     YValue="@(t => t.Sums.TryGetValue(room, out var sum) ? sum - _currentMonthData[0].Sums[room] : 0)"/>
+                }
+            </ApexChart>
+
+            <ApexChart TItem="TenantDataPoint" Title="@($"Step [{Unit}]")" Options="_currentDeltaChartOptions"
+                       @ref="_chart4">
+                @foreach (var room in ActiveRoomNames)
+                {
+                    <ApexPointSeries TItem="TenantDataPoint" SeriesType="SeriesType.Area" Name="@room"
+                                     Items="_currentMonthData" XValue="@(t => t.Timestamp)"
+                                     YValue="@(t => t.Deltas.GetValueOrDefault(room, 0))"/>
+                }
+            </ApexChart>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Unit { get; set; } = "";
+
+    [Parameter] public List<string> ActiveRoomNames { get; set; } = [];
+
+    [Parameter] public required Func<Telemetry, Dictionary<string, double>> DataSelector { get; set; }
+
+    public class TenantDataPoint
+    {
+        public DateTimeOffset Timestamp { get; init; }
+        public Dictionary<string, decimal> Sums { get; } = new();
+        public Dictionary<string, decimal> Deltas { get; } = new();
+    }
+
+    private int _updateCounter;
+    private List<string> _previousActiveRooms = [];
+
+    private List<TenantDataPoint> _fullData = [];
+    private List<TenantDataPoint> _previousMonthData = [];
+    private List<TenantDataPoint> _currentMonthData = [];
+
+    private ApexChart<TenantDataPoint>? _chart1;
+    private ApexChart<TenantDataPoint>? _chart2;
+    private ApexChart<TenantDataPoint>? _chart3;
+    private ApexChart<TenantDataPoint>? _chart4;
+
+    private ApexChartOptions<TenantDataPoint> _previousSumChartOptions = new();
+    private ApexChartOptions<TenantDataPoint> _previousDeltaChartOptions = new();
+    private ApexChartOptions<TenantDataPoint> _currentSumChartOptions = new();
+    private ApexChartOptions<TenantDataPoint> _currentDeltaChartOptions = new();
+
+    protected override void OnInitialized()
+    {
+        _previousSumChartOptions = GenerateOptions($" {Unit}");
+        _previousDeltaChartOptions = GenerateOptions($" {Unit}");
+        _currentSumChartOptions = GenerateOptions($" {Unit}");
+        _currentDeltaChartOptions = GenerateOptions($" {Unit}");
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_previousActiveRooms.SequenceEqual(ActiveRoomNames))
+        {
+            _previousActiveRooms = ActiveRoomNames.ToList();
+            ConfigureChartOptions();
+
+            if (_chart1 != null)
+            {
+                await _chart1.UpdateOptionsAsync(true, true, false);
+                await _chart1.UpdateSeriesAsync();
+            }
+
+            if (_chart2 != null)
+            {
+                await _chart2.UpdateOptionsAsync(true, true, false);
+                await _chart2.UpdateSeriesAsync();
+            }
+
+            if (_chart3 != null)
+            {
+                await _chart3.UpdateOptionsAsync(true, true, false);
+                await _chart3.UpdateSeriesAsync();
+            }
+
+            if (_chart4 != null)
+            {
+                await _chart4.UpdateOptionsAsync(true, true, false);
+                await _chart4.UpdateSeriesAsync();
+            }
+        }
+    }
+
+    private void ConfigureChartOptions()
+    {
+        if (ActiveRoomNames.Count == 0) return;
+
+        var colors = new List<string>();
+        var dashArray = new List<double>();
+        var basePalette = new[] { "#008FFB", "#00E396", "#FEB019", "#FF4560", "#775DD0", "#3F51B5", "#546E7A", "#D4526E", "#8D5B4C", "#F86624" };
+
+        for (var i = 0; i < ActiveRoomNames.Count; i++)
+        {
+            colors.Add(basePalette[i % basePalette.Length]);
+            dashArray.Add(0);
+        }
+
+        _previousSumChartOptions.Colors = colors;
+        _previousDeltaChartOptions.Colors = colors;
+        _currentSumChartOptions.Colors = colors;
+        _currentDeltaChartOptions.Colors = colors;
+
+        _previousSumChartOptions.Stroke ??= new Stroke();
+        _previousSumChartOptions.Stroke.DashArray = dashArray;
+    }
+
+    public async Task AddSimulationTelemetryAsync(Telemetry msg)
+    {
+        _updateCounter++;
+        var currentDict = DataSelector(msg);
+
+        var newDataPoint = new TenantDataPoint { Timestamp = msg.Timestamp };
+
+        foreach (var kvp in currentDict)
+        {
+            var val = (decimal)kvp.Value;
+            newDataPoint.Sums[kvp.Key] = val;
+            newDataPoint.Deltas[kvp.Key] = _fullData.Count == 0 ? val : val - _fullData[^1].Sums.GetValueOrDefault(kvp.Key, 0);
+        }
+
+        _fullData.Add(newDataPoint);
+
+        var latestTimestamp = _fullData[^1].Timestamp;
+        var prevMonthDate = latestTimestamp.AddMonths(-1);
+        var cutoff = new DateTimeOffset(prevMonthDate.Year, prevMonthDate.Month, 1, 0, 0, 0, latestTimestamp.Offset);
+
+        _fullData.RemoveAll(d => d.Timestamp < cutoff);
+
+        if (_updateCounter % 5 == 0)
+        {
+            var currentMonth = latestTimestamp.Month;
+            var currentYear = latestTimestamp.Year;
+            var prevMonth = prevMonthDate.Month;
+            var prevYear = prevMonthDate.Year;
+
+            _currentMonthData = _fullData.Where(m => m.Timestamp.Year == currentYear && m.Timestamp.Month == currentMonth).ToList();
+            _previousMonthData = _fullData.Where(m => m.Timestamp.Year == prevYear && m.Timestamp.Month == prevMonth).ToList();
+
+            await InvokeAsync(StateHasChanged);
+
+            if (_previousMonthData.Count > 0)
+            {
+                if (_chart1 != null) await _chart1.UpdateSeriesAsync();
+                if (_chart2 != null) await _chart2.UpdateSeriesAsync();
+            }
+
+            if (_chart3 != null) await _chart3.UpdateSeriesAsync();
+            if (_chart4 != null) await _chart4.UpdateSeriesAsync();
+        }
+    }
+
+    public async Task LoadSimulationTelemetryAsync(List<Telemetry> msgs)
+    {
+        if (msgs.Count == 0) return;
+
+        _fullData = msgs.Select((m, i) =>
+        {
+            var currentDict = DataSelector(m);
+            var prevDict = i > 0 ? DataSelector(msgs[i - 1]) : currentDict;
+
+            var point = new TenantDataPoint { Timestamp = m.Timestamp };
+
+            foreach (var kvp in currentDict)
+            {
+                var val = (decimal)kvp.Value;
+                point.Sums[kvp.Key] = val;
+                point.Deltas[kvp.Key] = i == 0 ? val : val - (decimal)prevDict.GetValueOrDefault(kvp.Key, 0);
+            }
+
+            return point;
+        }).ToList();
+
+        var latestTimestamp = _fullData[^1].Timestamp;
+        var prevMonthDate = latestTimestamp.AddMonths(-1);
+        var cutoff = new DateTimeOffset(prevMonthDate.Year, prevMonthDate.Month, 1, 0, 0, 0, latestTimestamp.Offset);
+
+        _fullData.RemoveAll(d => d.Timestamp < cutoff);
+
+        var currentMonth = latestTimestamp.Month;
+        var currentYear = latestTimestamp.Year;
+        var prevMonth = prevMonthDate.Month;
+        var prevYear = prevMonthDate.Year;
+
+        _currentMonthData = _fullData.Where(m => m.Timestamp.Year == currentYear && m.Timestamp.Month == currentMonth).ToList();
+        _previousMonthData = _fullData.Where(m => m.Timestamp.Year == prevYear && m.Timestamp.Month == prevMonth).ToList();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static ApexChartOptions<TenantDataPoint> GenerateOptions(string unitSuffix)
+    {
+        return new ApexChartOptions<TenantDataPoint>
+        {
+            Chart = new Chart
+            {
+                Height = 250,
+                Type = ChartType.Area,
+                Stacked = true,
+                Animations = new Animations { Enabled = false },
+                Toolbar = new Toolbar { Show = false },
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.Straight,
+                Width = 2
+            },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Labels = new XAxisLabels { Format = "dd-MM HH:mm" }
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = $"function (value) {{ return value.toFixed(2) + '{unitSuffix}'; }}"
+                    }
+                }
+            ],
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM-yyyy HH:mm" }
+            }
+        };
+    }
+
+}

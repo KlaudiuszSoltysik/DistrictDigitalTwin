@@ -7,17 +7,55 @@
 
 <PageTitle>DDT Metering</PageTitle>
 
-<AdminMeteringCharts @ref="_electricityImportCharts" Title="electricity import" Unit="kWh" MeterKey="electricity_import"/>
-<hr class="my-4"/>
-<AdminMeteringCharts @ref="_electricityExportCharts" Title="electricity export" Unit="kWh" MeterKey="electricity_export"/>
-<hr class="my-4"/>
+<AdminMeteringCharts @ref="_electricityImportCharts" Title="Electricity import" Unit="kWh"
+                     MeterKey="electricity_import"/>
+
+<AdminMeteringCharts @ref="_electricityExportCharts" Title="Electricity export" Unit="kWh"
+                     MeterKey="electricity_export"/>
+
 <AdminMeteringCharts @ref="_pvFarmYieldCharts" Title="PV Farm yield" Unit="kWh" MeterKey="pv_farm_yield"/>
-<hr class="my-4"/>
-<AdminMeteringCharts @ref="_gasImportCharts" Title="gas import" Unit="m³" MeterKey="gas_import"/>
-<hr class="my-4"/>
-<AdminMeteringCharts @ref="_electricityCostCharts" Title="electricity cost" Unit="EUR" MeterKey="elec_cost"/>
-<hr class="my-4"/>
-<AdminMeteringCharts @ref="_gasCostCharts" Title="gas cost" Unit="EUR" MeterKey="gas_cost"/>
+
+<AdminMeteringCharts @ref="_gasImportCharts" Title="Gas import" Unit="m³" MeterKey="gas_import"/>
+
+<AdminMeteringCharts @ref="_electricityCostCharts" Title="Electricity cost" Unit="EUR" MeterKey="elec_cost"/>
+
+<AdminMeteringCharts @ref="_gasCostCharts" Title="Gas cost" Unit="EUR" MeterKey="gas_cost"/>
+
+<AdminMeteringCharts @ref="_adminElectricityRevenueCharts" Title="Electricity export" Unit="EUR"
+                     MeterKey="admin_elec_revenue"/>
+
+<AdminMeteringCharts @ref="_tenantBillingRevenueCharts" Title="Tenant billing" Unit="EUR"
+                     MeterKey="tenant_billing_revenue"/>
+
+<AdminMeteringCharts @ref="_costMarginCharts" Title="Cost margin" Unit="EUR" MeterKey="cost_margin"/>
+
+<hr class="my-6 border-gray-700"/>
+
+<RoomSelector RoomNames="_roomNames" OnActiveRoomsChanged="HandleActiveRoomsChanged"/>
+
+<TenantMeteringCharts @ref="_heatingCharts"
+                      Title="Heating delivered"
+                      Unit="kWh"
+                      ActiveRoomNames="_activeRoomNames"
+                      DataSelector="@(msg => msg.Metering.TenantMeters["heating"])"/>
+
+<TenantMeteringCharts @ref="_coolingCharts"
+                      Title="Cooling delivered"
+                      Unit="kWh"
+                      ActiveRoomNames="_activeRoomNames"
+                      DataSelector="@(msg => msg.Metering.TenantMeters["cooling"])"/>
+
+<TenantMeteringCharts @ref="_ventilationCharts"
+                      Title="Ventilation volume"
+                      Unit="m3"
+                      ActiveRoomNames="_activeRoomNames"
+                      DataSelector="@(msg => msg.Metering.TenantMeters["ventilation"])"/>
+
+<TenantMeteringCharts @ref="_billingCostCharts"
+                      Title="Billing cost"
+                      Unit="EUR"
+                      ActiveRoomNames="_activeRoomNames"
+                      DataSelector="@(msg => msg.Metering.TenantMeters["billing_cost"])"/>
 
 @code {
     private AdminMeteringCharts? _electricityImportCharts;
@@ -26,6 +64,17 @@
     private AdminMeteringCharts? _gasImportCharts;
     private AdminMeteringCharts? _electricityCostCharts;
     private AdminMeteringCharts? _gasCostCharts;
+    private AdminMeteringCharts? _adminElectricityRevenueCharts;
+    private AdminMeteringCharts? _tenantBillingRevenueCharts;
+    private AdminMeteringCharts? _costMarginCharts;
+
+    private List<string> _roomNames = [];
+    private List<string> _activeRoomNames = [];
+
+    private TenantMeteringCharts? _heatingCharts;
+    private TenantMeteringCharts? _coolingCharts;
+    private TenantMeteringCharts? _ventilationCharts;
+    private TenantMeteringCharts? _billingCostCharts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -37,6 +86,12 @@
 
     private async void HandleNewSimulationTelemetry(Telemetry msg)
     {
+        if (_roomNames.Count == 0)
+        {
+            _roomNames = msg.Metering.TenantMeters["heating"].Keys.ToList();
+            _activeRoomNames = _roomNames.ToList();
+        }
+
         var tasks = new List<Task>();
         if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.AddSimulationTelemetryAsync(msg));
         if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.AddSimulationTelemetryAsync(msg));
@@ -44,17 +99,26 @@
         if (_gasImportCharts != null) tasks.Add(_gasImportCharts.AddSimulationTelemetryAsync(msg));
         if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.AddSimulationTelemetryAsync(msg));
         if (_gasCostCharts != null) tasks.Add(_gasCostCharts.AddSimulationTelemetryAsync(msg));
+        if (_adminElectricityRevenueCharts != null) tasks.Add(_adminElectricityRevenueCharts.AddSimulationTelemetryAsync(msg));
+        if (_tenantBillingRevenueCharts != null) tasks.Add(_tenantBillingRevenueCharts.AddSimulationTelemetryAsync(msg));
+        if (_costMarginCharts != null) tasks.Add(_costMarginCharts.AddSimulationTelemetryAsync(msg));
+
+        if (_heatingCharts != null) tasks.Add(_heatingCharts.AddSimulationTelemetryAsync(msg));
+        if (_coolingCharts != null) tasks.Add(_coolingCharts.AddSimulationTelemetryAsync(msg));
+        if (_ventilationCharts != null) tasks.Add(_ventilationCharts.AddSimulationTelemetryAsync(msg));
+        if (_billingCostCharts != null) tasks.Add(_billingCostCharts.AddSimulationTelemetryAsync(msg));
 
         await Task.WhenAll(tasks);
     }
 
     private async void HandleMonthlyTelemetryDb(List<Telemetry> msgs)
     {
-        await LoadAllWidgetsAsync(msgs);
-    }
+        if (msgs.Count > 0)
+        {
+            _roomNames = msgs[0].Metering.TenantMeters["heating"].Keys.ToList();
+            _activeRoomNames = _roomNames.ToList();
+        }
 
-    private async Task LoadAllWidgetsAsync(List<Telemetry> msgs)
-    {
         var tasks = new List<Task>();
         if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.LoadSimulationTelemetryAsync(msgs));
         if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.LoadSimulationTelemetryAsync(msgs));
@@ -62,8 +126,23 @@
         if (_gasImportCharts != null) tasks.Add(_gasImportCharts.LoadSimulationTelemetryAsync(msgs));
         if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.LoadSimulationTelemetryAsync(msgs));
         if (_gasCostCharts != null) tasks.Add(_gasCostCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_adminElectricityRevenueCharts != null) tasks.Add(_adminElectricityRevenueCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_tenantBillingRevenueCharts != null) tasks.Add(_tenantBillingRevenueCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_costMarginCharts != null) tasks.Add(_costMarginCharts.LoadSimulationTelemetryAsync(msgs));
+
+        if (_heatingCharts != null) tasks.Add(_heatingCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_coolingCharts != null) tasks.Add(_coolingCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_ventilationCharts != null) tasks.Add(_ventilationCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_billingCostCharts != null) tasks.Add(_billingCostCharts.LoadSimulationTelemetryAsync(msgs));
 
         await Task.WhenAll(tasks);
+    }
+
+    private void HandleActiveRoomsChanged(List<string> filteredRooms)
+    {
+        _activeRoomNames = filteredRooms;
+
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
