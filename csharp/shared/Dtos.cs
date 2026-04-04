@@ -5,72 +5,72 @@ namespace shared;
 
 public class Telemetry
 {
-    [JsonPropertyName("run_id")] public long RunId { get; init; }
-    [JsonPropertyName("timestamp")] public DateTimeOffset Timestamp { get; init; }
+    [JsonPropertyName("run_id")] public long RunId { get; set; }
+    [JsonPropertyName("timestamp")] public DateTimeOffset Timestamp { get; set; }
 
-    [JsonPropertyName("weather")] public required WeatherData Weather { get; init; }
+    [JsonPropertyName("weather")] public required WeatherData Weather { get; set; }
 
-    [JsonPropertyName("energy_costs")] public required EnergyCostsData EnergyCosts { get; init; }
+    [JsonPropertyName("energy_costs")] public required EnergyCostsData EnergyCosts { get; set; }
 
     [JsonPropertyName("room_temperatures")]
-    public Dictionary<string, double> RoomTemperatures { get; init; } = new();
+    public Dictionary<string, double> RoomTemperatures { get; set; } = new();
 
-    [JsonPropertyName("room_co2")] public Dictionary<string, int> RoomCo2 { get; init; } = new();
+    [JsonPropertyName("room_co2")] public Dictionary<string, int> RoomCo2 { get; set; } = new();
 
-    [JsonPropertyName("room_hvac_q")] public Dictionary<string, double> RoomHvacQ { get; init; } = new();
+    [JsonPropertyName("room_hvac_q")] public Dictionary<string, double> RoomHvacQ { get; set; } = new();
 
-    [JsonPropertyName("room_heatings")] public Dictionary<string, double> RoomHeatings { get; init; } = new();
+    [JsonPropertyName("room_heatings")] public Dictionary<string, double> RoomHeatings { get; set; } = new();
 
-    [JsonPropertyName("room_hvac_v")] public Dictionary<string, double> RoomHvacV { get; init; } = new();
+    [JsonPropertyName("room_hvac_v")] public Dictionary<string, double> RoomHvacV { get; set; } = new();
 
-    [JsonPropertyName("metering")] public required MeteringData Metering { get; init; }
+    [JsonPropertyName("metering")] public required MeteringData Metering { get; set; }
 }
 
 public class WeatherData
 {
-    [JsonPropertyName("temperature")] public double Temperature { get; init; }
-    [JsonPropertyName("wind_speed")] public double WindSpeed { get; init; }
-    [JsonPropertyName("wind_direction")] public double WindDirection { get; init; }
-    [JsonPropertyName("sun_radiation")] public double SunRadiation { get; init; }
-    [JsonPropertyName("sun_altitude")] public double SunAltitude { get; init; }
-    [JsonPropertyName("sun_azimuth")] public double SunAzimuth { get; init; }
-    [JsonPropertyName("co2")] public int Co2 { get; init; }
+    [JsonPropertyName("temperature")] public double Temperature { get; set; }
+    [JsonPropertyName("wind_speed")] public double WindSpeed { get; set; }
+    [JsonPropertyName("wind_direction")] public double WindDirection { get; set; }
+    [JsonPropertyName("sun_radiation")] public double SunRadiation { get; set; }
+    [JsonPropertyName("sun_altitude")] public double SunAltitude { get; set; }
+    [JsonPropertyName("sun_azimuth")] public double SunAzimuth { get; set; }
+    [JsonPropertyName("co2")] public int Co2 { get; set; }
 }
 
 public class EnergyCostsData
 {
-    [JsonPropertyName("electricity_cost")] public double ElectricityCost { get; init; }
-    [JsonPropertyName("gas_cost")] public double GasCost { get; init; }
-    [JsonPropertyName("pv_farm_yield")] public double PvFarmYield { get; init; }
-    [JsonPropertyName("cop_heating")] public double CopHeating { get; init; }
-    [JsonPropertyName("cop_cooling")] public double CopCooling { get; init; }
+    [JsonPropertyName("electricity_cost")] public double ElectricityCost { get; set; }
+    [JsonPropertyName("gas_cost")] public double GasCost { get; set; }
+    [JsonPropertyName("pv_farm_yield")] public double PvFarmYield { get; set; }
+    [JsonPropertyName("cop_heating")] public double CopHeating { get; set; }
+    [JsonPropertyName("cop_cooling")] public double CopCooling { get; set; }
 }
 
 public class MeteringData
 {
-    [JsonPropertyName("admin_meters")] public Dictionary<string, double> AdminMeters { get; init; } = new();
+    [JsonPropertyName("admin_meters")] public Dictionary<string, double> AdminMeters { get; set; } = new();
 
     [JsonPropertyName("tenant_meters")]
-    public Dictionary<string, Dictionary<string, double>> TenantMeters { get; init; } = new();
+    public Dictionary<string, Dictionary<string, double>> TenantMeters { get; set; } = new();
 }
 
 public class Config
 {
-    [JsonPropertyName("is_paused")] public bool? IsPaused { get; init; }
-    [JsonPropertyName("simulation_speed")] public int? SimulationSpeed { get; init; }
-    [JsonPropertyName("simulation_step")] public int? SimulationStep { get; init; }
+    [JsonPropertyName("is_paused")] public bool? IsPaused { get; set; }
+    [JsonPropertyName("simulation_speed")] public int? SimulationSpeed { get; set; }
+    [JsonPropertyName("simulation_step")] public int? SimulationStep { get; set; }
 
-    [JsonPropertyName("room_noise_sigma")] public double? RoomNoiseSigma { get; init; }
+    [JsonPropertyName("room_noise_sigma")] public double? RoomNoiseSigma { get; set; }
 }
 
-public abstract class SimulationConfig
+public class SimulationConfig
 {
-    [JsonPropertyName("config")] public required Config Config { get; init; }
+    [JsonPropertyName("config")] public required Config Config { get; set; }
 }
 
 public class ControlMessage
 {
-    [JsonPropertyName("action")] public required string Action { get; init; }
+    [JsonPropertyName("action")] public required string Action { get; set; }
     [JsonPropertyName("target_name")] public string? TargetName { get; set; }
     [JsonPropertyName("target_config")] public Config? TargetConfig { get; set; }
 }
@@ -85,16 +85,16 @@ public class DigitalTwinRequest
 [BsonIgnoreExtraElements]
 public class ApartmentConfig
 {
-    public required string BuildingId { get; init; }
-    public required string ApartmentId { get; init; }
-    public List<RoomConfig> Rooms { get; init; } = [];
+    public required string BuildingId { get; set; }
+    public required string ApartmentId { get; set; }
+    public List<RoomConfig> Rooms { get; set; } = [];
 }
 
 public class RoomConfig
 {
-    public required string Id { get; init; }
-    public required string Name { get; init; }
-    public required HvacControl HvacControl { get; init; }
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required HvacControl HvacControl { get; set; }
 }
 
 public class HvacControl
@@ -107,15 +107,15 @@ public class HvacControl
 
 public class AllApartmentsConfig
 {
-    public required string BuildingId { get; init; }
-    public required string ApartmentId { get; init; }
-    public List<AllApartmentsConfigRoom> Rooms { get; init; } = [];
+    public required string BuildingId { get; set; }
+    public required string ApartmentId { get; set; }
+    public List<AllApartmentsConfigRoom> Rooms { get; set; } = [];
 }
 
 public class AllApartmentsConfigRoom
 {
-    public required string Id { get; init; }
-    public required AllApartmentsConfigHvac Hvac { get; init; }
+    public required string Id { get; set; }
+    public required AllApartmentsConfigHvac Hvac { get; set; }
 }
 
 public class AllApartmentsConfigHvac

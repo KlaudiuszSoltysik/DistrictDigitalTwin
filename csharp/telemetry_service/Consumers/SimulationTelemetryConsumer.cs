@@ -5,7 +5,7 @@ using shared;
 
 namespace telemetry_service.Consumers;
 
-public abstract class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<SimulationTelemetryConsumer> logger)
+public class SimulationTelemetryConsumer(TelemetryDbContext db, ILogger<SimulationTelemetryConsumer> logger)
     : IConsumer<Telemetry>
 {
     private static long _currentRunId = -1;

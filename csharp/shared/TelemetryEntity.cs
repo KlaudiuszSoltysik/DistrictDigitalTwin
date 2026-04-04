@@ -6,26 +6,26 @@ namespace shared;
 public class TelemetryEntity
 {
     public int Id { get; }
-    public long RunId { get; init; }
-    public DateTimeOffset Timestamp { get; init; }
-    public double Temperature { get; init; }
-    public double WindSpeed { get; init; }
-    public double WindDirection { get; init; }
-    public double SunRadiation { get; init; }
-    public double SunAltitude { get; init; }
-    public double SunAzimuth { get; init; }
-    public int Co2 { get; init; }
-    public double ElectricityCost { get; init; }
-    public double GasCost { get; init; }
-    public double PvFarmYield { get; init; }
-    public double CopHeating { get; init; }
-    public double CopCooling { get; init; }
-    [Column(TypeName = "jsonb")] public string RoomTemperatures { get; init; } = "{}";
-    [Column(TypeName = "jsonb")] public string RoomCo2 { get; init; } = "{}";
-    [Column(TypeName = "jsonb")] public string RoomHvacQ { get; init; } = "{}";
-    [Column(TypeName = "jsonb")] public string RoomHeatings { get; init; } = "{}";
-    [Column(TypeName = "jsonb")] public string RoomHvacV { get; init; } = "{}";
-    [Column(TypeName = "jsonb")] public string Metering { get; init; } = "{}";
+    public long RunId { get; set; }
+    public DateTimeOffset Timestamp { get; set; }
+    public double Temperature { get; set; }
+    public double WindSpeed { get; set; }
+    public double WindDirection { get; set; }
+    public double SunRadiation { get; set; }
+    public double SunAltitude { get; set; }
+    public double SunAzimuth { get; set; }
+    public int Co2 { get; set; }
+    public double ElectricityCost { get; set; }
+    public double GasCost { get; set; }
+    public double PvFarmYield { get; set; }
+    public double CopHeating { get; set; }
+    public double CopCooling { get; set; }
+    [Column(TypeName = "jsonb")] public string RoomTemperatures { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string RoomCo2 { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string RoomHvacQ { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string RoomHeatings { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string RoomHvacV { get; set; } = "{}";
+    [Column(TypeName = "jsonb")] public string Metering { get; set; } = "{}";
 }
 
 public class SimulationTelemetryEntity : TelemetryEntity;

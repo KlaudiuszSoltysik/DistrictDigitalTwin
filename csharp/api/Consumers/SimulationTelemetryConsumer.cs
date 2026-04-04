@@ -4,7 +4,7 @@ using shared;
 
 namespace api.Consumers;
 
-public abstract class SimulationTelemetryConsumer(
+public class SimulationTelemetryConsumer(
     IHubContext<TelemetryHub> simulationHubContext,
     CacheService cacheService)
     : IConsumer<Telemetry>
