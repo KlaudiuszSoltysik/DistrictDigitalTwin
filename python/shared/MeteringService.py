@@ -49,9 +49,9 @@ class MeteringService:
         self.total_gas_import += gas_buy * hours
         self.admin_gas_cost += (gas_buy * hours) * energy_costs["gas_cost"]
 
-        tenant_tariff = 0.35  # EUR za 1 kWh
+        tenant_tariff = 0.35
 
-        export_tariff = max(0.0, energy_costs["electricity_cost"])
+        export_tariff = energy_costs["electricity_cost"]
         self.admin_elec_revenue += (grid_sell * hours) * export_tariff
 
         for i in range(self.num_nodes):
