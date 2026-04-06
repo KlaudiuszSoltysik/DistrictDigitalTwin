@@ -5,7 +5,7 @@ namespace shared;
 [Table("telemetry")]
 public class TelemetryEntity
 {
-    public int Id { get; set; }
+    public int Id { get; }
     public long RunId { get; set; }
     public DateTimeOffset Timestamp { get; set; }
     public double Temperature { get; set; }

@@ -8,9 +8,9 @@ public class Telemetry
     [JsonPropertyName("run_id")] public long RunId { get; set; }
     [JsonPropertyName("timestamp")] public DateTimeOffset Timestamp { get; set; }
 
-    [JsonPropertyName("weather")] public WeatherData Weather { get; set; }
+    [JsonPropertyName("weather")] public required WeatherData Weather { get; set; }
 
-    [JsonPropertyName("energy_costs")] public EnergyCostsData EnergyCosts { get; set; }
+    [JsonPropertyName("energy_costs")] public required EnergyCostsData EnergyCosts { get; set; }
 
     [JsonPropertyName("room_temperatures")]
     public Dictionary<string, double> RoomTemperatures { get; set; } = new();
@@ -23,7 +23,7 @@ public class Telemetry
 
     [JsonPropertyName("room_hvac_v")] public Dictionary<string, double> RoomHvacV { get; set; } = new();
 
-    [JsonPropertyName("metering")] public Dictionary<string, Dictionary<string, double>> Metering { get; set; } = new();
+    [JsonPropertyName("metering")] public required MeteringData Metering { get; set; }
 }
 
 public class WeatherData
@@ -46,6 +46,14 @@ public class EnergyCostsData
     [JsonPropertyName("cop_cooling")] public double CopCooling { get; set; }
 }
 
+public class MeteringData
+{
+    [JsonPropertyName("admin_meters")] public Dictionary<string, double> AdminMeters { get; set; } = new();
+
+    [JsonPropertyName("tenant_meters")]
+    public Dictionary<string, Dictionary<string, double>> TenantMeters { get; set; } = new();
+}
+
 public class Config
 {
     [JsonPropertyName("is_paused")] public bool? IsPaused { get; set; }
@@ -57,12 +65,12 @@ public class Config
 
 public class SimulationConfig
 {
-    [JsonPropertyName("config")] public Config Config { get; set; }
+    [JsonPropertyName("config")] public required Config Config { get; set; }
 }
 
 public class ControlMessage
 {
-    [JsonPropertyName("action")] public string Action { get; set; }
+    [JsonPropertyName("action")] public required string Action { get; set; }
     [JsonPropertyName("target_name")] public string? TargetName { get; set; }
     [JsonPropertyName("target_config")] public Config? TargetConfig { get; set; }
 }
@@ -112,8 +120,8 @@ public class AllApartmentsConfigRoom
 
 public class AllApartmentsConfigHvac
 {
-    public List<double> TemperaturesMin { get; set; } = [];
-    public List<double?> Temperatures { get; set; } = [];
-    public List<double> TemperaturesMax { get; set; } = [];
-    public List<int> Co2 { get; set; } = [];
+    public List<double> TemperaturesMin { get; } = [];
+    public List<double?> Temperatures { get; } = [];
+    public List<double> TemperaturesMax { get; } = [];
+    public List<int> Co2 { get; } = [];
 }

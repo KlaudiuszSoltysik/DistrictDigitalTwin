@@ -36,7 +36,8 @@
             <p class="text-green-400 mb-4 font-semibold">@_saveMessage</p>
         }
 
-        @foreach (var room in _apartmentConfig.Rooms)
+        @if (_apartmentConfig != null)
+            @foreach (var room in _apartmentConfig.Rooms)
         {
             <div class="mb-6 last:mb-0">
                 <HvacScheduler
@@ -46,6 +47,7 @@
                     @bind-Co2="room.HvacControl.Co2"
                     @bind-IsEnabled="room.HvacControl.IsEnabled"/>
             </div>
+        }
         }
     </div>
 </div>

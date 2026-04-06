@@ -26,12 +26,21 @@ public class SimulationStatusService : IAsyncDisposable
         _hubConnection.On<Telemetry>("ReceiveSimulationTelemetry", msg =>
         {
             SimulationTimestamp = msg.Timestamp;
-            SimulationTelemetry.Add(msg);
 
+            SimulationTelemetry.Add(msg);
             var cutoffTime = msg.Timestamp.AddHours(-24);
             SimulationTelemetry.RemoveAll(t => t.Timestamp < cutoffTime);
-
             SimulationTelemetry = SimulationTelemetry
+                .GroupBy(t => t.Timestamp.ToUnixTimeSeconds() / 60)
+                .Select(group => group.Last())
+                .OrderBy(t => t.Timestamp)
+                .ToList();
+
+            MonthlySimulationTelemetry.Add(msg);
+            var prevMonth = msg.Timestamp.AddMonths(-1);
+            var cutoffMonthly = new DateTimeOffset(prevMonth.Year, prevMonth.Month, 1, 0, 0, 0, msg.Timestamp.Offset);
+            MonthlySimulationTelemetry.RemoveAll(t => t.Timestamp < cutoffMonthly);
+            MonthlySimulationTelemetry = MonthlySimulationTelemetry
                 .GroupBy(t => t.Timestamp.ToUnixTimeSeconds() / 60)
                 .Select(group => group.Last())
                 .OrderBy(t => t.Timestamp)
@@ -42,10 +51,16 @@ public class SimulationStatusService : IAsyncDisposable
 
         _hubConnection.On<List<Telemetry>>("ReceiveSimulationTelemetryDb", msgs =>
         {
-            if (msgs.Count > 0) SimulationTimestamp = msgs[0].Timestamp;
+            if (msgs.Count > 0) SimulationTimestamp = msgs[^1].Timestamp;
 
             SimulationTelemetry = msgs;
             OnSimulationTelemetryDbReceived?.Invoke(msgs);
+        });
+
+        _hubConnection.On<List<Telemetry>>("ReceiveMonthlyTelemetryDb", msgs =>
+        {
+            MonthlySimulationTelemetry = msgs;
+            OnMonthlyTelemetryDbReceived?.Invoke(msgs);
         });
 
         _hubConnection.On<List<Telemetry>>("ReceiveDigitalTwinTelemetry", msg =>
@@ -70,6 +85,7 @@ public class SimulationStatusService : IAsyncDisposable
     }
 
     public List<Telemetry> SimulationTelemetry { get; private set; } = [];
+    public List<Telemetry> MonthlySimulationTelemetry { get; private set; } = [];
     public List<Telemetry> DigitalTwinTelemetry { get; private set; } = [];
 
     public DateTimeOffset SimulationTimestamp { get; private set; }
@@ -82,6 +98,7 @@ public class SimulationStatusService : IAsyncDisposable
         _hubConnection.Remove("ReceiveSimulationStatus");
         _hubConnection.Remove("ReceiveSimulationTelemetry");
         _hubConnection.Remove("ReceiveSimulationTelemetryDb");
+        _hubConnection.Remove("ReceiveMonthlyTelemetryDb");
         _hubConnection.Remove("ReceiveDigitalTwinTelemetry");
 
         await _hubConnection.StopAsync();
@@ -91,11 +108,13 @@ public class SimulationStatusService : IAsyncDisposable
     public event Action? OnStatusChanged;
     public event Action<Telemetry>? OnSimulationTelemetryReceived;
     public event Action<List<Telemetry>>? OnSimulationTelemetryDbReceived;
+    public event Action<List<Telemetry>>? OnMonthlyTelemetryDbReceived;
     public event Action<List<Telemetry>>? OnDigitalTwinTelemetryReceived;
 
     public void ClearTelemetry()
     {
         SimulationTelemetry.Clear();
+        MonthlySimulationTelemetry.Clear();
         DigitalTwinTelemetry.Clear();
         SimulationTimestamp = DateTimeOffset.UtcNow;
         DigitalTwinTimestamp = DateTimeOffset.UtcNow;

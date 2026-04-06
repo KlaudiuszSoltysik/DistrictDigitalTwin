@@ -1,0 +1,205 @@
+﻿@using shared
+<p class="text-2xl">@Title</p>
+<div class="grid grid-cols-2 gap-6">
+    @if (_previousMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Previous month</p>
+
+            <ApexChart TItem="DataPoint" Title="@($"Total [{Unit}]")"
+                       Options="_previousSumChartOptions" @ref="_chart1">
+                <ApexPointSeries TItem="DataPoint"
+                                 SeriesType="SeriesType.Area"
+                                 Name="Total"
+                                 Items="_previousMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => t.Sum - _previousMonthData[0].Sum)"/>
+            </ApexChart>
+
+            <ApexChart TItem="DataPoint" Title="@($"Step [{Unit}]")"
+                       Options="_previousDeltaChartOptions" @ref="_chart2">
+                <ApexPointSeries TItem="DataPoint"
+                                 SeriesType="SeriesType.Area"
+                                 Name="Step"
+                                 Items="_previousMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => t.Delta)"/>
+            </ApexChart>
+        </div>
+    }
+
+    @if (_currentMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Current month</p>
+
+            <ApexChart TItem="DataPoint" Title="@($"Total [{Unit}]")"
+                       Options="_currentSumChartOptions" @ref="_chart3">
+                <ApexPointSeries TItem="DataPoint"
+                                 SeriesType="SeriesType.Area"
+                                 Name="Total"
+                                 Items="_currentMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => t.Sum - _currentMonthData[0].Sum)"/>
+            </ApexChart>
+
+            <ApexChart TItem="DataPoint" Title="@($"Step [{Unit}]")"
+                       Options="_currentDeltaChartOptions" @ref="_chart4">
+                <ApexPointSeries TItem="DataPoint"
+                                 SeriesType="SeriesType.Area"
+                                 Name="Step"
+                                 Items="_currentMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => t.Delta)"/>
+            </ApexChart>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Unit { get; set; } = "";
+    [Parameter] public string MeterKey { get; set; } = "";
+
+    public class DataPoint
+    {
+        public DateTimeOffset Timestamp { get; init; }
+        public decimal Sum { get; init; }
+        public decimal Delta { get; init; }
+    }
+
+    private int _updateCounter;
+
+    private List<DataPoint> _fullData = [];
+    private List<DataPoint> _previousMonthData = [];
+    private List<DataPoint> _currentMonthData = [];
+
+    private ApexChart<DataPoint>? _chart1;
+    private ApexChart<DataPoint>? _chart2;
+    private ApexChart<DataPoint>? _chart3;
+    private ApexChart<DataPoint>? _chart4;
+
+    private ApexChartOptions<DataPoint> _previousSumChartOptions = new();
+    private ApexChartOptions<DataPoint> _previousDeltaChartOptions = new();
+    private ApexChartOptions<DataPoint> _currentSumChartOptions = new();
+    private ApexChartOptions<DataPoint> _currentDeltaChartOptions = new();
+
+    protected override void OnInitialized()
+    {
+        _previousSumChartOptions = GenerateOptions($" {Unit}");
+        _previousDeltaChartOptions = GenerateOptions($" {Unit}");
+        _currentSumChartOptions = GenerateOptions($" {Unit}");
+        _currentDeltaChartOptions = GenerateOptions($" {Unit}");
+    }
+
+    public async Task AddSimulationTelemetryAsync(Telemetry msg)
+    {
+        _updateCounter++;
+
+        var currentVal = (decimal)msg.Metering.AdminMeters[MeterKey];
+
+        var newDataPoint = new DataPoint
+        {
+            Timestamp = msg.Timestamp,
+            Sum = currentVal,
+            Delta = _fullData.Count == 0 ? currentVal : currentVal - _fullData[^1].Sum
+        };
+
+        _fullData.Add(newDataPoint);
+
+        var latestTimestamp = _fullData[^1].Timestamp;
+        var prevMonthDate = latestTimestamp.AddMonths(-1);
+        var cutoff = new DateTimeOffset(prevMonthDate.Year, prevMonthDate.Month, 1, 0, 0, 0, latestTimestamp.Offset);
+
+        _fullData.RemoveAll(d => d.Timestamp < cutoff);
+
+        if (_updateCounter % 5 == 0)
+        {
+            var firstTimestamp = _fullData[0].Timestamp;
+            var lastTimestamp = _fullData[^1].Timestamp;
+
+            if (firstTimestamp.Month == lastTimestamp.Month)
+            {
+                _currentMonthData = _fullData;
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                _previousMonthData = _fullData.Where(m => m.Timestamp.Month == firstTimestamp.Month).ToList();
+                _currentMonthData = _fullData.Where(m => m.Timestamp.Month == lastTimestamp.Month).ToList();
+
+                await InvokeAsync(StateHasChanged);
+
+                if (_chart1 != null) await _chart1.UpdateSeriesAsync();
+                if (_chart2 != null) await _chart2.UpdateSeriesAsync();
+            }
+
+            if (_chart3 != null) await _chart3.UpdateSeriesAsync();
+            if (_chart4 != null) await _chart4.UpdateSeriesAsync();
+        }
+    }
+
+    public async Task LoadSimulationTelemetryAsync(List<Telemetry> msgs)
+    {
+        if (msgs.Count == 0) return;
+
+        _fullData = msgs.Select((m, i) => new DataPoint
+        {
+            Timestamp = m.Timestamp,
+            Sum = (decimal)m.Metering.AdminMeters[MeterKey],
+            Delta = i == 0 ? (decimal)m.Metering.AdminMeters[MeterKey] : (decimal)(m.Metering.AdminMeters[MeterKey] - msgs[i - 1].Metering.AdminMeters[MeterKey])
+        }).ToList();
+
+        var firstTimestamp = _fullData[0].Timestamp;
+        var lastTimestamp = _fullData[^1].Timestamp;
+
+        if (firstTimestamp.Month == lastTimestamp.Month)
+        {
+            _currentMonthData = _fullData;
+        }
+        else
+        {
+            _previousMonthData = _fullData.Where(m => m.Timestamp.Month == firstTimestamp.Month).ToList();
+            _currentMonthData = _fullData.Where(m => m.Timestamp.Month == lastTimestamp.Month).ToList();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static ApexChartOptions<DataPoint> GenerateOptions(string unitSuffix)
+    {
+        return new ApexChartOptions<DataPoint>
+        {
+            Chart = new Chart
+            {
+                Height = 250,
+                Type = ChartType.Area,
+                Animations = new Animations { Enabled = false },
+                Toolbar = new Toolbar { Show = false },
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke { Curve = Curve.Stepline, Width = 2 },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Labels = new XAxisLabels { Format = "dd-MM HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false }
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = $"function (value) {{ return value.toFixed(2) + '{unitSuffix}'; }}"
+                    }
+                }
+            ],
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM-yyyy HH:mm" }
+            }
+        };
+    }
+
+}

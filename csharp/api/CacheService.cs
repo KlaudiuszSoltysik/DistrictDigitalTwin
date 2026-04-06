@@ -8,13 +8,14 @@ namespace api;
 public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheService> logger)
 {
     private readonly SemaphoreSlim _digitalTwinLock = new(1, 1);
+    private readonly ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
+    private readonly ConcurrentQueue<Telemetry> _monthlySimulationTelemetry = new();
     private readonly SemaphoreSlim _simulationLock = new(1, 1);
+
+    private readonly ConcurrentQueue<Telemetry> _simulationTelemetry = new();
     private long _currentDigitalTwinRunId = -1;
 
     private long _currentSimulationRunId = -1;
-    private ConcurrentQueue<Telemetry> _digitalTwinTelemetry = new();
-
-    private ConcurrentQueue<Telemetry> _simulationTelemetry = new();
 
     public async Task InitializeCacheAsync()
     {
@@ -29,8 +30,12 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
         if (latestSim != null)
         {
             _currentSimulationRunId = latestSim.RunId;
+
             var cutoff = latestSim.Timestamp.AddHours(-24);
-            await LoadSimulationTelemetryFromDb(latestSim.RunId, cutoff);
+            var monthlyCutoff = GetBeginningOfPreviousMonth(latestSim.Timestamp);
+
+            await LoadSimulationTelemetryFromDb(_simulationTelemetry, latestSim.RunId, cutoff);
+            await LoadSimulationTelemetryFromDb(_monthlySimulationTelemetry, latestSim.RunId, monthlyCutoff);
         }
 
         var latestTwin = await db.DigitalTwinTelemetry
@@ -49,23 +54,31 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
     public async Task ProcessSimulationTelemetryMessageAsync(Telemetry msg)
     {
         var cutoff = msg.Timestamp.AddHours(-24);
+        var monthlyCutoff = GetBeginningOfPreviousMonth(msg.Timestamp);
 
         if (msg.RunId != _currentSimulationRunId)
         {
-            _simulationTelemetry = new ConcurrentQueue<Telemetry>();
+            _simulationTelemetry.Clear();
+            _monthlySimulationTelemetry.Clear();
 
-            await LoadSimulationTelemetryFromDb(msg.RunId, cutoff);
+            await LoadSimulationTelemetryFromDb(_simulationTelemetry, msg.RunId, cutoff);
+            await LoadSimulationTelemetryFromDb(_monthlySimulationTelemetry, msg.RunId, monthlyCutoff);
 
             _currentSimulationRunId = msg.RunId;
         }
 
         _simulationTelemetry.Enqueue(msg);
+        _monthlySimulationTelemetry.Enqueue(msg);
 
         while (_simulationTelemetry.TryPeek(out var oldest) && oldest.Timestamp < cutoff)
             _simulationTelemetry.TryDequeue(out _);
+
+        while (_monthlySimulationTelemetry.TryPeek(out var oldest) && oldest.Timestamp < monthlyCutoff)
+            _monthlySimulationTelemetry.TryDequeue(out _);
     }
 
-    private async Task LoadSimulationTelemetryFromDb(long runId, DateTimeOffset cutoff)
+    private async Task LoadSimulationTelemetryFromDb(ConcurrentQueue<Telemetry> telemetryQueue, long runId,
+        DateTimeOffset cutoff)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
@@ -73,13 +86,12 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
         var dbData = await db.SimulationTelemetry
             .AsNoTracking()
             .Where(t => t.RunId == runId && t.Timestamp >= cutoff)
-            .OrderByDescending(t => t.Timestamp)
+            .OrderBy(t => t.Timestamp)
             .ToListAsync();
 
         if (dbData.Count > 0)
         {
             var mappedData = dbData
-                .OrderBy(t => t.Timestamp)
                 .Select(e => new Telemetry
                 {
                     RunId = e.RunId,
@@ -112,11 +124,11 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                                    new Dictionary<string, double>(),
                     RoomHvacV = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacV) ??
                                 new Dictionary<string, double>(),
-                    Metering = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(e.Metering) ??
-                               new Dictionary<string, Dictionary<string, double>>()
+                    Metering = JsonSerializer.Deserialize<MeteringData>(e.Metering) ??
+                               new MeteringData()
                 });
 
-            foreach (var item in mappedData) _simulationTelemetry.Enqueue(item);
+            foreach (var item in mappedData) telemetryQueue.Enqueue(item);
         }
     }
 
@@ -126,7 +138,7 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
 
         if (_currentDigitalTwinRunId == -1)
         {
-            _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
+            _digitalTwinTelemetry.Clear();
 
             await LoadDigitalTwinTelemetryFromDb(cutoff);
 
@@ -148,7 +160,7 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
         var dbData = await db.DigitalTwinTelemetry
             .AsNoTracking()
             .Where(t => t.Timestamp >= cutoffTime)
-            .OrderByDescending(t => t.Timestamp)
+            .OrderBy(t => t.Timestamp)
             .ToListAsync();
 
         if (dbData.Count > 0)
@@ -186,8 +198,8 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                                    new Dictionary<string, double>(),
                     RoomHvacV = JsonSerializer.Deserialize<Dictionary<string, double>>(e.RoomHvacV) ??
                                 new Dictionary<string, double>(),
-                    Metering = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(e.Metering) ??
-                               new Dictionary<string, Dictionary<string, double>>()
+                    Metering = JsonSerializer.Deserialize<MeteringData>(e.Metering) ??
+                               new MeteringData()
                 });
 
             foreach (var item in mappedData) _digitalTwinTelemetry.Enqueue(item);
@@ -197,6 +209,11 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
     public List<Telemetry> GetSimulationTelemetry()
     {
         return _simulationTelemetry.ToList();
+    }
+
+    public List<Telemetry> GetMonthlySimulationTelemetry()
+    {
+        return _monthlySimulationTelemetry.ToList();
     }
 
     public List<Telemetry> GetDigitalTwinTelemetry()
@@ -214,8 +231,9 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
             _currentSimulationRunId = -1;
             _currentDigitalTwinRunId = -1;
 
-            _simulationTelemetry = new ConcurrentQueue<Telemetry>();
-            _digitalTwinTelemetry = new ConcurrentQueue<Telemetry>();
+            _simulationTelemetry.Clear();
+            _monthlySimulationTelemetry.Clear();
+            _digitalTwinTelemetry.Clear();
 
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<TelemetryDbContext>();
@@ -232,5 +250,12 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
             _simulationLock.Release();
             _digitalTwinLock.Release();
         }
+    }
+
+    private static DateTimeOffset GetBeginningOfPreviousMonth(DateTimeOffset current)
+    {
+        var prevMonth = current.AddMonths(-1);
+
+        return new DateTimeOffset(prevMonth.Year, prevMonth.Month, 1, 0, 0, 0, current.Offset);
     }
 }
