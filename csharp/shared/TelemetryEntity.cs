@@ -15,8 +15,6 @@ public class TelemetryEntity
     public double SunAltitude { get; set; }
     public double SunAzimuth { get; set; }
     public int Co2 { get; set; }
-    public double ElectricityCost { get; set; }
-    public double GasCost { get; set; }
     public double PvFarmYield { get; set; }
     public double CopHeating { get; set; }
     public double CopCooling { get; set; }

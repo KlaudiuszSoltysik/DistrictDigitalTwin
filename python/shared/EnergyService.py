@@ -19,8 +19,8 @@ class EnergyService:
         gas_price = float(self.prices_history.iloc[idx_after]["gas_price"])
 
         return {
-            "electricity_cost": electricity_price,
-            "gas_cost": gas_price,
+            "electricity_price": electricity_price,
+            "gas_price": gas_price,
             "pv_farm_yield": pv_yield_kw,
             "cop_heating": cop_heating,
             "cop_cooling": cop_cooling

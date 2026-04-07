@@ -96,4 +96,4 @@ Creating a scalable backend system that manages a virtual residential district, 
 8. **DevOps & Cleanup:** Container limits/reservations, K8s migration, CI/CD with Terraform, Grafana polishing, and fix HVAC spikes.
 - custom tenant price
 - add tenant standby + present consumption
-- get legit energy + gas prices
+- get legit gas prices

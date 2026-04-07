@@ -241,8 +241,8 @@ class HVAC:
 
                 costs = energy_service.get_effective_costs(future_time, self.pv_farm, self.heat_pump, w, noise_sigma)
 
-                elec_cost_forecast[k] = costs["electricity_cost"]
-                gas_cost_forecast[k] = costs["gas_cost"]
+                elec_cost_forecast[k] = costs["electricity_price"]
+                gas_cost_forecast[k] = costs["gas_price"]
                 res_yield_forecast[k] = costs["pv_farm_yield"]
                 cop_heat_forecast[k] = costs["cop_heating"]
                 cop_cool_forecast[k] = costs["cop_cooling"]

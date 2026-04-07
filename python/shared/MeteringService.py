@@ -6,6 +6,8 @@ class MeteringService:
         self.num_nodes = num_nodes
         self.index_to_id = index_to_id
 
+        self.energy_costs = {}
+
         self.total_elec_import = 0.0
         self.total_elec_export = 0.0
         self.total_pv_yield = 0.0
@@ -24,6 +26,8 @@ class MeteringService:
         self.room_billing_cost = {self.index_to_id[i]: 0.0 for i in range(self.num_nodes)}
 
     def update_meters(self, dt, energy_costs, q_hvac, v_hvac):
+        self.energy_costs = energy_costs
+
         q_heating = np.maximum(0, q_hvac)
         q_cooling = np.maximum(0, -q_hvac)
 
@@ -44,14 +48,14 @@ class MeteringService:
         self.total_pv_yield += energy_costs["pv_farm_yield"] * hours
         self.total_elec_import += grid_buy * hours
         self.total_elec_export += grid_sell * hours
-        self.admin_elec_cost += (grid_buy * hours) * energy_costs["electricity_cost"]
+        self.admin_elec_cost += (grid_buy * hours) * energy_costs["electricity_price"]
 
         self.total_gas_import += gas_buy * hours
-        self.admin_gas_cost += (gas_buy * hours) * energy_costs["gas_cost"]
+        self.admin_gas_cost += (gas_buy * hours) * energy_costs["gas_price"]
 
         tenant_tariff = 0.35
 
-        export_tariff = energy_costs["electricity_cost"]
+        export_tariff = energy_costs["electricity_price"]
         self.admin_elec_revenue += (grid_sell * hours) * export_tariff
 
         for i in range(self.num_nodes):
@@ -88,12 +92,15 @@ class MeteringService:
                 "electricity_export": round(self.total_elec_export, 3),
                 "pv_farm_yield": round(self.total_pv_yield, 3),
                 "gas_import": round(self.total_gas_import, 3),
-                "elec_cost": round(self.admin_elec_cost, 2),
+                "electricity_cost": round(self.admin_elec_cost, 2),
                 "gas_cost": round(self.admin_gas_cost, 2),
 
-                "admin_elec_revenue": round(self.admin_elec_revenue, 2),
+                "admin_electricity_revenue": round(self.admin_elec_revenue, 2),
                 "tenant_billing_revenue": round(self.total_tenant_revenue, 2),
-                "cost_margin": round(cost_margin, 2)
+                "cost_margin": round(cost_margin, 2),
+
+                "electricity_price": round(self.energy_costs.get("electricity_price", 0.0), 2),
+                "gas_price": round(self.energy_costs.get("gas_price", 0.0), 2)
             },
             "tenant_meters": {
                 "heating": {k: round(v, 3) for k, v in self.room_heat_delivered.items()},

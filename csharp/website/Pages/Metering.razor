@@ -15,14 +15,18 @@
 
 <AdminMeteringCharts @ref="_pvFarmYieldCharts" Title="PV Farm yield" Unit="kWh" MeterKey="pv_farm_yield"/>
 
+<AdminMeteringCharts @ref="_electricityPriceCharts" Title="Electricity price" Unit="EUR/MWh" MeterKey="electricity_price"/>
+
 <AdminMeteringCharts @ref="_gasImportCharts" Title="Gas import" Unit="m³" MeterKey="gas_import"/>
 
-<AdminMeteringCharts @ref="_electricityCostCharts" Title="Electricity cost" Unit="EUR" MeterKey="elec_cost"/>
+<AdminMeteringCharts @ref="_gasPriceCharts" Title="Gas price" Unit="EUR/MWh" MeterKey="gas_price"/>
+
+<AdminMeteringCharts @ref="_electricityCostCharts" Title="Electricity cost" Unit="EUR" MeterKey="electricity_cost"/>
 
 <AdminMeteringCharts @ref="_gasCostCharts" Title="Gas cost" Unit="EUR" MeterKey="gas_cost"/>
 
-<AdminMeteringCharts @ref="_adminElectricityRevenueCharts" Title="Electricity export" Unit="EUR"
-                     MeterKey="admin_elec_revenue"/>
+<AdminMeteringCharts @ref="_adminElectricityRevenueCharts" Title="Electricity sell" Unit="EUR"
+                     MeterKey="admin_electricity_revenue"/>
 
 <AdminMeteringCharts @ref="_tenantBillingRevenueCharts" Title="Tenant billing" Unit="EUR"
                      MeterKey="tenant_billing_revenue"/>
@@ -61,7 +65,9 @@
     private AdminMeteringCharts? _electricityImportCharts;
     private AdminMeteringCharts? _electricityExportCharts;
     private AdminMeteringCharts? _pvFarmYieldCharts;
+    private AdminMeteringCharts? _electricityPriceCharts;
     private AdminMeteringCharts? _gasImportCharts;
+    private AdminMeteringCharts? _gasPriceCharts;
     private AdminMeteringCharts? _electricityCostCharts;
     private AdminMeteringCharts? _gasCostCharts;
     private AdminMeteringCharts? _adminElectricityRevenueCharts;
@@ -96,7 +102,9 @@
         if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.AddSimulationTelemetryAsync(msg));
         if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.AddSimulationTelemetryAsync(msg));
         if (_pvFarmYieldCharts != null) tasks.Add(_pvFarmYieldCharts.AddSimulationTelemetryAsync(msg));
+        if (_electricityPriceCharts != null) tasks.Add(_electricityPriceCharts.AddSimulationTelemetryAsync(msg));
         if (_gasImportCharts != null) tasks.Add(_gasImportCharts.AddSimulationTelemetryAsync(msg));
+        if (_gasPriceCharts != null) tasks.Add(_gasPriceCharts.AddSimulationTelemetryAsync(msg));
         if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.AddSimulationTelemetryAsync(msg));
         if (_gasCostCharts != null) tasks.Add(_gasCostCharts.AddSimulationTelemetryAsync(msg));
         if (_adminElectricityRevenueCharts != null) tasks.Add(_adminElectricityRevenueCharts.AddSimulationTelemetryAsync(msg));
@@ -123,7 +131,9 @@
         if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.LoadSimulationTelemetryAsync(msgs));
         if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.LoadSimulationTelemetryAsync(msgs));
         if (_pvFarmYieldCharts != null) tasks.Add(_pvFarmYieldCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_electricityPriceCharts != null) tasks.Add(_electricityPriceCharts.LoadSimulationTelemetryAsync(msgs));
         if (_gasImportCharts != null) tasks.Add(_gasImportCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_gasPriceCharts != null) tasks.Add(_gasPriceCharts.LoadSimulationTelemetryAsync(msgs));
         if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.LoadSimulationTelemetryAsync(msgs));
         if (_gasCostCharts != null) tasks.Add(_gasCostCharts.LoadSimulationTelemetryAsync(msgs));
         if (_adminElectricityRevenueCharts != null) tasks.Add(_adminElectricityRevenueCharts.LoadSimulationTelemetryAsync(msgs));

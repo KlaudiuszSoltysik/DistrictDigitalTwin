@@ -39,8 +39,6 @@ public class WeatherData
 
 public class EnergyCostsData
 {
-    [JsonPropertyName("electricity_cost")] public double ElectricityCost { get; set; }
-    [JsonPropertyName("gas_cost")] public double GasCost { get; set; }
     [JsonPropertyName("pv_farm_yield")] public double PvFarmYield { get; set; }
     [JsonPropertyName("cop_heating")] public double CopHeating { get; set; }
     [JsonPropertyName("cop_cooling")] public double CopCooling { get; set; }

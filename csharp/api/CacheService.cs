@@ -108,8 +108,6 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     },
                     EnergyCosts = new EnergyCostsData
                     {
-                        ElectricityCost = e.ElectricityCost,
-                        GasCost = e.GasCost,
                         PvFarmYield = e.PvFarmYield,
                         CopHeating = e.CopHeating,
                         CopCooling = e.CopCooling
@@ -182,8 +180,6 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     },
                     EnergyCosts = new EnergyCostsData
                     {
-                        ElectricityCost = e.ElectricityCost,
-                        GasCost = e.GasCost,
                         PvFarmYield = e.PvFarmYield,
                         CopHeating = e.CopHeating,
                         CopCooling = e.CopCooling

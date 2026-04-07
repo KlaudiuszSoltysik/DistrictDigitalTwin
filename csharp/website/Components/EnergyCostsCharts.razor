@@ -1,26 +1,7 @@
 ﻿@using shared
 @if (_simulationTelemetry.Count != 0)
 {
-    <ApexChart TItem="Telemetry" Title="Electricity cost [EUR/MWh]" Options="_electricityCostChartOptions"
-               @ref="_chart1">
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Electricity price"
-                         Items="_digitalTwinTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.EnergyCosts.ElectricityCost)"/>
-    </ApexChart>
-
-    <ApexChart TItem="Telemetry" Title="Gas cost [EUR/MWh]" Options="_gasCostChartOptions" @ref="_chart2">
-        <ApexPointSeries TItem="Telemetry"
-                         SeriesType="SeriesType.Line"
-                         Name="Gas price"
-                         Items="_digitalTwinTelemetry"
-                         XValue="@(t => t.Timestamp)"
-                         YValue="@(t => (decimal?)t.EnergyCosts.GasCost)"/>
-    </ApexChart>
-
-    <ApexChart TItem="Telemetry" Title="PV farm yield [kW]" Options="_pvFarmYieldChartOptions" @ref="_chart3">
+    <ApexChart TItem="Telemetry" Title="PV farm yield [kW]" Options="_pvFarmYieldChartOptions" @ref="_chart1">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
                          Name="PV farm power"
@@ -36,7 +17,7 @@
                          YValue="@(t => (decimal?)t.EnergyCosts.PvFarmYield)"/>
     </ApexChart>
 
-    <ApexChart TItem="Telemetry" Title="COP heating" Options="_copHeatingChartOptions" @ref="_chart4">
+    <ApexChart TItem="Telemetry" Title="COP heating" Options="_copHeatingChartOptions" @ref="_chart2">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
                          Name="Heat pump heating coefficient"
@@ -52,7 +33,7 @@
                          YValue="@(t => (decimal?)t.EnergyCosts.CopHeating)"/>
     </ApexChart>
 
-    <ApexChart TItem="Telemetry" Title="COP cooling" Options="_copCoolingChartOptions" @ref="_chart5">
+    <ApexChart TItem="Telemetry" Title="COP cooling" Options="_copCoolingChartOptions" @ref="_chart3">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
                          Name="Heat pump cooling coefficient"
@@ -79,11 +60,7 @@
     private ApexChart<Telemetry> _chart1 = new();
     private ApexChart<Telemetry> _chart2 = new();
     private ApexChart<Telemetry> _chart3 = new();
-    private ApexChart<Telemetry> _chart4 = new();
-    private ApexChart<Telemetry> _chart5 = new();
 
-    private ApexChartOptions<Telemetry> _electricityCostChartOptions = new();
-    private ApexChartOptions<Telemetry> _gasCostChartOptions = new();
     private ApexChartOptions<Telemetry> _pvFarmYieldChartOptions = new();
     private ApexChartOptions<Telemetry> _copHeatingChartOptions = new();
     private ApexChartOptions<Telemetry> _copCoolingChartOptions = new();
@@ -91,8 +68,6 @@
 
     protected override void OnInitialized()
     {
-        _electricityCostChartOptions = GenerateOptions(" EUR/MWh");
-        _gasCostChartOptions = GenerateOptions(" EUR/MWh");
         _pvFarmYieldChartOptions = GenerateOptions(" kW");
         _copHeatingChartOptions = GenerateOptions("");
         _copCoolingChartOptions = GenerateOptions("");
@@ -115,9 +90,7 @@
                 InvokeAsync(StateHasChanged),
                 _chart1.UpdateSeriesAsync(),
                 _chart2.UpdateSeriesAsync(),
-                _chart3.UpdateSeriesAsync(),
-                _chart4.UpdateSeriesAsync(),
-                _chart5.UpdateSeriesAsync()
+                _chart3.UpdateSeriesAsync()
             );
         }
     }
@@ -137,9 +110,7 @@
             InvokeAsync(StateHasChanged),
             _chart1.UpdateSeriesAsync(),
             _chart2.UpdateSeriesAsync(),
-            _chart3.UpdateSeriesAsync(),
-            _chart4.UpdateSeriesAsync(),
-            _chart5.UpdateSeriesAsync()
+            _chart3.UpdateSeriesAsync()
         );
     }
 
