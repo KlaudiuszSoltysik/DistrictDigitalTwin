@@ -69,7 +69,7 @@ class Co2Solver:
 
         if room_noise_sigma > 0:
             time_scale = np.sqrt(dt / 3600.0)
-            state_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 50, size=len(self.V))
+            state_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 20, size=len(self.V))
             self.co2 += state_drift
 
         self.co2 = np.maximum(self.co2, 400.0)

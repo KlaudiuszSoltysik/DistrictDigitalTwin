@@ -4,15 +4,15 @@
     <ApexChart TItem="Telemetry" Title="Temperature [°C]" Options="_temperatureChartOptions" @ref="_chart1">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Temperature"
-                         Items="_simulationTelemetry"
+                         Name="Temperature forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.Temperature)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Temperature forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="Temperature"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.Temperature)"/>
     </ApexChart>
@@ -20,15 +20,15 @@
     <ApexChart TItem="Telemetry" Title="Wind speed [km/h]" Options="_windSpeedChartOptions" @ref="_chart2">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Wind speed"
-                         Items="_simulationTelemetry"
+                         Name="Wind speed forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Wind speed forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="Wind speed"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.WindSpeed)"/>
     </ApexChart>
@@ -37,15 +37,15 @@
                @ref="_chart3">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun radiation"
-                         Items="_simulationTelemetry"
+                         Name="Sun radiation forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun radiation forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="Sun radiation"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.SunRadiation)"/>
     </ApexChart>
@@ -53,15 +53,15 @@
     <ApexChart TItem="Telemetry" Title="Sun altitude [°]" Options="_sunAltitudeChartOptions" @ref="_chart4">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun altitude"
-                         Items="_simulationTelemetry"
+                         Name="Sun altitude forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Sun altitude forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="Sun altitude"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.Weather.SunAltitude)"/>
     </ApexChart>
@@ -69,15 +69,15 @@
     <ApexChart TItem="Telemetry" Title="CO₂ [ppm]" Options="_co2ChartOptions" @ref="_chart5">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="CO₂"
-                         Items="_simulationTelemetry"
+                         Name="CO₂ forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => t.Weather.Co2)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="CO₂ forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="CO₂"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => t.Weather.Co2)"/>
     </ApexChart>

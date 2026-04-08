@@ -10,16 +10,88 @@
 <AdminMeteringCharts @ref="_electricityImportCharts" Title="Electricity import" Unit="kWh"
                      MeterKey="electricity_import"/>
 
+<AdminMeteringCharts @ref="_pvFarmYieldCharts" Title="PV Farm yield" Unit="kWh" MeterKey="pv_farm_yield"/>
+
 <AdminMeteringCharts @ref="_electricityExportCharts" Title="Electricity export" Unit="kWh"
                      MeterKey="electricity_export"/>
 
-<AdminMeteringCharts @ref="_pvFarmYieldCharts" Title="PV Farm yield" Unit="kWh" MeterKey="pv_farm_yield"/>
+<p class="text-2xl">Electricity price</p>
+<div class="grid grid-cols-2 gap-6">
+    @if (_previousMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Previous month</p>
 
-<AdminMeteringCharts @ref="_electricityPriceCharts" Title="Electricity price" Unit="EUR/MWh" MeterKey="electricity_price"/>
+            <ApexChart TItem="Telemetry" Title="Electricity price [EUR/MWh]"
+                       Options="_previousElectricityPriceChartsOptions" @ref="_chart1">
+                <ApexPointSeries TItem="Telemetry"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Electricity price"
+                                 Items="_previousMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => (decimal?)t.Metering.AdminMeters["electricity_price"])"/>
+            </ApexChart>
+        </div>
+    }
+
+    @if (_currentMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Current month</p>
+
+            <ApexChart TItem="Telemetry" Title="Electricity price [EUR/MWh]"
+                       Options="_currentElectricityPriceChartsOptions" @ref="_chart2">
+                <ApexPointSeries TItem="Telemetry"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Electricity price"
+                                 Items="_currentMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => (decimal?)t.Metering.AdminMeters["electricity_price"])"/>
+            </ApexChart>
+
+        </div>
+    }
+</div>
 
 <AdminMeteringCharts @ref="_gasImportCharts" Title="Gas import" Unit="m³" MeterKey="gas_import"/>
 
-<AdminMeteringCharts @ref="_gasPriceCharts" Title="Gas price" Unit="EUR/MWh" MeterKey="gas_price"/>
+<p class="text-2xl">Gas price</p>
+<div class="grid grid-cols-2 gap-6">
+    @if (_previousMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Previous month</p>
+
+            <ApexChart TItem="Telemetry" Title="Gas price [EUR/MWh]"
+                       Options="_previousGasPriceChartsOptions" @ref="_chart3">
+                <ApexPointSeries TItem="Telemetry"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Gas price"
+                                 Items="_previousMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => (decimal?)t.Metering.AdminMeters["gas_price"])"/>
+            </ApexChart>
+        </div>
+    }
+
+    @if (_currentMonthData.Count > 0)
+    {
+        <div class="col-md-6">
+            <p class="my-4 text-xl">Current month</p>
+
+            <ApexChart TItem="Telemetry" Title="Gas price [EUR/MWh]"
+                       Options="_currentGasPriceChartsOptions" @ref="_chart4">
+                <ApexPointSeries TItem="Telemetry"
+                                 SeriesType="SeriesType.Line"
+                                 Name="Gas price"
+                                 Items="_currentMonthData"
+                                 XValue="@(t => t.Timestamp)"
+                                 YValue="@(t => (decimal?)t.Metering.AdminMeters["gas_price"])"/>
+            </ApexChart>
+
+        </div>
+    }
+</div>
 
 <AdminMeteringCharts @ref="_electricityCostCharts" Title="Electricity cost" Unit="EUR" MeterKey="electricity_cost"/>
 
@@ -65,9 +137,7 @@
     private AdminMeteringCharts? _electricityImportCharts;
     private AdminMeteringCharts? _electricityExportCharts;
     private AdminMeteringCharts? _pvFarmYieldCharts;
-    private AdminMeteringCharts? _electricityPriceCharts;
     private AdminMeteringCharts? _gasImportCharts;
-    private AdminMeteringCharts? _gasPriceCharts;
     private AdminMeteringCharts? _electricityCostCharts;
     private AdminMeteringCharts? _gasCostCharts;
     private AdminMeteringCharts? _adminElectricityRevenueCharts;
@@ -82,16 +152,72 @@
     private TenantMeteringCharts? _ventilationCharts;
     private TenantMeteringCharts? _billingCostCharts;
 
+    private int _updateCounter;
+
+    private List<Telemetry> _fullData = [];
+    private List<Telemetry> _previousMonthData = [];
+    private List<Telemetry> _currentMonthData = [];
+
+    private ApexChart<Telemetry>? _chart1;
+    private ApexChart<Telemetry>? _chart2;
+    private ApexChart<Telemetry>? _chart3;
+    private ApexChart<Telemetry>? _chart4;
+
+    private ApexChartOptions<Telemetry> _previousElectricityPriceChartsOptions = new();
+    private ApexChartOptions<Telemetry> _currentElectricityPriceChartsOptions = new();
+    private ApexChartOptions<Telemetry> _previousGasPriceChartsOptions = new();
+    private ApexChartOptions<Telemetry> _currentGasPriceChartsOptions = new();
+
     protected override async Task OnInitializedAsync()
     {
         SimulationStatusService.OnSimulationTelemetryReceived += HandleNewSimulationTelemetry;
         SimulationStatusService.OnMonthlyTelemetryDbReceived += HandleMonthlyTelemetryDb;
 
         SimulationStatusService.OnStatusChanged += StateHasChanged;
+
+        _previousElectricityPriceChartsOptions = GenerateOptions(" EUR/MWh");
+        _currentElectricityPriceChartsOptions = GenerateOptions(" EUR/MWh");
+        _previousGasPriceChartsOptions = GenerateOptions(" EUR/MWh");
+        _currentGasPriceChartsOptions = GenerateOptions(" EUR/MWh");
     }
 
     private async void HandleNewSimulationTelemetry(Telemetry msg)
     {
+        _updateCounter++;
+
+        _fullData.Add(msg);
+
+        var latestTimestamp = _fullData[^1].Timestamp;
+        var prevMonthDate = latestTimestamp.AddMonths(-1);
+        var cutoff = new DateTimeOffset(prevMonthDate.Year, prevMonthDate.Month, 1, 0, 0, 0, latestTimestamp.Offset);
+
+        _fullData.RemoveAll(d => d.Timestamp < cutoff);
+
+        if (_updateCounter % 5 == 0)
+        {
+            var firstTimestamp = _fullData[0].Timestamp;
+            var lastTimestamp = _fullData[^1].Timestamp;
+
+            if (firstTimestamp.Month == lastTimestamp.Month)
+            {
+                _currentMonthData = _fullData;
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                _previousMonthData = _fullData.Where(m => m.Timestamp.Month == firstTimestamp.Month).ToList();
+                _currentMonthData = _fullData.Where(m => m.Timestamp.Month == lastTimestamp.Month).ToList();
+
+                await InvokeAsync(StateHasChanged);
+
+                if (_chart1 != null) await _chart1.UpdateSeriesAsync();
+                if (_chart3 != null) await _chart3.UpdateSeriesAsync();
+            }
+
+            if (_chart2 != null) await _chart2.UpdateSeriesAsync();
+            if (_chart4 != null) await _chart4.UpdateSeriesAsync();
+        }
+
         if (_roomNames.Count == 0)
         {
             _roomNames = msg.Metering.TenantMeters["heating"].Keys.ToList();
@@ -102,9 +228,7 @@
         if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.AddSimulationTelemetryAsync(msg));
         if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.AddSimulationTelemetryAsync(msg));
         if (_pvFarmYieldCharts != null) tasks.Add(_pvFarmYieldCharts.AddSimulationTelemetryAsync(msg));
-        if (_electricityPriceCharts != null) tasks.Add(_electricityPriceCharts.AddSimulationTelemetryAsync(msg));
         if (_gasImportCharts != null) tasks.Add(_gasImportCharts.AddSimulationTelemetryAsync(msg));
-        if (_gasPriceCharts != null) tasks.Add(_gasPriceCharts.AddSimulationTelemetryAsync(msg));
         if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.AddSimulationTelemetryAsync(msg));
         if (_gasCostCharts != null) tasks.Add(_gasCostCharts.AddSimulationTelemetryAsync(msg));
         if (_adminElectricityRevenueCharts != null) tasks.Add(_adminElectricityRevenueCharts.AddSimulationTelemetryAsync(msg));
@@ -121,19 +245,32 @@
 
     private async void HandleMonthlyTelemetryDb(List<Telemetry> msgs)
     {
-        if (msgs.Count > 0)
+        _fullData = msgs.ToList();
+
+        var firstTimestamp = _fullData[0].Timestamp;
+        var lastTimestamp = _fullData[^1].Timestamp;
+
+        if (firstTimestamp.Month == lastTimestamp.Month)
         {
-            _roomNames = msgs[0].Metering.TenantMeters["heating"].Keys.ToList();
-            _activeRoomNames = _roomNames.ToList();
+            _currentMonthData = _fullData;
         }
+        else
+        {
+            _previousMonthData = _fullData.Where(m => m.Timestamp.Month == firstTimestamp.Month).ToList();
+            _currentMonthData = _fullData.Where(m => m.Timestamp.Month == lastTimestamp.Month).ToList();
+        }
+
+        await InvokeAsync(StateHasChanged);
+
+        _roomNames = msgs[0].Metering.TenantMeters["heating"].Keys.ToList();
+        _activeRoomNames = _roomNames.ToList();
+
 
         var tasks = new List<Task>();
         if (_electricityImportCharts != null) tasks.Add(_electricityImportCharts.LoadSimulationTelemetryAsync(msgs));
         if (_electricityExportCharts != null) tasks.Add(_electricityExportCharts.LoadSimulationTelemetryAsync(msgs));
         if (_pvFarmYieldCharts != null) tasks.Add(_pvFarmYieldCharts.LoadSimulationTelemetryAsync(msgs));
-        if (_electricityPriceCharts != null) tasks.Add(_electricityPriceCharts.LoadSimulationTelemetryAsync(msgs));
         if (_gasImportCharts != null) tasks.Add(_gasImportCharts.LoadSimulationTelemetryAsync(msgs));
-        if (_gasPriceCharts != null) tasks.Add(_gasPriceCharts.LoadSimulationTelemetryAsync(msgs));
         if (_electricityCostCharts != null) tasks.Add(_electricityCostCharts.LoadSimulationTelemetryAsync(msgs));
         if (_gasCostCharts != null) tasks.Add(_gasCostCharts.LoadSimulationTelemetryAsync(msgs));
         if (_adminElectricityRevenueCharts != null) tasks.Add(_adminElectricityRevenueCharts.LoadSimulationTelemetryAsync(msgs));
@@ -153,6 +290,42 @@
         _activeRoomNames = filteredRooms;
 
         StateHasChanged();
+    }
+
+    private static ApexChartOptions<Telemetry> GenerateOptions(string unitSuffix)
+    {
+        return new ApexChartOptions<Telemetry>
+        {
+            Chart = new Chart
+            {
+                Height = 250,
+                Type = ChartType.Line,
+                Animations = new Animations { Enabled = false },
+                Toolbar = new Toolbar { Show = false },
+                Zoom = new Zoom { Enabled = false }
+            },
+            Stroke = new Stroke { Curve = Curve.Stepline, Width = 2 },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Labels = new XAxisLabels { Format = "dd-MM HH:mm" },
+                Tooltip = new XAxisTooltip { Enabled = false }
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Formatter = $"function (value) {{ return value.toFixed(2) + '{unitSuffix}'; }}"
+                    }
+                }
+            ],
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd-MM-yyyy HH:mm" }
+            }
+        };
     }
 
     public async ValueTask DisposeAsync()

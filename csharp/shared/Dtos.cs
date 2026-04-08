@@ -118,8 +118,8 @@ public class AllApartmentsConfigRoom
 
 public class AllApartmentsConfigHvac
 {
-    public List<double> TemperaturesMin { get; } = [];
-    public List<double?> Temperatures { get; } = [];
-    public List<double> TemperaturesMax { get; } = [];
-    public List<int> Co2 { get; } = [];
+    public List<double> TemperaturesMin { get; set; } = [];
+    public List<double?> Temperatures { get; set; } = [];
+    public List<double> TemperaturesMax { get; set; } = [];
+    public List<int> Co2 { get; set; } = [];
 }

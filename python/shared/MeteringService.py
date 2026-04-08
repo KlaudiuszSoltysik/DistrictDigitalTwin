@@ -56,7 +56,7 @@ class MeteringService:
         tenant_tariff = 0.35
 
         export_tariff = energy_costs["electricity_price"]
-        self.admin_elec_revenue += (grid_sell * hours) * export_tariff
+        self.admin_elec_revenue += (grid_sell * hours) * export_tariff / 1000.0
 
         for i in range(self.num_nodes):
             room_id = self.index_to_id[i]
@@ -84,7 +84,7 @@ class MeteringService:
 
     def get_meter_readings(self):
         cost_margin = (self.admin_elec_revenue + self.total_tenant_revenue) - (
-                    self.admin_elec_cost + self.admin_gas_cost)
+                self.admin_elec_cost + self.admin_gas_cost)
 
         return {
             "admin_meters": {

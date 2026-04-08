@@ -141,8 +141,6 @@
 
     public async Task LoadSimulationTelemetryAsync(List<Telemetry> msgs)
     {
-        if (msgs.Count == 0) return;
-
         _fullData = msgs.Select((m, i) => new DataPoint
         {
             Timestamp = m.Timestamp,

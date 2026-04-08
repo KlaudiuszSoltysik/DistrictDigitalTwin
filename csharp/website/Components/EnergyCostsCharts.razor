@@ -4,15 +4,15 @@
     <ApexChart TItem="Telemetry" Title="PV farm yield [kW]" Options="_pvFarmYieldChartOptions" @ref="_chart1">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="PV farm power"
-                         Items="_simulationTelemetry"
+                         Name="PV farm power forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.EnergyCosts.PvFarmYield)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="PV farm power forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="PV farm power"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.EnergyCosts.PvFarmYield)"/>
     </ApexChart>
@@ -20,15 +20,15 @@
     <ApexChart TItem="Telemetry" Title="COP heating" Options="_copHeatingChartOptions" @ref="_chart2">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Heat pump heating coefficient"
-                         Items="_simulationTelemetry"
+                         Name="Heat pump heating coefficient forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.EnergyCosts.CopHeating)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Heat pump heating coefficient forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="Heat pump heating coefficient"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.EnergyCosts.CopHeating)"/>
     </ApexChart>
@@ -36,15 +36,15 @@
     <ApexChart TItem="Telemetry" Title="COP cooling" Options="_copCoolingChartOptions" @ref="_chart3">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Heat pump cooling coefficient"
-                         Items="_simulationTelemetry"
+                         Name="Heat pump cooling coefficient forecast"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.EnergyCosts.CopCooling)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="Heat pump cooling coefficient forecast"
-                         Items="_digitalTwinTelemetry"
+                         Name="Heat pump cooling coefficient"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => (decimal?)t.EnergyCosts.CopCooling)"/>
     </ApexChart>
