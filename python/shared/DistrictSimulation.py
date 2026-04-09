@@ -26,7 +26,7 @@ class DistrictSimulation:
         self.index_to_id = {v: k for k, v in parser.nodes.items()}
 
         self.thermal_solver = ThermalSolver(parser.G_temp, parser.C, parser.G_ext_air, parser.G_ext_ground,
-                                            self.metadata["ground_temperature"])
+                                            self.metadata["ground_temperature"], parser.A)
 
         self.co2_solver = Co2Solver(parser.G_air, parser.V, parser.G_ext_air_mix, self.num_nodes, self.index_to_id)
 
@@ -45,7 +45,7 @@ class DistrictSimulation:
         self.hvac = HVAC(self.pv_farm, self.heat_pump, self.num_nodes, parser.max_heating_powers,
                          parser.max_cooling_powers, self.index_to_id, is_digital_twin)
 
-        self.metering_service = MeteringService(self.num_nodes, self.index_to_id)
+        self.metering_service = MeteringService(parser.A, self.num_nodes, self.index_to_id)
 
     def run_step(self, dt, noise_sigma=0.0):
         weather = self.weather_service.get_weather(self.current_time)
@@ -67,7 +67,7 @@ class DistrictSimulation:
 
         co2_array = self.co2_solver.step(self.current_time, dt, weather["co2"], v_hvac, noise_sigma)
 
-        self.metering_service.update_meters(dt, energy_costs, q_hvac, v_hvac)
+        self.metering_service.update_meters(self.current_time, dt, energy_costs, q_hvac, v_hvac)
 
         output_timestamp = self.current_time.isoformat()
 

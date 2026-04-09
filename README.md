@@ -89,11 +89,10 @@ Creating a scalable backend system that manages a virtual residential district, 
 
 ## 📝 To-Do (Next Tasks)
 
+- custom tenant price
 3. **Hybrid Logic:** Implement logic in `EnergyService` to dynamically calculate whether heating with electricity (Heat Pump) or gas is currently cheaper.
 4. **Improve Simulation Models:** Refine the PV farm and Heat Pump simulations for greater realism.
 6. **EV Chargers:** Add configurable EV chargers linked to the tenant panel and the billing system.
 7. **Battery Energy Storage System (BESS):** Add battery simulation and integrate it with the MPC solver.
 8. **DevOps & Cleanup:** Container limits/reservations, K8s migration, CI/CD with Terraform, Grafana polishing, and fix HVAC spikes.
-- custom tenant price
-- add tenant standby + present consumption
 - get legit gas prices

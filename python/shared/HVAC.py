@@ -90,9 +90,9 @@ class HVAC:
         return T_min_horizon, T_max_horizon
 
     def cost_function(self, x_flat, current_T, current_co2, T_min_horizon, T_max_horizon, t_out_forecast,
-                      co2_out_forecast,
-                      q_env_forecast, is_enabled_forecast, thermal_solver, co2_solver, dt, horizon_steps, control_steps,
-                      elec_cost_forecast, gas_cost_forecast, res_yield_forecast, cop_heat_forecast, cop_cool_forecast):
+                      co2_out_forecast, q_env_forecast, is_enabled_forecast, thermal_solver, co2_solver, dt,
+                      horizon_steps, control_steps, elec_cost_forecast, gas_cost_forecast, res_yield_forecast,
+                      cop_heat_forecast, cop_cool_forecast):
         half_idx = control_steps * self.num_nodes
 
         Q_percent_blocked = x_flat[:half_idx].reshape((control_steps, self.num_nodes))
