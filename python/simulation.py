@@ -79,7 +79,7 @@ class SimulationService:
                     self.noise_sigma = target_config["room_noise_sigma"]
 
                 elif action == "UPDATE_APARTMENT_CONFIG":
-                    self.simulation.hvac.set_temperatures_config()
+                    self.simulation.mpc.set_temperatures_config()
                     self.simulation.co2_solver.set_on_hours()
                     self.simulation.metering_service.set_on_hours()
 

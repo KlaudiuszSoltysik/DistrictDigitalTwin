@@ -6,7 +6,8 @@ import pandas as pd
 from shared.Co2Solver import Co2Solver
 from shared.DistrictModelParser import DistrictModelParser
 from shared.EnergyService import EnergyService
-from shared.HVAC import HVAC
+from shared.GasBoiler import GasBoiler
+from shared.MPC import MPC
 from shared.HeatPump import HeatPump
 from shared.MeteringService import MeteringService
 from shared.PVFarm import PVFarm
@@ -40,10 +41,10 @@ class DistrictSimulation:
         self.energy_service = EnergyService(prices_path)
 
         self.pv_farm = PVFarm()
-        self.heat_pump = HeatPump()
+        self.heat_pump = HeatPump(parser.max_heat_pump_powers, parser.min_heat_pump_powers)
+        self.gas_boiler = GasBoiler()
 
-        self.hvac = HVAC(self.pv_farm, self.heat_pump, self.num_nodes, parser.max_heating_powers,
-                         parser.max_cooling_powers, self.index_to_id, is_digital_twin)
+        self.mpc = MPC(self.pv_farm, self.heat_pump, self.gas_boiler, self.num_nodes, parser.max_heat_pump_powers, self.index_to_id, is_digital_twin)
 
         self.metering_service = MeteringService(parser.A, self.num_nodes, self.index_to_id)
 
@@ -58,8 +59,8 @@ class DistrictSimulation:
             self.thermal_solver.T
         )
 
-        q_hvac, v_hvac = self.hvac.step(self.current_time, dt, self.thermal_solver, self.co2_solver,
-                                        self.weather_service, self.weather_solver, self.energy_service, noise_sigma)
+        q_hvac, v_hvac = self.mpc.step(self.current_time, dt, self.thermal_solver, self.co2_solver,
+                                       self.weather_service, self.weather_solver, self.energy_service, noise_sigma)
 
         q_total = q_env + q_hvac
 
@@ -84,7 +85,7 @@ class DistrictSimulation:
         room_co2 = {self.index_to_id[i]: int(co2_array[i]) for i in range(self.num_nodes)}
         room_hvac_q = {self.index_to_id[i]: round(float(q_hvac[i]), 2) for i in range(self.num_nodes)}
 
-        denominators = np.where(q_hvac >= 0, self.hvac.max_powers, self.hvac.min_powers)
+        denominators = np.where(q_hvac >= 0, self.mpc.max_heat_pump_powers, self.mpc.min_heat_pump_powers)
         q_percentage = (q_hvac / denominators) * 100.0
         room_heatings = {self.index_to_id[i]: round(float(q_percentage[i]), 2) for i in range(self.num_nodes)}
 
