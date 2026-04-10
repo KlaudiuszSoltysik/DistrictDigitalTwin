@@ -92,7 +92,7 @@ class SimulationService:
                                   method="process_command")
 
     def reset_simulation_logic(self):
-        self.simulation = DistrictSimulation("config/weather_history.csv")
+        self.simulation = DistrictSimulation("config/weather_history.csv", "config/prices_history.csv")
 
         self.run_id = int(time())
         self.is_paused = True

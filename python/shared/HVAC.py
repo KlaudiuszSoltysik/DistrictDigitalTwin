@@ -268,7 +268,7 @@ class HVAC:
                 method='L-BFGS-B',
                 bounds=bounds,
                 options={
-                    'maxiter': 10,
+                    'maxiter': 1,
                     'ftol': 1e-3,
                     'eps': 2.0,
                     'disp': False

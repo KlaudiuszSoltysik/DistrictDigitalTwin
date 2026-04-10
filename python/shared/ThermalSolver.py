@@ -31,7 +31,7 @@ class ThermalSolver:
         if room_noise_sigma > 0:
             time_scale = np.sqrt(dt / 3600.0)
 
-            temp_drift = np.random.normal(0.0, room_noise_sigma * time_scale, size=len(self.T))
+            temp_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 7.5, size=len(self.T))
 
             state_drift = temp_drift / self.A
 

@@ -127,6 +127,12 @@
                       ActiveRoomNames="_activeRoomNames"
                       DataSelector="@(msg => msg.Metering.TenantMeters["ventilation"])"/>
 
+<TenantMeteringCharts @ref="_energyUsageCharts"
+                      Title="Energy usage"
+                      Unit="kWh"
+                      ActiveRoomNames="_activeRoomNames"
+                      DataSelector="@(msg => msg.Metering.TenantMeters["energy_usage"])"/>
+
 <TenantMeteringCharts @ref="_billingCostCharts"
                       Title="Billing cost"
                       Unit="EUR"
@@ -150,6 +156,7 @@
     private TenantMeteringCharts? _heatingCharts;
     private TenantMeteringCharts? _coolingCharts;
     private TenantMeteringCharts? _ventilationCharts;
+    private TenantMeteringCharts? _energyUsageCharts;
     private TenantMeteringCharts? _billingCostCharts;
 
     private int _updateCounter;
@@ -238,6 +245,7 @@
         if (_heatingCharts != null) tasks.Add(_heatingCharts.AddSimulationTelemetryAsync(msg));
         if (_coolingCharts != null) tasks.Add(_coolingCharts.AddSimulationTelemetryAsync(msg));
         if (_ventilationCharts != null) tasks.Add(_ventilationCharts.AddSimulationTelemetryAsync(msg));
+        if (_energyUsageCharts != null) tasks.Add(_energyUsageCharts.AddSimulationTelemetryAsync(msg));
         if (_billingCostCharts != null) tasks.Add(_billingCostCharts.AddSimulationTelemetryAsync(msg));
 
         await Task.WhenAll(tasks);
@@ -280,6 +288,7 @@
         if (_heatingCharts != null) tasks.Add(_heatingCharts.LoadSimulationTelemetryAsync(msgs));
         if (_coolingCharts != null) tasks.Add(_coolingCharts.LoadSimulationTelemetryAsync(msgs));
         if (_ventilationCharts != null) tasks.Add(_ventilationCharts.LoadSimulationTelemetryAsync(msgs));
+        if (_energyUsageCharts != null) tasks.Add(_energyUsageCharts.LoadSimulationTelemetryAsync(msgs));
         if (_billingCostCharts != null) tasks.Add(_billingCostCharts.LoadSimulationTelemetryAsync(msgs));
 
         await Task.WhenAll(tasks);

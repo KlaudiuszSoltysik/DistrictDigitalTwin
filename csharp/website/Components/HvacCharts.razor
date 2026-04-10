@@ -7,15 +7,15 @@
     {
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@($"{roomName} digital twin")"
-                         Items="GetDigitalTwinPoints(roomName)"
+                         Name="@roomName"
+                         Items="GetSimulationPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => (decimal?)p.Temperature)"/>
 
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@roomName"
-                         Items="GetSimulationPoints(roomName)"
+                         Name="@($"{roomName} digital twin")"
+                         Items="GetDigitalTwinPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => (decimal?)p.Temperature)"/>
 
@@ -53,15 +53,15 @@
     {
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@($"{roomName} digital twin")"
-                         Items="GetDigitalTwinPoints(roomName)"
+                         Name="@roomName"
+                         Items="GetSimulationPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => (decimal)p.Heating)"/>
 
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@roomName"
-                         Items="GetSimulationPoints(roomName)"
+                         Name="@($"{roomName} digital twin")"
+                         Items="GetDigitalTwinPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => (decimal)p.Heating)"/>
     }
@@ -73,15 +73,15 @@
     {
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@($"{roomName} digital twin")"
-                         Items="GetDigitalTwinPoints(roomName)"
+                         Name="@roomName"
+                         Items="GetSimulationPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => p.Co2)"/>
 
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@roomName"
-                         Items="GetSimulationPoints(roomName)"
+                         Name="@($"{roomName} digital twin")"
+                         Items="GetDigitalTwinPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => p.Co2)"/>
     }
@@ -93,15 +93,15 @@
     {
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@($"{roomName} digital twin")"
-                         Items="GetDigitalTwinPoints(roomName)"
+                         Name="@roomName"
+                         Items="GetSimulationPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => (decimal)p.Ventilation)"/>
 
         <ApexPointSeries TItem="ChartPoint"
                          SeriesType="SeriesType.Line"
-                         Name="@roomName"
-                         Items="GetSimulationPoints(roomName)"
+                         Name="@($"{roomName} digital twin")"
+                         Items="GetDigitalTwinPoints(roomName)"
                          XValue="@(p => p.Timestamp)"
                          YValue="@(p => (decimal)p.Ventilation)"/>
     }
@@ -113,15 +113,15 @@
                @ref="_chart5">
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="HVAC power digital twin"
-                         Items="_digitalTwinTelemetry"
+                         Name="HAVC power"
+                         Items="_simulationTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => Math.Abs((decimal)t.RoomHvacQ.Values.Sum()) / 1000)"/>
 
         <ApexPointSeries TItem="Telemetry"
                          SeriesType="SeriesType.Line"
-                         Name="HAVC power"
-                         Items="_simulationTelemetry"
+                         Name="HVAC power digital twin"
+                         Items="_digitalTwinTelemetry"
                          XValue="@(t => t.Timestamp)"
                          YValue="@(t => Math.Abs((decimal)t.RoomHvacQ.Values.Sum()) / 1000)"/>
     </ApexChart>

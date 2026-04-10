@@ -69,7 +69,7 @@ class Co2Solver:
 
         if room_noise_sigma > 0:
             time_scale = np.sqrt(dt / 3600.0)
-            gas_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 20, size=self.num_nodes)
+            gas_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 1000, size=self.num_nodes)
 
             state_drift = gas_drift / self.V
 
