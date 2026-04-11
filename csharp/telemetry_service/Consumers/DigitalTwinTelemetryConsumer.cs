@@ -58,8 +58,6 @@ public class DigitalTwinTelemetryConsumer(TelemetryDbContext db, ILogger<Digital
                 SunAltitude = msg.Weather.SunAltitude,
                 SunAzimuth = msg.Weather.SunAzimuth,
                 Co2 = msg.Weather.Co2,
-                ElectricityCost = msg.EnergyCosts.ElectricityCost,
-                GasCost = msg.EnergyCosts.GasCost,
                 PvFarmYield = msg.EnergyCosts.PvFarmYield,
                 CopHeating = msg.EnergyCosts.CopHeating,
                 CopCooling = msg.EnergyCosts.CopCooling,

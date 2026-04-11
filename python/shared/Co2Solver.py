@@ -16,6 +16,7 @@ class Co2Solver:
         self.mongodb = MongoDbController()
 
         self.is_enabled_mask = None
+
         self.set_on_hours()
 
     def set_on_hours(self):
@@ -56,20 +57,22 @@ class Co2Solver:
 
         for _ in range(steps):
             co2_mixed = np.dot(self.G, self.co2) - (np.sum(self.G, axis=1) * self.co2)
-
             co2_infiltrated = self.G_ext_air_mix * (outside_co2 - self.co2)
-
             co2_vented = v_hvac * (outside_co2 - self.co2)
 
-            total_co2_flow = co2_mixed + co2_infiltrated + co2_vented
+            total_co2_flow_per_hour = co2_mixed + co2_infiltrated + co2_vented
 
-            self.co2 += (total_co2_flow / self.V) * micro_dt
+            total_co2_flow_per_second = total_co2_flow_per_hour / 3600.0
 
+            self.co2 += (total_co2_flow_per_second / self.V) * micro_dt
             self.co2 += (co2_generation_m3_s / self.V) * 1000000.0 * micro_dt
 
         if room_noise_sigma > 0:
             time_scale = np.sqrt(dt / 3600.0)
-            state_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 50, size=len(self.V))
+            gas_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 1000, size=self.num_nodes)
+
+            state_drift = gas_drift / self.V
+
             self.co2 += state_drift
 
         self.co2 = np.maximum(self.co2, 400.0)

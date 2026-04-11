@@ -24,28 +24,26 @@
             continue;
         }
 
-        {
-            <ApexPointSeries TItem="ChartPoint"
-                             SeriesType="SeriesType.Line"
-                             Name="@($"{roomName} min")"
-                             Items="GetConfigPoints(roomName, ConfigLineType.Min)"
-                             XValue="@(p => p.Timestamp)"
-                             YValue="@(p => (decimal?)p.Temperature)"/>
+        <ApexPointSeries TItem="ChartPoint"
+                         SeriesType="SeriesType.Line"
+                         Name="@($"{roomName} min")"
+                         Items="GetConfigPoints(roomName, ConfigLineType.Min)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal?)p.Temperature)"/>
 
-            <ApexPointSeries TItem="ChartPoint"
-                             SeriesType="SeriesType.Line"
-                             Name="@($"{roomName} desired")"
-                             Items="GetConfigPoints(roomName, ConfigLineType.Target)"
-                             XValue="@(p => p.Timestamp)"
-                             YValue="@(p => (decimal?)p.Temperature)"/>
+        <ApexPointSeries TItem="ChartPoint"
+                         SeriesType="SeriesType.Line"
+                         Name="@($"{roomName} desired")"
+                         Items="GetConfigPoints(roomName, ConfigLineType.Target)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal?)p.Temperature)"/>
 
-            <ApexPointSeries TItem="ChartPoint"
-                             SeriesType="SeriesType.Line"
-                             Name="@($"{roomName} max")"
-                             Items="GetConfigPoints(roomName, ConfigLineType.Max)"
-                             XValue="@(p => p.Timestamp)"
-                             YValue="@(p => (decimal?)p.Temperature)"/>
-        }
+        <ApexPointSeries TItem="ChartPoint"
+                         SeriesType="SeriesType.Line"
+                         Name="@($"{roomName} max")"
+                         Items="GetConfigPoints(roomName, ConfigLineType.Max)"
+                         XValue="@(p => p.Timestamp)"
+                         YValue="@(p => (decimal?)p.Temperature)"/>
     }
 </ApexChart>
 

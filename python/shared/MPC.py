@@ -5,8 +5,8 @@ from scipy.optimize import minimize
 from shared.MongoDbController import MongoDbController
 
 
-class HVAC:
-    def __init__(self, pv_farm, heat_pump, num_nodes, max_heating_powers, max_cooling_powers, district_id_dict,
+class MPC:
+    def __init__(self, pv_farm, heat_pump, gas_boiler, num_nodes, district_id_dict,
                  is_digital_twin):
         self.horizon_hours = 6
         self.block_size = 12
@@ -19,9 +19,10 @@ class HVAC:
 
         self.pv_farm = pv_farm
         self.heat_pump = heat_pump
+        self.gas_boiler = gas_boiler
         self.num_nodes = num_nodes
-        self.max_powers = max_heating_powers
-        self.min_powers = max_cooling_powers
+        self.max_heat_pump_powers = heat_pump.max_heat_pump_powers
+        self.min_heat_pump_powers = heat_pump.min_heat_pump_powers
         self.district_id_dict = district_id_dict
         self.is_digital_twin = is_digital_twin
 
@@ -90,17 +91,17 @@ class HVAC:
         return T_min_horizon, T_max_horizon
 
     def cost_function(self, x_flat, current_T, current_co2, T_min_horizon, T_max_horizon, t_out_forecast,
-                      co2_out_forecast,
-                      q_env_forecast, is_enabled_forecast, thermal_solver, co2_solver, dt, horizon_steps, control_steps,
-                      elec_cost_forecast, gas_cost_forecast, res_yield_forecast, cop_heat_forecast, cop_cool_forecast):
+                      co2_out_forecast, q_env_forecast, is_enabled_forecast, thermal_solver, co2_solver, dt,
+                      horizon_steps, control_steps, elec_cost_forecast, gas_cost_forecast, res_yield_forecast,
+                      cop_heat_forecast, cop_cool_forecast):
         half_idx = control_steps * self.num_nodes
 
         Q_percent_blocked = x_flat[:half_idx].reshape((control_steps, self.num_nodes))
         V_percent_blocked = x_flat[half_idx:].reshape((control_steps, self.num_nodes))
 
         Q_watts_blocked = np.where(Q_percent_blocked >= 0,
-                                   (Q_percent_blocked / 100.0) * self.max_powers,
-                                   (Q_percent_blocked / 100.0) * self.min_powers)
+                                   (Q_percent_blocked / 100.0) * self.max_heat_pump_powers,
+                                   (Q_percent_blocked / 100.0) * self.min_heat_pump_powers)
         V_m3s_blocked = (V_percent_blocked / 100.0) * 0.05
 
         Q_hvac_matrix = np.repeat(Q_watts_blocked, self.block_size, axis=0)
@@ -241,8 +242,8 @@ class HVAC:
 
                 costs = energy_service.get_effective_costs(future_time, self.pv_farm, self.heat_pump, w, noise_sigma)
 
-                elec_cost_forecast[k] = costs["electricity_cost"]
-                gas_cost_forecast[k] = costs["gas_cost"]
+                elec_cost_forecast[k] = costs["electricity_price"]
+                gas_cost_forecast[k] = costs["gas_price"]
                 res_yield_forecast[k] = costs["pv_farm_yield"]
                 cop_heat_forecast[k] = costs["cop_heating"]
                 cop_cool_forecast[k] = costs["cop_cooling"]
@@ -268,7 +269,7 @@ class HVAC:
                 method='L-BFGS-B',
                 bounds=bounds,
                 options={
-                    'maxiter': 10,
+                    'maxiter': 1, # 10
                     'ftol': 1e-3,
                     'eps': 2.0,
                     'disp': False
@@ -280,8 +281,8 @@ class HVAC:
             optimal_v_percent = res.x[half_idx:].reshape((control_steps, self.num_nodes))
 
             optimal_q_watts = np.where(optimal_q_percent >= 0,
-                                       (optimal_q_percent / 100.0) * self.max_powers,
-                                       (optimal_q_percent / 100.0) * self.min_powers)
+                                       (optimal_q_percent / 100.0) * self.max_heat_pump_powers,
+                                       (optimal_q_percent / 100.0) * self.min_heat_pump_powers)
             optimal_v_m3s = (optimal_v_percent / 100.0) * 0.05
 
             self.cached_t_plan = np.repeat(optimal_q_watts, self.block_size, axis=0)

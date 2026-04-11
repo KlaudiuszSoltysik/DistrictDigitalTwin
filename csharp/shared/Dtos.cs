@@ -39,8 +39,6 @@ public class WeatherData
 
 public class EnergyCostsData
 {
-    [JsonPropertyName("electricity_cost")] public double ElectricityCost { get; set; }
-    [JsonPropertyName("gas_cost")] public double GasCost { get; set; }
     [JsonPropertyName("pv_farm_yield")] public double PvFarmYield { get; set; }
     [JsonPropertyName("cop_heating")] public double CopHeating { get; set; }
     [JsonPropertyName("cop_cooling")] public double CopCooling { get; set; }
@@ -120,8 +118,8 @@ public class AllApartmentsConfigRoom
 
 public class AllApartmentsConfigHvac
 {
-    public List<double> TemperaturesMin { get; } = [];
-    public List<double?> Temperatures { get; } = [];
-    public List<double> TemperaturesMax { get; } = [];
-    public List<int> Co2 { get; } = [];
+    public List<double> TemperaturesMin { get; set; } = [];
+    public List<double?> Temperatures { get; set; } = [];
+    public List<double> TemperaturesMax { get; set; } = [];
+    public List<int> Co2 { get; set; } = [];
 }

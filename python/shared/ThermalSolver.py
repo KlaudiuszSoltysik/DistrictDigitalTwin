@@ -5,12 +5,13 @@ class ThermalSolver:
     HRV_EFFICIENCY = 0.8
     RHO_CP_AIR = 1200
 
-    def __init__(self, G_temp, C, G_ext_air, G_ext_ground, T_ground):
+    def __init__(self, G_temp, C, G_ext_air, G_ext_ground, T_ground, A):
         self.G_temp = G_temp
         self.C = C
         self.G_ext_air = G_ext_air
         self.G_ext_ground = G_ext_ground
         self.T_ground = T_ground
+        self.A = A
 
         self.T = np.full(len(C), 21.0)
 
@@ -30,7 +31,9 @@ class ThermalSolver:
         if room_noise_sigma > 0:
             time_scale = np.sqrt(dt / 3600.0)
 
-            state_drift = np.random.normal(0.0, room_noise_sigma * time_scale, size=len(self.T))
+            temp_drift = np.random.normal(0.0, room_noise_sigma * time_scale * 7.5, size=len(self.T))
+
+            state_drift = temp_drift / self.A
 
             self.T += state_drift
 

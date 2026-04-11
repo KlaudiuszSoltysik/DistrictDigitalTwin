@@ -79,8 +79,9 @@ class SimulationService:
                     self.noise_sigma = target_config["room_noise_sigma"]
 
                 elif action == "UPDATE_APARTMENT_CONFIG":
-                    self.simulation.hvac.set_temperatures_config()
+                    self.simulation.mpc.set_temperatures_config()
                     self.simulation.co2_solver.set_on_hours()
+                    self.simulation.metering_service.set_on_hours()
 
                 elif action == "RESET":
                     self.reset_simulation_logic()
@@ -91,7 +92,7 @@ class SimulationService:
                                   method="process_command")
 
     def reset_simulation_logic(self):
-        self.simulation = DistrictSimulation("config/weather_history.csv")
+        self.simulation = DistrictSimulation("config/weather_history.csv", "config/prices_history.csv")
 
         self.run_id = int(time())
         self.is_paused = True

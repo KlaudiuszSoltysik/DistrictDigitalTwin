@@ -72,11 +72,12 @@ class DigitalTwinService:
             self.simulation.co2_solver.co2 = np.array(list(cmd_json["co2"].values()), dtype=float)
 
             self.simulation.co2_solver.set_on_hours()
+            self.simulation.metering_service.set_on_hours()
 
-            self.simulation.hvac.set_temperatures_config()
-            self.simulation.hvac.cached_t_plan = None
-            self.simulation.hvac.cached_v_plan = None
-            self.simulation.hvac.plan_step_index = 0
+            self.simulation.mpc.set_temperatures_config()
+            self.simulation.mpc.cached_t_plan = None
+            self.simulation.mpc.cached_v_plan = None
+            self.simulation.mpc.plan_step_index = 0
 
             self.run_physics_loop(end_ts)
         except Exception as e:

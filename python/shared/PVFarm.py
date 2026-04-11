@@ -13,7 +13,7 @@ class PVFarm:
             return 0.0
 
         if noise_sigma > 0:
-            noise_factor = np.random.normal(loc=1.0, scale=noise_sigma)
+            noise_factor = np.random.normal(1.0, scale=noise_sigma * base_yield / 75)
             noisy_yield = base_yield * noise_factor
         else:
             noisy_yield = base_yield

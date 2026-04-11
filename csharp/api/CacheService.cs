@@ -36,17 +36,9 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
 
             await LoadSimulationTelemetryFromDb(_simulationTelemetry, latestSim.RunId, cutoff);
             await LoadSimulationTelemetryFromDb(_monthlySimulationTelemetry, latestSim.RunId, monthlyCutoff);
-        }
 
-        var latestTwin = await db.DigitalTwinTelemetry
-            .AsNoTracking()
-            .OrderByDescending(t => t.Timestamp)
-            .FirstOrDefaultAsync();
-
-        if (latestTwin != null)
-        {
             _currentDigitalTwinRunId = 1;
-            var cutoff = latestTwin.Timestamp.AddHours(-48);
+            cutoff = latestSim.Timestamp.AddHours(-24);
             await LoadDigitalTwinTelemetryFromDb(cutoff);
         }
     }
@@ -108,8 +100,6 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     },
                     EnergyCosts = new EnergyCostsData
                     {
-                        ElectricityCost = e.ElectricityCost,
-                        GasCost = e.GasCost,
                         PvFarmYield = e.PvFarmYield,
                         CopHeating = e.CopHeating,
                         CopCooling = e.CopCooling
@@ -182,8 +172,6 @@ public class CacheService(IServiceScopeFactory scopeFactory, ILogger<CacheServic
                     },
                     EnergyCosts = new EnergyCostsData
                     {
-                        ElectricityCost = e.ElectricityCost,
-                        GasCost = e.GasCost,
                         PvFarmYield = e.PvFarmYield,
                         CopHeating = e.CopHeating,
                         CopCooling = e.CopCooling

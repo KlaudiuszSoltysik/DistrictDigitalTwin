@@ -25,9 +25,10 @@ class DistrictModelParser:
         self.G_air = np.zeros((self.N, self.N))
         self.G_ext_air_mix = np.zeros(self.N)
         self.V = np.zeros(self.N)
+        self.A = np.zeros(self.N)
 
-        self.max_heating_powers = np.zeros(self.N)
-        self.max_cooling_powers = np.zeros(self.N)
+        self.max_heat_pump_powers = np.zeros(self.N)
+        self.min_heat_pump_powers = np.zeros(self.N)
 
         self.standards = {building["id"]: building["standards"] for building in self.raw_data["buildings"]}
 
@@ -55,12 +56,14 @@ class DistrictModelParser:
             capacity_key = room["heat_capacity_per_m2"]
             capacity_value = standards[capacity_key]["heat_capacity_per_m2"]
 
+            self.A[i] = room["area"]
+
             self.C[i] = c_air + (room["area"] * capacity_value)
 
             self.V[i] = room["volume"]
 
-            self.max_heating_powers[i] = room["area"] * standards["heating_power_per_m2"]
-            self.max_cooling_powers[i] = room["area"] * standards["cooling_power_per_m2"]
+            self.max_heat_pump_powers[i] = room["area"] * standards["heating_power_per_m2"]
+            self.min_heat_pump_powers[i] = room["area"] * standards["cooling_power_per_m2"]
 
         for building in self.raw_data["buildings"]:
             building_standards = building["standards"]
