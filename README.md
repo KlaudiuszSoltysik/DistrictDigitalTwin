@@ -1,6 +1,9 @@
 # District Digital Twin (during development)
 
-![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
+> **Project Status: Archived (PoC Completed)**
+> This project has successfully reached its Proof of Concept (PoC) milestone. The core thermodynamic engine, Model Predictive Control (MPC) solver, and infrastructure have been validated. The repository is now archived and serves as a technical showcase of high-fidelity physics simulations and IoT/SaaS architecture.
+
+![Build Status](https://img.shields.io/badge/Status-PoC_Completed-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-%20.NET%20|%20Python-blue)
 
 A scalable Thermodynamic Digital Twin for residential districts, leveraging Model Predictive Control (MPC) and high-fidelity physics simulations to optimize energy efficiency.
@@ -87,15 +90,22 @@ Creating a scalable backend system that manages a virtual residential district, 
 - **Visualization:** Custom Grafana dashboards built with SRE paradigms.
 - **Data Retention:** Enforced automated data retention policies.
 
-## 📝 To-Do (Next Tasks)
+## 🏁 PoC Outcomes & Future Limitations
 
-- refactor weather randomizing
-- add cop noise
-- add socket consumption noise
-- custom tenant price
-- get legit gas prices
-3. **Hybrid Logic:** Implement logic in `EnergyService` to dynamically calculate whether heating with electricity (Heat Pump) or gas is currently cheaper.
-4. **Improve Simulation Models:** Refine the PV farm, Heat Pump and Gas Boiler simulations for greater realism.
-6. **EV Chargers:** Add configurable EV chargers linked to the tenant panel and the billing system.
-7. **Battery Energy Storage System (BESS):** Add battery simulation and integrate it with the MPC solver.
-8. **DevOps & Cleanup:** Container limits/reservations, K8s migration, CI/CD with Terraform, Grafana polishing, and fix HVAC spikes.
+The Proof of Concept successfully validated the integration of the thermodynamic engine with the L-BFGS-B MPC solver within a containerized environment. 
+
+**Key Findings:**
+1. **Algorithm Viability:** The MPC solver successfully generates highly accurate predictions and optimal HVAC routing paths.
+2. **Computational Bottleneck:** The primary limitation identified during the PoC phase is the immense CPU time required for the L-BFGS-B optimization logic as the district scales. 
+3. **Scaling Requirements:** Taking this architecture to production would require migrating from single-node orchestration to a distributed Kubernetes (K8s) cluster with heavy auto-scaling capabilities and dedicated compute nodes, which exceeds the scope of this research phase.
+
+## 📝 Possible enhancements
+
+1. **Hybrid Logic:** Implement logic in `EnergyService` to dynamically calculate whether heating with electricity (Heat Pump) or gas is currently cheaper.
+2. **Improve Simulation Models:** Refine the PV farm and Heat Pump simulations for greater realism.
+3. **EV Chargers:** Add configurable EV chargers linked to the tenant panel and the billing system.
+4. **Battery Energy Storage System (BESS):** Add battery simulation and integrate it with the MPC solver.
+5. **DevOps & Cleanup:** Container limits/reservations, K8s migration, CI/CD with Terraform, Grafana polishing, and fix HVAC spikes.
+6. custom tenant price
+7. add tenant standby + present consumption
+8. get legit energy + gas prices
